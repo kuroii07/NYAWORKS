@@ -155,10 +155,18 @@ describe("AI settings storage", () => {
 
     writeStoredAiSettings(settings, storage);
     const raw = storage.getItem(AI_SETTINGS_STORAGE_KEY) ?? "";
+    const reloaded = readStoredAiSettings(storage);
 
     expect(raw).not.toContain("must-not-persist");
     expect(raw).not.toContain('"apiKey":');
-    expect(readStoredAiSettings(storage)).toEqual(settings);
+    expect(reloaded).toEqual({
+      ...settings,
+      connections: settings.connections.map((connection) =>
+        connection.apiKeyRef
+          ? { ...connection, verificationStatus: "needs-key" }
+          : connection
+      )
+    });
   });
 
   it("keeps a successful status in active state but requires the session key after reload", () => {
@@ -185,4 +193,30 @@ describe("AI settings storage", () => {
       "needs-key"
     );
   });
+
+  it.each(["unverified", "failed"] as const)(
+    "marks a persisted %s connection as needing its session key after reload",
+    (verificationStatus) => {
+      const storage = new MemoryStorage();
+      const settings = normalizeAiSettings({
+        ...DEFAULT_AI_SETTINGS,
+        connections: DEFAULT_AI_SETTINGS.connections.map((connection, index) =>
+          index === 0
+            ? {
+                ...connection,
+                apiKeyRef: "session:openai",
+                selectedModel: "gpt-test",
+                verificationStatus
+              }
+            : connection
+        )
+      });
+
+      writeStoredAiSettings(settings, storage);
+
+      expect(
+        readStoredAiSettings(storage).connections[0].verificationStatus
+      ).toBe("needs-key");
+    }
+  );
 });

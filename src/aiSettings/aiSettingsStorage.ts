@@ -327,7 +327,7 @@ export function readStoredAiSettings(storage?: SettingsStorage): AiSettings {
     return {
       ...normalized,
       connections: normalized.connections.map((connection) =>
-        connection.apiKeyRef && connection.verificationStatus === "connected"
+        connection.apiKeyRef
           ? { ...connection, verificationStatus: "needs-key" }
           : connection
       )
