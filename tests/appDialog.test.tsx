@@ -16,6 +16,10 @@ describe("AppDialog", () => {
           label: "取消",
           onClick: vi.fn()
         }}
+        tertiaryAction={{
+          label: "稍后处理",
+          onClick: vi.fn()
+        }}
         onClose={vi.fn()}
       />
     );
@@ -25,5 +29,6 @@ describe("AppDialog", () => {
     expect(markup).toContain("重置所有设置");
     expect(markup).toContain("确认重置");
     expect(markup).toContain("取消");
+    expect(markup).toContain("稍后处理");
   });
 });

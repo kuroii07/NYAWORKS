@@ -4359,6 +4359,12 @@ html[data-reordering="true"] * {
   gap: 8px;
 }
 
+.app-dialog__button--tertiary {
+  margin-right: auto;
+  color: var(--nw-text-muted);
+  background: transparent;
+}
+
 .app-dialog__button {
   min-width: 88px;
   min-height: 32px;

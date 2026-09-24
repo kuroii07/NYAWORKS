@@ -64,6 +64,7 @@ import {
 } from "../components/SettingSelect";
 import { useLanguage } from "../i18n/LanguageProvider";
 import { useSettings } from "../settings/SettingsProvider";
+import type { SettingsTabId } from "../settings/types";
 import {
   AiConnectionDialog,
   type AiConnectionDialogRequestState
@@ -232,9 +233,16 @@ function AiSwitch({
 }
 
 export function AiSettingsPanel({
-  onDirtyStateChange
+  onDirtyStateChange,
+  pendingTabChange = null,
+  onResolveTabChange
 }: {
   onDirtyStateChange?: (dirty: boolean) => void;
+  pendingTabChange?: SettingsTabId | null;
+  onResolveTabChange?: (
+    resolution: "save" | "discard" | "cancel",
+    saveSucceeded: boolean
+  ) => void;
 }) {
   const { copy } = useLanguage();
   const AI_COPY = copy.settings.ai;
@@ -1327,6 +1335,29 @@ export function AiSettingsPanel({
             onClick: discardAndContinue
           }}
           onClose={() => setPendingSelection(null)}
+        />
+      ) : null}
+
+      {pendingTabChange ? (
+        <AppDialog
+          title={AI_COPY.unsavedTitle}
+          description={AI_COPY.unsavedBody}
+          primaryAction={{
+            label: AI_COPY.saveAndContinue,
+            onClick: async () => {
+              const saved = await saveCurrentDraft();
+              onResolveTabChange?.("save", saved);
+            }
+          }}
+          secondaryAction={{
+            label: AI_COPY.discardAndContinue,
+            onClick: () => onResolveTabChange?.("discard", true)
+          }}
+          tertiaryAction={{
+            label: AI_COPY.cancel,
+            onClick: () => onResolveTabChange?.("cancel", false)
+          }}
+          onClose={() => onResolveTabChange?.("cancel", false)}
         />
       ) : null}
 

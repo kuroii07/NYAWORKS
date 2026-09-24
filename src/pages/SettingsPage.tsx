@@ -46,6 +46,28 @@ import { HomeSettingsPanel } from "./HomeSettingsPanel";
 
 type SettingIcon = ComponentType<IconProps>;
 
+export function getSettingsTabTransition(
+  activeTab: SettingsTabId,
+  requestedTab: SettingsTabId,
+  aiDirty: boolean
+): { activeTab: SettingsTabId; pendingTab: SettingsTabId | null } {
+  return activeTab === "ai" && requestedTab !== "ai" && aiDirty
+    ? { activeTab, pendingTab: requestedTab }
+    : { activeTab: requestedTab, pendingTab: null };
+}
+
+export function resolvePendingSettingsTab(
+  pendingTab: SettingsTabId,
+  resolution: "save" | "discard" | "cancel",
+  saveSucceeded: boolean
+): SettingsTabId {
+  if (resolution === "cancel" || (resolution === "save" && !saveSucceeded)) {
+    return "ai";
+  }
+
+  return pendingTab;
+}
+
 const settingsBannerUrl = new URL(
   "../assets/nyaworks-home-banner.png",
   import.meta.url
@@ -435,6 +457,18 @@ export function SettingsPage({
 }) {
   const { copy } = useLanguage();
   const [activeTab, setActiveTab] = useState<SettingsTabId>(initialTab);
+  const [aiDirty, setAiDirty] = useState(false);
+  const [pendingTab, setPendingTab] = useState<SettingsTabId | null>(null);
+
+  function requestTabChange(requestedTab: SettingsTabId) {
+    const transition = getSettingsTabTransition(
+      activeTab,
+      requestedTab,
+      aiDirty
+    );
+    setActiveTab(transition.activeTab);
+    setPendingTab(transition.pendingTab);
+  }
 
   return (
     <main className="settings-workspace">
@@ -455,7 +489,7 @@ export function SettingsPage({
               aria-current={isActive ? "page" : undefined}
               aria-label={label}
               title={label}
-              onClick={() => setActiveTab(tabId)}
+              onClick={() => requestTabChange(tabId)}
             >
               <Icon aria-hidden="true" weight="regular" />
             </button>
@@ -469,7 +503,27 @@ export function SettingsPage({
         ) : activeTab === "home" ? (
           <HomeSettingsPanel initialEditing={editHomeOnOpen} />
         ) : activeTab === "ai" ? (
-          <AiSettingsPanel />
+          <AiSettingsPanel
+            onDirtyStateChange={setAiDirty}
+            pendingTabChange={pendingTab}
+            onResolveTabChange={(resolution, saveSucceeded) => {
+              if (!pendingTab) {
+                return;
+              }
+
+              const resolvedTab = resolvePendingSettingsTab(
+                pendingTab,
+                resolution,
+                saveSucceeded
+              );
+              setPendingTab(null);
+
+              if (resolvedTab !== "ai") {
+                setAiDirty(false);
+                setActiveTab(resolvedTab);
+              }
+            }}
+          />
         ) : activeTab === "about" ? (
           <AboutSettingsPanel />
         ) : (

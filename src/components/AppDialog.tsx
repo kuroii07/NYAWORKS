@@ -19,6 +19,7 @@ interface AppDialogProps {
   children?: ReactNode;
   primaryAction: AppDialogAction;
   secondaryAction?: AppDialogAction;
+  tertiaryAction?: AppDialogAction;
   onClose: () => void;
 }
 
@@ -28,6 +29,7 @@ export function AppDialog({
   children,
   primaryAction,
   secondaryAction,
+  tertiaryAction,
   onClose
 }: AppDialogProps) {
   const titleId = useId();
@@ -84,6 +86,16 @@ export function AppDialog({
         </div>
         {children ? <div className="app-dialog__content">{children}</div> : null}
         <div className="app-dialog__actions">
+          {tertiaryAction ? (
+            <button
+              className="app-dialog__button app-dialog__button--tertiary"
+              type="button"
+              disabled={tertiaryAction.disabled}
+              onClick={tertiaryAction.onClick}
+            >
+              {tertiaryAction.label}
+            </button>
+          ) : null}
           {secondaryAction ? (
             <button
               className="app-dialog__button app-dialog__button--secondary"
