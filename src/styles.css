@@ -31,6 +31,7 @@
   --nw-radius-card: 8px;
   --nw-radius-control: 7px;
   --nw-fast: 150ms;
+  --nw-interface-brightness: 1;
 }
 
 * {
@@ -60,6 +61,12 @@ input {
 
 button {
   -webkit-tap-highlight-color: transparent;
+}
+
+#root,
+.setting-select-popover,
+.app-dialog-layer {
+  filter: brightness(var(--nw-interface-brightness));
 }
 
 button:focus-visible,
@@ -2336,6 +2343,65 @@ input:focus-visible {
     color var(--nw-fast) ease,
     border-color var(--nw-fast) ease,
     background-color var(--nw-fast) ease;
+}
+
+.brightness-control {
+  width: min(190px, 100%);
+  display: grid;
+  grid-template-columns: minmax(76px, 1fr) 38px;
+  align-items: center;
+  gap: 9px;
+}
+
+.brightness-control input {
+  width: 100%;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--nw-accent);
+  cursor: pointer;
+}
+
+.brightness-control input::-webkit-slider-runnable-track {
+  height: 4px;
+  border: 1px solid var(--nw-border-strong);
+  border-radius: 999px;
+  background: var(--nw-surface-strong);
+}
+
+.brightness-control input::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  margin-top: -6px;
+  border: 2px solid var(--nw-bg-elevated);
+  border-radius: 50%;
+  appearance: none;
+  background: var(--nw-accent-bright);
+  box-shadow: 0 0 8px var(--nw-accent-glow);
+}
+
+.brightness-control input::-moz-range-track {
+  height: 4px;
+  border: 1px solid var(--nw-border-strong);
+  border-radius: 999px;
+  background: var(--nw-surface-strong);
+}
+
+.brightness-control input::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--nw-bg-elevated);
+  border-radius: 50%;
+  background: var(--nw-accent-bright);
+  box-shadow: 0 0 8px var(--nw-accent-glow);
+}
+
+.brightness-control output {
+  color: var(--nw-text);
+  font-family: "Bahnschrift", "Microsoft YaHei UI", sans-serif;
+  font-size: 10px;
+  font-weight: 650;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .setting-reset-button:hover {

@@ -20,6 +20,7 @@ import {
 import { useState } from "react";
 import { AppDialog } from "../components/AppDialog";
 import { BrandMark } from "../components/BrandMark";
+import { BrightnessControl } from "../components/BrightnessControl";
 import {
   SettingSelect,
   type SettingSelectOption
@@ -41,6 +42,8 @@ import { useSettings } from "../settings/SettingsProvider";
 import { clearStoredLastPage } from "../settings/lastPageStorage";
 import {
   SETTINGS_TAB_IDS,
+  MAX_INTERFACE_BRIGHTNESS,
+  MIN_INTERFACE_BRIGHTNESS,
   TOOLTIP_DELAY_OPTIONS,
   type MotionPreference,
   type SettingsTabId,
@@ -324,6 +327,17 @@ function GeneralSettingsPanel({
               ariaLabel={labels.currentLanguage}
               options={languageOptions}
               onChange={setLanguage}
+            />
+          </SettingRow>
+          <SettingRow label={labels.interfaceBrightness}>
+            <BrightnessControl
+              value={generalSettings.interfaceBrightness}
+              min={MIN_INTERFACE_BRIGHTNESS}
+              max={MAX_INTERFACE_BRIGHTNESS}
+              ariaLabel={labels.interfaceBrightness}
+              onChange={(interfaceBrightness) =>
+                updateGeneralSettings({ interfaceBrightness })
+              }
             />
           </SettingRow>
           <SettingRow label={labels.homeBanner}>

@@ -140,6 +140,7 @@ export interface UiCopy {
       appearanceSection: string;
       currentTheme: string;
       currentLanguage: string;
+      interfaceBrightness: string;
       homeBanner: string;
       resetAllSettings: string;
       resetAction: string;

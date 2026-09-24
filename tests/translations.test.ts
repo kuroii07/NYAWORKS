@@ -31,6 +31,9 @@ describe("localized UI copy", () => {
         UI_COPY[languageId].settings.general.currentLanguage.length
       ).toBeGreaterThan(0);
       expect(
+        UI_COPY[languageId].settings.general.interfaceBrightness.length
+      ).toBeGreaterThan(0);
+      expect(
         UI_COPY[languageId].settings.general.resetAllSettings.length
       ).toBeGreaterThan(0);
       expect(

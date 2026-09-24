@@ -36,4 +36,14 @@ describe("settings dropdown controls", () => {
     expect(markup).toContain('aria-label="提示延迟"');
     expect(markup).toContain('aria-label="当前语言"');
   });
+
+  it("renders the theme-relative interface brightness control", () => {
+    const markup = renderSettingsPage();
+
+    expect(markup).toContain('type="range"');
+    expect(markup).toContain('min="90"');
+    expect(markup).toContain('max="110"');
+    expect(markup).toContain('aria-label="界面亮度"');
+    expect(markup).toContain("100%");
+  });
 });
