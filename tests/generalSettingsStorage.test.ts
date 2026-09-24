@@ -26,6 +26,11 @@ describe("general settings preference storage", () => {
     expect(readStoredGeneralSettings(new MemoryStorage())).toEqual(
       DEFAULT_GENERAL_SETTINGS
     );
+    expect(DEFAULT_GENERAL_SETTINGS).toMatchObject({
+      autoCheckUpdates: true,
+      showWhatsNew: true,
+      interfaceBrightness: 100
+    });
   });
 
   it("keeps valid values and repairs invalid stored fields", () => {
@@ -35,6 +40,9 @@ describe("general settings preference storage", () => {
       JSON.stringify({
         startupPage: "effects",
         rememberLastPage: false,
+        autoCheckUpdates: false,
+        showWhatsNew: false,
+        interfaceBrightness: 110,
         tooltipsEnabled: "yes",
         tooltipDelayMs: 700,
         motionPreference: "hyper",
@@ -47,6 +55,9 @@ describe("general settings preference storage", () => {
       ...DEFAULT_GENERAL_SETTINGS,
       startupPage: "effects",
       rememberLastPage: false,
+      autoCheckUpdates: false,
+      showWhatsNew: false,
+      interfaceBrightness: 110,
       tooltipDelayMs: 700,
       confirmDangerousActions: false,
       homeBannerEnabled: false
@@ -67,6 +78,9 @@ describe("general settings preference storage", () => {
     const settings: GeneralSettings = {
       startupPage: "animation",
       rememberLastPage: false,
+      autoCheckUpdates: false,
+      showWhatsNew: false,
+      interfaceBrightness: 104,
       tooltipsEnabled: false,
       tooltipDelayMs: 200,
       motionPreference: "reduced",
@@ -78,6 +92,19 @@ describe("general settings preference storage", () => {
 
     expect(readStoredGeneralSettings(storage)).toEqual(settings);
   });
+
+  it.each([89, 111, Number.NaN, "100", undefined])(
+    "repairs invalid interface brightness %p to 100",
+    (interfaceBrightness) => {
+      const storage = new MemoryStorage();
+      storage.setItem(
+        GENERAL_SETTINGS_STORAGE_KEY,
+        JSON.stringify({ interfaceBrightness })
+      );
+
+      expect(readStoredGeneralSettings(storage).interfaceBrightness).toBe(100);
+    }
+  );
 
   it("repairs a settings page or unknown startup target to home", () => {
     const storage = new MemoryStorage();

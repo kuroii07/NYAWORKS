@@ -10,11 +10,15 @@ import {
   readStoredGeneralSettings,
   writeStoredGeneralSettings
 } from "./generalSettingsStorage";
-import type { GeneralSettings } from "./types";
+import {
+  DEFAULT_GENERAL_SETTINGS,
+  type GeneralSettings
+} from "./types";
 
 interface SettingsContextValue {
   generalSettings: GeneralSettings;
   updateGeneralSettings: (patch: Partial<GeneralSettings>) => void;
+  resetGeneralSettings: () => void;
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
@@ -38,6 +42,10 @@ export function SettingsProvider({ children }: PropsWithChildren) {
     document.documentElement.dataset.tooltips = generalSettings.tooltipsEnabled
       ? "enabled"
       : "disabled";
+    document.documentElement.style.setProperty(
+      "--nw-interface-brightness",
+      String(generalSettings.interfaceBrightness / 100)
+    );
     writeStoredGeneralSettings(generalSettings, window.localStorage);
   }, [generalSettings]);
 
@@ -46,7 +54,8 @@ export function SettingsProvider({ children }: PropsWithChildren) {
       generalSettings,
       updateGeneralSettings: (patch) => {
         setGeneralSettings((current) => ({ ...current, ...patch }));
-      }
+      },
+      resetGeneralSettings: () => setGeneralSettings(DEFAULT_GENERAL_SETTINGS)
     }),
     [generalSettings]
   );

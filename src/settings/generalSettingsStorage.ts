@@ -1,4 +1,5 @@
 import {
+  clampInterfaceBrightness,
   DEFAULT_GENERAL_SETTINGS,
   MOTION_PREFERENCES,
   TOOLTIP_DELAY_OPTIONS,
@@ -57,6 +58,15 @@ function normalizeGeneralSettings(value: unknown): GeneralSettings {
     rememberLastPage: isBoolean(candidate.rememberLastPage)
       ? candidate.rememberLastPage
       : DEFAULT_GENERAL_SETTINGS.rememberLastPage,
+    autoCheckUpdates: isBoolean(candidate.autoCheckUpdates)
+      ? candidate.autoCheckUpdates
+      : DEFAULT_GENERAL_SETTINGS.autoCheckUpdates,
+    showWhatsNew: isBoolean(candidate.showWhatsNew)
+      ? candidate.showWhatsNew
+      : DEFAULT_GENERAL_SETTINGS.showWhatsNew,
+    interfaceBrightness: clampInterfaceBrightness(
+      candidate.interfaceBrightness
+    ),
     tooltipsEnabled: isBoolean(candidate.tooltipsEnabled)
       ? candidate.tooltipsEnabled
       : DEFAULT_GENERAL_SETTINGS.tooltipsEnabled,
