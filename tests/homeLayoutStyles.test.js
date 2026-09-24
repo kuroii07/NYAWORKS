@@ -40,6 +40,12 @@ describe("home layout responsive styles", () => {
     );
   });
 
+  it("uses two equal columns for two-option segmented controls", () => {
+    expect(styles).toMatch(
+      /\.setting-segments\[data-count="2"\]\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s
+    );
+  });
+
   it("allows compact action menus to extend beyond home settings cards", () => {
     expect(styles).toMatch(
       /\.home-settings-section\s*\{[^}]*overflow:\s*visible/s

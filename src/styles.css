@@ -2502,6 +2502,10 @@ input:focus-visible {
   background: var(--nw-bg-elevated);
 }
 
+.setting-segments[data-count="2"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .setting-segments button {
   min-width: 0;
   padding: 0 7px;

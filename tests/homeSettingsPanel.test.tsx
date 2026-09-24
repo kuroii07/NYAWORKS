@@ -33,6 +33,7 @@ describe("HomeSettingsPanel", () => {
     expect(markup).toContain("记住上次模式");
     expect(markup).toContain("新建 / 选择");
     expect(markup).toContain("锚点 / 对齐");
+    expect(markup.match(/data-count="2"/g)).toHaveLength(2);
     expect(markup).toContain("导入布局");
     expect(markup).toContain("导出布局");
     expect(markup).toContain("恢复默认");
