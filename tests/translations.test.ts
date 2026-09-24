@@ -60,6 +60,10 @@ describe("localized UI copy", () => {
       expect(UI_COPY[languageId].topbar.whatsNewAria.length).toBeGreaterThan(0);
       expect(UI_COPY[languageId].topbar.whatsNewTitle.length).toBeGreaterThan(0);
       expect(UI_COPY[languageId].whatsNew.title.length).toBeGreaterThan(0);
+      expect(UI_COPY[languageId].whatsNew.version.length).toBeGreaterThan(0);
+      expect(UI_COPY[languageId].whatsNew.releaseDate.length).toBeGreaterThan(
+        0
+      );
       expect(UI_COPY[languageId].whatsNew.features.length).toBeGreaterThan(0);
       expect(UI_COPY[languageId].whatsNew.improvements.length).toBeGreaterThan(
         0
@@ -67,7 +71,13 @@ describe("localized UI copy", () => {
       expect(UI_COPY[languageId].whatsNew.fixes.length).toBeGreaterThan(0);
       expect(UI_COPY[languageId].whatsNew.close.length).toBeGreaterThan(0);
       expect(UI_COPY[languageId].updateDialog.title.length).toBeGreaterThan(0);
+      expect(UI_COPY[languageId].updateDialog.currentVersion.length).toBeGreaterThan(
+        0
+      );
       expect(UI_COPY[languageId].updateDialog.availableVersion.length).toBeGreaterThan(
+        0
+      );
+      expect(UI_COPY[languageId].updateDialog.summaryFallback.length).toBeGreaterThan(
         0
       );
       expect(UI_COPY[languageId].updateDialog.update.length).toBeGreaterThan(0);
