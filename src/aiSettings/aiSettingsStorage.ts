@@ -98,11 +98,14 @@ function normalizeVerificationStatus(
     return "unconfigured";
   }
 
-  if (!baseUrl || !model || value === "connected") {
+  if (!baseUrl || !model) {
     return "needs-key";
   }
 
-  return value === "failed" || value === "unverified" || value === "needs-key"
+  return value === "connected" ||
+    value === "failed" ||
+    value === "unverified" ||
+    value === "needs-key"
     ? value
     : "unverified";
 }
@@ -317,9 +320,18 @@ export function readStoredAiSettings(storage?: SettingsStorage): AiSettings {
 
   try {
     const stored = storage.getItem(AI_SETTINGS_STORAGE_KEY);
-    return stored
+    const normalized = stored
       ? normalizeAiSettings(JSON.parse(stored))
       : normalizeAiSettings(DEFAULT_AI_SETTINGS);
+
+    return {
+      ...normalized,
+      connections: normalized.connections.map((connection) =>
+        connection.apiKeyRef && connection.verificationStatus === "connected"
+          ? { ...connection, verificationStatus: "needs-key" }
+          : connection
+      )
+    };
   } catch {
     return normalizeAiSettings(DEFAULT_AI_SETTINGS);
   }
@@ -349,4 +361,3 @@ export function getDefaultBaseUrl(providerId: AiProviderId): string {
       ?.defaultBaseUrl ?? ""
   );
 }
-

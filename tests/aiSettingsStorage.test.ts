@@ -160,4 +160,29 @@ describe("AI settings storage", () => {
     expect(raw).not.toContain('"apiKey":');
     expect(readStoredAiSettings(storage)).toEqual(settings);
   });
+
+  it("keeps a successful status in active state but requires the session key after reload", () => {
+    const active = normalizeAiSettings({
+      ...DEFAULT_AI_SETTINGS,
+      connections: DEFAULT_AI_SETTINGS.connections.map((connection, index) =>
+        index === 0
+          ? {
+              ...connection,
+              apiKeyRef: "session:openai",
+              selectedModel: "gpt-test",
+              verificationStatus: "connected"
+            }
+          : connection
+      )
+    });
+    const storage = new MemoryStorage();
+
+    expect(active.connections[0].verificationStatus).toBe("connected");
+
+    writeStoredAiSettings(active, storage);
+
+    expect(readStoredAiSettings(storage).connections[0].verificationStatus).toBe(
+      "needs-key"
+    );
+  });
 });

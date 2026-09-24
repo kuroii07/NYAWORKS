@@ -41,6 +41,7 @@ import {
   type StartupPageId
 } from "../types/navigation";
 import { AboutSettingsPanel } from "./AboutSettingsPanel";
+import { AiSettingsPanel } from "./AiSettingsPanel";
 import { HomeSettingsPanel } from "./HomeSettingsPanel";
 
 type SettingIcon = ComponentType<IconProps>;
@@ -467,6 +468,8 @@ export function SettingsPage({
           <GeneralSettingsPanel onResetComplete={onResetComplete} />
         ) : activeTab === "home" ? (
           <HomeSettingsPanel initialEditing={editHomeOnOpen} />
+        ) : activeTab === "ai" ? (
+          <AiSettingsPanel />
         ) : activeTab === "about" ? (
           <AboutSettingsPanel />
         ) : (
