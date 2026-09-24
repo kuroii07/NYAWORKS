@@ -18,6 +18,7 @@ interface LanguageContextValue {
   languageId: LanguageId;
   copy: UiCopy;
   setLanguage: (languageId: LanguageId) => void;
+  resetLanguage: () => void;
 }
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
@@ -43,7 +44,8 @@ export function LanguageProvider({ children }: PropsWithChildren) {
     () => ({
       languageId,
       copy: UI_COPY[languageId],
-      setLanguage: setLanguageId
+      setLanguage: setLanguageId,
+      resetLanguage: () => setLanguageId(DEFAULT_LANGUAGE_ID)
     }),
     [languageId]
   );

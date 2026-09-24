@@ -30,6 +30,10 @@ export default function App() {
     );
   }
 
+  function handleResetComplete() {
+    setActivePage("home");
+  }
+
   return (
     <div className="app-shell">
       <TopBar
@@ -41,7 +45,7 @@ export default function App() {
         {activePage === "home" ? (
           <HomePage />
         ) : activePage === "settings" ? (
-          <SettingsPage />
+          <SettingsPage onResetComplete={handleResetComplete} />
         ) : (
           <PlaceholderPage pageId={activePage} />
         )}

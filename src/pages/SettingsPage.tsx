@@ -18,6 +18,7 @@ import {
   Sparkle
 } from "@phosphor-icons/react";
 import { useState } from "react";
+import { AppDialog } from "../components/AppDialog";
 import { BrandMark } from "../components/BrandMark";
 import {
   SettingSelect,
@@ -37,6 +38,7 @@ import { DENSITY_IDS, type DensityId } from "../density/types";
 import { useLanguage } from "../i18n/LanguageProvider";
 import { LANGUAGES } from "../i18n/languages";
 import { useSettings } from "../settings/SettingsProvider";
+import { clearStoredLastPage } from "../settings/lastPageStorage";
 import {
   SETTINGS_TAB_IDS,
   TOOLTIP_DELAY_OPTIONS,
@@ -135,11 +137,20 @@ function SwitchControl({
   );
 }
 
-function GeneralSettingsPanel() {
-  const { copy, languageId, setLanguage } = useLanguage();
-  const { densityId, setDensity } = useDensity();
-  const { generalSettings, updateGeneralSettings } = useSettings();
-  const { themeId, setTheme } = useTheme();
+function GeneralSettingsPanel({
+  onResetComplete
+}: {
+  onResetComplete: () => void;
+}) {
+  const { copy, languageId, setLanguage, resetLanguage } = useLanguage();
+  const { densityId, setDensity, resetDensity } = useDensity();
+  const {
+    generalSettings,
+    updateGeneralSettings,
+    resetGeneralSettings
+  } = useSettings();
+  const { themeId, setTheme, resetTheme } = useTheme();
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const labels = copy.settings.general;
   const startupPageOptions: readonly SettingSelectOption<StartupPageId>[] =
     STARTUP_PAGE_IDS.map((pageId) => ({
@@ -203,6 +214,16 @@ function GeneralSettingsPanel() {
                 </button>
               ))}
             </div>
+          </SettingRow>
+          <SettingRow label={labels.resetAllSettings}>
+            <button
+              className="setting-reset-button"
+              type="button"
+              onClick={() => setIsResetDialogOpen(true)}
+            >
+              <ArrowsClockwise aria-hidden="true" weight="bold" />
+              {labels.resetAction}
+            </button>
           </SettingRow>
         </SettingsSection>
 
@@ -330,6 +351,34 @@ function GeneralSettingsPanel() {
         <Check aria-hidden="true" weight="bold" />
         {labels.autoSaveNote}
       </p>
+
+      {isResetDialogOpen ? (
+        <AppDialog
+          title={labels.resetDialogTitle}
+          description={labels.resetDialogBody}
+          primaryAction={{
+            label: labels.resetConfirm,
+            onClick: () => {
+              resetGeneralSettings();
+              resetTheme();
+              resetLanguage();
+              resetDensity();
+              clearStoredLastPage(
+                typeof window === "undefined"
+                  ? undefined
+                  : window.localStorage
+              );
+              setIsResetDialogOpen(false);
+              onResetComplete();
+            }
+          }}
+          secondaryAction={{
+            label: labels.resetCancel,
+            onClick: () => setIsResetDialogOpen(false)
+          }}
+          onClose={() => setIsResetDialogOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -495,7 +544,11 @@ function SettingsPlaceholder({
   );
 }
 
-export function SettingsPage() {
+export function SettingsPage({
+  onResetComplete
+}: {
+  onResetComplete: () => void;
+}) {
   const { copy } = useLanguage();
   const [activeTab, setActiveTab] = useState<SettingsTabId>("general");
 
@@ -528,7 +581,7 @@ export function SettingsPage() {
 
       <div className="settings-content">
         {activeTab === "general" ? (
-          <GeneralSettingsPanel />
+          <GeneralSettingsPanel onResetComplete={onResetComplete} />
         ) : activeTab === "about" ? (
           <AboutSettingsPanel />
         ) : (

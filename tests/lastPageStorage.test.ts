@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  clearStoredLastPage,
   LAST_PAGE_STORAGE_KEY,
   readStoredLastPage,
   resolveStartupPage,
@@ -15,6 +16,10 @@ class MemoryStorage {
 
   setItem(key: string, value: string): void {
     this.values.set(key, value);
+  }
+
+  removeItem(key: string): void {
+    this.values.delete(key);
   }
 }
 
@@ -40,5 +45,14 @@ describe("last page preference", () => {
 
     expect(readStoredLastPage(storage)).toBe("home");
     expect(resolveStartupPage(true, "effects", storage)).toBe("home");
+  });
+
+  it("returns to home after clearing the remembered page", () => {
+    const storage = new MemoryStorage();
+    writeStoredLastPage("animation", storage);
+
+    clearStoredLastPage(storage);
+
+    expect(readStoredLastPage(storage)).toBe("home");
   });
 });

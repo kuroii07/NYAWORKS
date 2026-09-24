@@ -9,6 +9,7 @@ export const LAST_PAGE_STORAGE_KEY = "nyaworks.navigation.lastPage.v1";
 interface PageStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
+  removeItem(key: string): void;
 }
 
 function isPageId(value: unknown): value is PageId {
@@ -38,6 +39,18 @@ export function writeStoredLastPage(
 
   try {
     storage.setItem(LAST_PAGE_STORAGE_KEY, pageId);
+  } catch {
+    // CEP can run with storage disabled. Keep navigation available.
+  }
+}
+
+export function clearStoredLastPage(storage?: PageStorage): void {
+  if (!storage) {
+    return;
+  }
+
+  try {
+    storage.removeItem(LAST_PAGE_STORAGE_KEY);
   } catch {
     // CEP can run with storage disabled. Keep navigation available.
   }

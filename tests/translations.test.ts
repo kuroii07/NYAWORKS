@@ -31,6 +31,24 @@ describe("localized UI copy", () => {
         UI_COPY[languageId].settings.general.currentLanguage.length
       ).toBeGreaterThan(0);
       expect(
+        UI_COPY[languageId].settings.general.resetAllSettings.length
+      ).toBeGreaterThan(0);
+      expect(
+        UI_COPY[languageId].settings.general.resetAction.length
+      ).toBeGreaterThan(0);
+      expect(
+        UI_COPY[languageId].settings.general.resetDialogTitle.length
+      ).toBeGreaterThan(0);
+      expect(
+        UI_COPY[languageId].settings.general.resetDialogBody.length
+      ).toBeGreaterThan(0);
+      expect(
+        UI_COPY[languageId].settings.general.resetConfirm.length
+      ).toBeGreaterThan(0);
+      expect(
+        UI_COPY[languageId].settings.general.resetCancel.length
+      ).toBeGreaterThan(0);
+      expect(
         UI_COPY[languageId].settings.about.productTagline.length
       ).toBeGreaterThan(0);
       expect(

@@ -14,6 +14,7 @@ interface ThemeContextValue {
   themeId: ThemeId;
   theme: ThemeDefinition;
   setTheme: (themeId: ThemeId) => void;
+  resetTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -52,7 +53,8 @@ export function ThemeProvider({ children }: PropsWithChildren) {
     () => ({
       themeId,
       theme,
-      setTheme: setThemeId
+      setTheme: setThemeId,
+      resetTheme: () => setThemeId(DEFAULT_THEME_ID)
     }),
     [theme, themeId]
   );

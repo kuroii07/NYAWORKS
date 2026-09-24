@@ -141,6 +141,12 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         currentTheme: "当前主题",
         currentLanguage: "当前语言",
         homeBanner: "首页 Banner",
+        resetAllSettings: "重置所有设置",
+        resetAction: "重置",
+        resetDialogTitle: "重置所有设置",
+        resetDialogBody: "将主题、语言、界面大小和常规选项恢复为默认值，不会删除用户资源或 API Key。",
+        resetConfirm: "确认重置",
+        resetCancel: "取消",
         autoSaveNote: "设置会自动保存并立即生效"
       },
       about: {
@@ -315,6 +321,12 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         currentTheme: "目前主題",
         currentLanguage: "目前語言",
         homeBanner: "首頁 Banner",
+        resetAllSettings: "重設所有設定",
+        resetAction: "重設",
+        resetDialogTitle: "重設所有設定",
+        resetDialogBody: "將主題、語言、介面大小與一般選項恢復為預設值，不會刪除使用者資源或 API Key。",
+        resetConfirm: "確認重設",
+        resetCancel: "取消",
         autoSaveNote: "設定會自動儲存並立即生效"
       },
       about: {
@@ -489,6 +501,12 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         currentTheme: "Current theme",
         currentLanguage: "Current language",
         homeBanner: "Home Banner",
+        resetAllSettings: "Reset all settings",
+        resetAction: "Reset",
+        resetDialogTitle: "Reset all settings",
+        resetDialogBody: "Restore the default theme, language, interface size, and general options. User resources and API keys are not removed.",
+        resetConfirm: "Reset settings",
+        resetCancel: "Cancel",
         autoSaveNote: "Settings save automatically and apply immediately"
       },
       about: {
@@ -664,6 +682,12 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         currentTheme: "現在のテーマ",
         currentLanguage: "現在の言語",
         homeBanner: "ホーム Banner",
+        resetAllSettings: "すべての設定をリセット",
+        resetAction: "リセット",
+        resetDialogTitle: "すべての設定をリセット",
+        resetDialogBody: "テーマ、言語、画面サイズ、一般設定を初期値に戻します。ユーザーリソースや API Key は削除されません。",
+        resetConfirm: "リセットする",
+        resetCancel: "キャンセル",
         autoSaveNote: "設定は自動保存され、すぐに反映されます"
       },
       about: {
@@ -838,6 +862,12 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         currentTheme: "현재 테마",
         currentLanguage: "현재 언어",
         homeBanner: "홈 Banner",
+        resetAllSettings: "모든 설정 초기화",
+        resetAction: "초기화",
+        resetDialogTitle: "모든 설정 초기화",
+        resetDialogBody: "테마, 언어, 화면 크기 및 일반 옵션을 기본값으로 되돌립니다. 사용자 리소스와 API Key는 삭제하지 않습니다.",
+        resetConfirm: "설정 초기화",
+        resetCancel: "취소",
         autoSaveNote: "설정은 자동 저장되고 즉시 적용됩니다"
       },
       about: {

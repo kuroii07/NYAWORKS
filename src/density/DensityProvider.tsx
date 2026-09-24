@@ -15,6 +15,7 @@ import {
 interface DensityContextValue {
   densityId: DensityId;
   setDensity: (densityId: DensityId) => void;
+  resetDensity: () => void;
 }
 
 const DensityContext = createContext<DensityContextValue | null>(null);
@@ -38,7 +39,8 @@ export function DensityProvider({ children }: PropsWithChildren) {
   const value = useMemo<DensityContextValue>(
     () => ({
       densityId,
-      setDensity: setDensityId
+      setDensity: setDensityId,
+      resetDensity: () => setDensityId(DEFAULT_DENSITY_ID)
     }),
     [densityId]
   );

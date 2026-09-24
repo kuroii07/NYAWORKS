@@ -141,6 +141,12 @@ export interface UiCopy {
       currentTheme: string;
       currentLanguage: string;
       homeBanner: string;
+      resetAllSettings: string;
+      resetAction: string;
+      resetDialogTitle: string;
+      resetDialogBody: string;
+      resetConfirm: string;
+      resetCancel: string;
       autoSaveNote: string;
     };
     about: {

@@ -15,7 +15,7 @@ function renderSettingsPage(): string {
         <LanguageProvider>
           <SettingsProvider>
             <DensityProvider>
-              <SettingsPage />
+              <SettingsPage onResetComplete={() => undefined} />
             </DensityProvider>
           </SettingsProvider>
         </LanguageProvider>
