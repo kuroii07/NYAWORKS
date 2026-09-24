@@ -1,4 +1,6 @@
 import type { StartupPageId } from "../types/navigation";
+import { BUILT_IN_CREATIVE_LAYOUT_ID } from "../homeLayouts/catalog";
+import type { HomeLayout } from "../homeLayouts/types";
 
 export const SETTINGS_TAB_IDS = [
   "general",
@@ -17,6 +19,32 @@ export type TooltipDelayMs = (typeof TOOLTIP_DELAY_OPTIONS)[number];
 export const MOTION_PREFERENCES = ["standard", "reduced", "off"] as const;
 
 export type MotionPreference = (typeof MOTION_PREFERENCES)[number];
+
+export const HOME_CREATE_MODES = ["create", "select"] as const;
+export type HomeCreateMode = (typeof HOME_CREATE_MODES)[number];
+
+export const HOME_SPACE_MODES = ["anchor", "align"] as const;
+export type HomeSpaceMode = (typeof HOME_SPACE_MODES)[number];
+
+export interface HomeSettings {
+  activeLayoutId: string;
+  customLayouts: HomeLayout[];
+  rememberPanelModes: boolean;
+  defaultCreateMode: HomeCreateMode;
+  defaultSpaceMode: HomeSpaceMode;
+  createMode: HomeCreateMode;
+  spaceMode: HomeSpaceMode;
+}
+
+export const DEFAULT_HOME_SETTINGS: HomeSettings = {
+  activeLayoutId: BUILT_IN_CREATIVE_LAYOUT_ID,
+  customLayouts: [],
+  rememberPanelModes: true,
+  defaultCreateMode: "create",
+  defaultSpaceMode: "anchor",
+  createMode: "create",
+  spaceMode: "anchor"
+};
 
 export const MIN_INTERFACE_BRIGHTNESS = 90;
 export const MAX_INTERFACE_BRIGHTNESS = 110;

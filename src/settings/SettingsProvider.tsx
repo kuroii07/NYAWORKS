@@ -11,14 +11,23 @@ import {
   writeStoredGeneralSettings
 } from "./generalSettingsStorage";
 import {
+  readStoredHomeSettings,
+  writeStoredHomeSettings
+} from "./homeSettingsStorage";
+import {
   DEFAULT_GENERAL_SETTINGS,
-  type GeneralSettings
+  DEFAULT_HOME_SETTINGS,
+  type GeneralSettings,
+  type HomeSettings
 } from "./types";
 
 interface SettingsContextValue {
   generalSettings: GeneralSettings;
+  homeSettings: HomeSettings;
   updateGeneralSettings: (patch: Partial<GeneralSettings>) => void;
+  updateHomeSettings: (patch: Partial<HomeSettings>) => void;
   resetGeneralSettings: () => void;
+  resetHomeSettings: () => void;
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
@@ -31,9 +40,20 @@ function getInitialGeneralSettings(): GeneralSettings {
   return readStoredGeneralSettings(window.localStorage);
 }
 
+function getInitialHomeSettings(): HomeSettings {
+  if (typeof window === "undefined") {
+    return readStoredHomeSettings();
+  }
+
+  return readStoredHomeSettings(window.localStorage);
+}
+
 export function SettingsProvider({ children }: PropsWithChildren) {
   const [generalSettings, setGeneralSettings] = useState<GeneralSettings>(
     getInitialGeneralSettings
+  );
+  const [homeSettings, setHomeSettings] = useState<HomeSettings>(
+    getInitialHomeSettings
   );
 
   useLayoutEffect(() => {
@@ -49,15 +69,24 @@ export function SettingsProvider({ children }: PropsWithChildren) {
     writeStoredGeneralSettings(generalSettings, window.localStorage);
   }, [generalSettings]);
 
+  useLayoutEffect(() => {
+    writeStoredHomeSettings(homeSettings, window.localStorage);
+  }, [homeSettings]);
+
   const value = useMemo<SettingsContextValue>(
     () => ({
       generalSettings,
+      homeSettings,
       updateGeneralSettings: (patch) => {
         setGeneralSettings((current) => ({ ...current, ...patch }));
       },
-      resetGeneralSettings: () => setGeneralSettings(DEFAULT_GENERAL_SETTINGS)
+      updateHomeSettings: (patch) => {
+        setHomeSettings((current) => ({ ...current, ...patch }));
+      },
+      resetGeneralSettings: () => setGeneralSettings(DEFAULT_GENERAL_SETTINGS),
+      resetHomeSettings: () => setHomeSettings(DEFAULT_HOME_SETTINGS)
     }),
-    [generalSettings]
+    [generalSettings, homeSettings]
   );
 
   return (
