@@ -3388,6 +3388,234 @@ html[data-reordering="true"] * {
   line-height: 1.4;
 }
 
+.model-combobox-field {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.model-combobox {
+  min-width: 0;
+  height: 34px;
+  border: 1px solid var(--nw-border-strong);
+  border-radius: var(--nw-radius-control);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px;
+  overflow: hidden;
+  background: var(--nw-surface);
+  transition:
+    border-color var(--nw-fast) ease,
+    box-shadow var(--nw-fast) ease;
+}
+
+.model-combobox:focus-within {
+  border-color: var(--nw-accent);
+  box-shadow: 0 0 10px var(--nw-accent-glow);
+}
+
+.model-combobox input {
+  min-width: 0;
+  padding: 0 10px;
+  border: 0;
+  outline: 0;
+  color: var(--nw-text);
+  background: transparent;
+  font: inherit;
+  font-size: 10px;
+}
+
+.model-combobox > button {
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--nw-border);
+  display: grid;
+  place-items: center;
+  color: var(--nw-text-muted);
+  background: var(--nw-bg-elevated);
+  cursor: pointer;
+}
+
+.model-combobox > button:hover:not(:disabled) {
+  color: var(--nw-accent-bright);
+  background: var(--nw-accent-soft);
+}
+
+.model-combobox > button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.model-combobox svg {
+  width: 14px;
+  height: 14px;
+}
+
+.model-combobox[data-loading="true"] svg {
+  animation: ai-model-refresh 0.8s linear infinite;
+}
+
+.model-combobox__feedback {
+  color: var(--nw-text-muted);
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.model-combobox__popover {
+  position: fixed;
+  z-index: 1400;
+  padding: 4px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 1px solid var(--nw-border-strong);
+  border-radius: var(--nw-radius-control);
+  background: var(--nw-bg-elevated);
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.46),
+    0 0 12px var(--nw-accent-glow);
+  scrollbar-width: thin;
+  scrollbar-color: var(--nw-border-strong) transparent;
+}
+
+.model-combobox__popover button {
+  width: 100%;
+  min-height: 28px;
+  padding: 0 7px 0 9px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 14px;
+  align-items: center;
+  gap: 6px;
+  color: var(--nw-text-muted);
+  background: transparent;
+  font: inherit;
+  font-size: 9px;
+  text-align: left;
+}
+
+.model-combobox__popover button:hover,
+.model-combobox__popover button[data-active="true"] {
+  color: var(--nw-text);
+  border-color: var(--nw-border);
+  background: var(--nw-surface-hover);
+}
+
+.model-combobox__popover button[aria-selected="true"] {
+  color: var(--nw-accent-bright);
+  border-color: var(--nw-accent);
+  background: var(--nw-accent-soft);
+}
+
+.model-combobox__popover button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-combobox__popover button svg {
+  width: 12px;
+  height: 12px;
+  opacity: 0;
+}
+
+.model-combobox__popover button[aria-selected="true"] svg {
+  opacity: 1;
+}
+
+.ai-connection-dialog {
+  display: grid;
+  gap: 11px;
+}
+
+.ai-connection-dialog > label {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.ai-connection-dialog > label > span {
+  color: var(--nw-text-muted);
+  font-size: 9px;
+}
+
+.ai-connection-dialog__protocol {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--nw-border);
+  border-radius: var(--nw-radius-control);
+  display: flex;
+  align-items: center;
+  color: var(--nw-text-muted);
+  background: var(--nw-surface);
+  font-size: 10px;
+}
+
+.ai-secret-input {
+  position: relative;
+}
+
+.ai-secret-input .nyaworks-text-input {
+  padding-right: 40px;
+}
+
+.ai-secret-input > button {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--nw-border);
+  display: grid;
+  place-items: center;
+  color: var(--nw-text-muted);
+  background: transparent;
+}
+
+.ai-secret-input > button:hover {
+  color: var(--nw-accent-bright);
+}
+
+.ai-secret-input svg,
+.ai-connection-dialog__test svg {
+  width: 15px;
+  height: 15px;
+}
+
+.ai-connection-dialog__test {
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid var(--nw-border-strong);
+  border-radius: var(--nw-radius-control);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: start;
+  gap: 7px;
+  color: var(--nw-text);
+  background: var(--nw-surface-strong);
+  font: inherit;
+  font-size: 9px;
+}
+
+.ai-connection-dialog__test:hover:not(:disabled) {
+  color: var(--nw-accent-bright);
+  border-color: var(--nw-accent);
+  background: var(--nw-accent-soft);
+}
+
+.ai-connection-dialog__test:disabled {
+  opacity: 0.42;
+}
+
+@keyframes ai-model-refresh {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .compact-action-menu {
   position: fixed;
   z-index: 1200;

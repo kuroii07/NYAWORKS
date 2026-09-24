@@ -39,13 +39,18 @@ function jsonResponse(
 describe("AI provider adapters", () => {
   it("normalizes OpenAI-compatible model responses without changing the draft", async () => {
     const draft = createDraft();
-    const fetcher = vi.fn(async () =>
-      jsonResponse({
+    const fetcher = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        jsonResponse({
         data: [{ id: "model-b" }, { id: "model-a" }, { id: "model-a" }]
       })
-    ) as unknown as typeof fetch;
+    );
 
-    const result = await listAiModels(draft, "sk-secret", fetcher);
+    const result = await listAiModels(
+      draft,
+      "sk-secret",
+      fetcher as unknown as typeof fetch
+    );
 
     expect(result).toEqual({
       ok: true,
@@ -69,13 +74,21 @@ describe("AI provider adapters", () => {
       providerId: "gemini",
       baseUrl: "https://generativelanguage.googleapis.com/v1beta"
     });
-    const fetcher = vi.fn(async () =>
-      jsonResponse({
-        models: [{ name: "models/gemini-2.5-pro" }, { name: "gemini-flash" }]
-      })
-    ) as unknown as typeof fetch;
+    const fetcher = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        jsonResponse({
+          models: [
+            { name: "models/gemini-2.5-pro" },
+            { name: "gemini-flash" }
+          ]
+        })
+    );
 
-    const result = await listAiModels(draft, "google-secret", fetcher);
+    const result = await listAiModels(
+      draft,
+      "google-secret",
+      fetcher as unknown as typeof fetch
+    );
     const [url, init] = fetcher.mock.calls[0];
 
     expect(result).toEqual({
