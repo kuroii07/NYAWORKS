@@ -41,7 +41,7 @@ export const AI_PROVIDER_CATALOG: readonly AiProviderDefinition[] = [
     id: "doubao",
     displayName: "豆包",
     defaultBaseUrl: "https://ark.cn-beijing.volces.com/api/v3",
-    supportsModelDiscovery: true
+    supportsModelDiscovery: false
   },
   {
     id: "kimi",
@@ -105,4 +105,3 @@ export function getAiProviderDefinition(
     AI_PROVIDER_CATALOG.find((provider) => provider.id === providerId) ?? null
   );
 }
-
