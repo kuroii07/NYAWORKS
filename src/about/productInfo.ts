@@ -4,6 +4,8 @@ export const AFTER_EFFECTS_SUPPORT = "After Effects 2021+";
 export const CEP_RUNTIME_SUPPORT = "CEP / CSXS 11+";
 export const GITHUB_REPOSITORY_URL =
   "https://github.com/kuroii07/NYAWORKS";
+export const GITHUB_RELEASES_URL =
+  "https://github.com/kuroii07/NYAWORKS/releases";
 
 export function isSafeExternalUrl(url: string): boolean {
   try {

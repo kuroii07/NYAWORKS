@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PRODUCT_VERSION } from "./about/productInfo";
 import { GlobalTooltip } from "./components/GlobalTooltip";
 import { AppDialog } from "./components/AppDialog";
 import { Sidebar } from "./components/Sidebar";
@@ -19,7 +20,13 @@ import { useUpdates } from "./updates/UpdatesProvider";
 export default function App() {
   const { copy, languageId } = useLanguage();
   const { generalSettings } = useSettings();
-  const { isWhatsNewOpen, closeDialog } = useUpdates();
+  const {
+    isWhatsNewOpen,
+    isUpdateOpen,
+    availableUpdate,
+    closeDialog,
+    openUpdatePage
+  } = useUpdates();
   const releaseNotes = CURRENT_RELEASE_NOTES[languageId];
   const [activePage, setActivePage] = useState<PageId>(() =>
     resolveStartupPage(
@@ -87,6 +94,28 @@ export default function App() {
                 </section>
               ) : null
             )}
+          </div>
+        </AppDialog>
+      ) : null}
+      {isUpdateOpen && availableUpdate ? (
+        <AppDialog
+          title={copy.updateDialog.title}
+          description={`${copy.updateDialog.currentVersion} ${PRODUCT_VERSION} · ${copy.updateDialog.availableVersion} ${availableUpdate.tagName}`}
+          primaryAction={{
+            label: copy.updateDialog.update,
+            onClick: openUpdatePage
+          }}
+          secondaryAction={{
+            label: copy.updateDialog.notNow,
+            onClick: closeDialog
+          }}
+          onClose={closeDialog}
+        >
+          <div className="update-dialog-summary">
+            <strong>{availableUpdate.title}</strong>
+            <p>
+              {availableUpdate.body.trim() || copy.updateDialog.summaryFallback}
+            </p>
           </div>
         </AppDialog>
       ) : null}

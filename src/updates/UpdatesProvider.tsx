@@ -3,21 +3,31 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useEffect,
+  useRef,
   useState,
   type PropsWithChildren
 } from "react";
 import { PRODUCT_VERSION } from "../about/productInfo";
+import { openExternalUrl } from "../about/productInfo";
+import { useSettings } from "../settings/SettingsProvider";
+import { fetchLatestRelease } from "./githubReleaseService";
 import {
   hasUnreadReleaseNotes,
   readLastSeenVersion,
   writeLastSeenVersion
 } from "./releaseNotesStorage";
+import type { ReleaseInfo } from "./types";
+import { compareVersions } from "./version";
 
 interface UpdatesContextValue {
   hasUnreadNotes: boolean;
   isWhatsNewOpen: boolean;
+  isUpdateOpen: boolean;
+  availableUpdate: ReleaseInfo | null;
   openWhatsNew: () => void;
   closeDialog: () => void;
+  openUpdatePage: () => void;
 }
 
 const UpdatesContext = createContext<UpdatesContextValue | null>(null);
@@ -31,11 +41,58 @@ function getInitialUnreadState(): boolean {
   return hasUnreadReleaseNotes(PRODUCT_VERSION, lastSeenVersion);
 }
 
-export function UpdatesProvider({ children }: PropsWithChildren) {
+interface UpdatesProviderProps {
+  fetcher?: typeof fetch;
+}
+
+export function UpdatesProvider({
+  children,
+  fetcher
+}: PropsWithChildren<UpdatesProviderProps>) {
+  const { generalSettings } = useSettings();
   const [hasUnreadNotes, setHasUnreadNotes] = useState(
     getInitialUnreadState
   );
-  const [isWhatsNewOpen, setIsWhatsNewOpen] = useState(false);
+  const [activeDialog, setActiveDialog] = useState<
+    "whats-new" | "update" | null
+  >(null);
+  const [availableUpdate, setAvailableUpdate] =
+    useState<ReleaseInfo | null>(null);
+  const hasCheckedForUpdates = useRef(false);
+  const isMounted = useRef(false);
+
+  useEffect(() => {
+    isMounted.current = true;
+
+    if (hasCheckedForUpdates.current) {
+      return () => {
+        isMounted.current = false;
+      };
+    }
+
+    hasCheckedForUpdates.current = true;
+
+    if (!generalSettings.autoCheckUpdates) {
+      return () => {
+        isMounted.current = false;
+      };
+    }
+
+    void fetchLatestRelease(fetcher).then((release) => {
+      if (
+        isMounted.current &&
+        release &&
+        compareVersions(PRODUCT_VERSION, release.tagName) === -1
+      ) {
+        setAvailableUpdate(release);
+        setActiveDialog("update");
+      }
+    });
+
+    return () => {
+      isMounted.current = false;
+    };
+  }, [fetcher, generalSettings.autoCheckUpdates]);
 
   const openWhatsNew = useCallback(() => {
     writeLastSeenVersion(
@@ -43,21 +100,37 @@ export function UpdatesProvider({ children }: PropsWithChildren) {
       typeof window === "undefined" ? undefined : window.localStorage
     );
     setHasUnreadNotes(false);
-    setIsWhatsNewOpen(true);
+    setActiveDialog("whats-new");
   }, []);
 
   const closeDialog = useCallback(() => {
-    setIsWhatsNewOpen(false);
+    setActiveDialog(null);
   }, []);
+
+  const openUpdatePage = useCallback(() => {
+    if (availableUpdate && openExternalUrl(availableUpdate.htmlUrl)) {
+      setActiveDialog(null);
+    }
+  }, [availableUpdate]);
 
   const value = useMemo<UpdatesContextValue>(
     () => ({
       hasUnreadNotes,
-      isWhatsNewOpen,
+      isWhatsNewOpen: activeDialog === "whats-new",
+      isUpdateOpen: activeDialog === "update",
+      availableUpdate,
       openWhatsNew,
-      closeDialog
+      closeDialog,
+      openUpdatePage
     }),
-    [closeDialog, hasUnreadNotes, isWhatsNewOpen, openWhatsNew]
+    [
+      activeDialog,
+      availableUpdate,
+      closeDialog,
+      hasUnreadNotes,
+      openUpdatePage,
+      openWhatsNew
+    ]
   );
 
   return (

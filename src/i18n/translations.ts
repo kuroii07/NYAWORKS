@@ -131,6 +131,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         startupPage: "启动页面",
         homePage: "首页",
         rememberLastPage: "记住上次页面",
+        autoCheckUpdates: "自动检查更新",
         density: "界面与图标大小",
         densityOptions: { large: "大", medium: "中", small: "小" },
         interactionSection: "交互与提示",
@@ -193,6 +194,14 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       improvements: "体验优化",
       fixes: "问题修复",
       close: "知道了"
+    },
+    updateDialog: {
+      title: "发现新版本",
+      currentVersion: "当前版本",
+      availableVersion: "可用版本",
+      summaryFallback: "新版本已经发布，可前往 GitHub Releases 查看详情并下载。",
+      update: "前往更新",
+      notNow: "暂不更新"
     }
   },
   "zh-TW": {
@@ -324,6 +333,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         startupPage: "啟動頁面",
         homePage: "首頁",
         rememberLastPage: "記住上次頁面",
+        autoCheckUpdates: "自動檢查更新",
         density: "介面與圖示大小",
         densityOptions: { large: "大", medium: "中", small: "小" },
         interactionSection: "互動與提示",
@@ -386,6 +396,14 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       improvements: "體驗優化",
       fixes: "問題修正",
       close: "知道了"
+    },
+    updateDialog: {
+      title: "發現新版本",
+      currentVersion: "目前版本",
+      availableVersion: "可用版本",
+      summaryFallback: "新版本已發布，可前往 GitHub Releases 查看詳情並下載。",
+      update: "前往更新",
+      notNow: "暫不更新"
     }
   },
   en: {
@@ -517,6 +535,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         startupPage: "Startup page",
         homePage: "Home",
         rememberLastPage: "Remember last page",
+        autoCheckUpdates: "Check for updates automatically",
         density: "Interface and icon size",
         densityOptions: { large: "Large", medium: "Medium", small: "Small" },
         interactionSection: "Interaction & Hints",
@@ -580,6 +599,14 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       improvements: "Improvements",
       fixes: "Fixes",
       close: "Got it"
+    },
+    updateDialog: {
+      title: "Update available",
+      currentVersion: "Current version",
+      availableVersion: "Available version",
+      summaryFallback: "A new version is available on GitHub Releases.",
+      update: "View update",
+      notNow: "Not now"
     }
   },
   ja: {
@@ -711,6 +738,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         startupPage: "起動ページ",
         homePage: "ホーム",
         rememberLastPage: "前回のページを記憶",
+        autoCheckUpdates: "更新を自動確認",
         density: "画面・アイコンサイズ",
         densityOptions: { large: "大", medium: "中", small: "小" },
         interactionSection: "操作とヒント",
@@ -773,6 +801,14 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       improvements: "改善",
       fixes: "修正",
       close: "確認"
+    },
+    updateDialog: {
+      title: "新しいバージョンがあります",
+      currentVersion: "現在のバージョン",
+      availableVersion: "利用可能なバージョン",
+      summaryFallback: "新しいバージョンが GitHub Releases で公開されています。",
+      update: "更新を見る",
+      notNow: "後で"
     }
   },
   ko: {
@@ -904,6 +940,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         startupPage: "시작 페이지",
         homePage: "홈",
         rememberLastPage: "마지막 페이지 기억",
+        autoCheckUpdates: "업데이트 자동 확인",
         density: "화면 및 아이콘 크기",
         densityOptions: { large: "대", medium: "중", small: "소" },
         interactionSection: "상호작용 및 힌트",
@@ -966,6 +1003,14 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       improvements: "개선",
       fixes: "수정",
       close: "확인"
+    },
+    updateDialog: {
+      title: "새 버전 사용 가능",
+      currentVersion: "현재 버전",
+      availableVersion: "사용 가능 버전",
+      summaryFallback: "새 버전이 GitHub Releases에 게시되었습니다.",
+      update: "업데이트 보기",
+      notNow: "나중에"
     }
   }
 };

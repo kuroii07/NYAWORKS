@@ -203,6 +203,15 @@ function GeneralSettingsPanel({
               }
             />
           </SettingRow>
+          <SettingRow label={labels.autoCheckUpdates}>
+            <SwitchControl
+              checked={generalSettings.autoCheckUpdates}
+              label={labels.autoCheckUpdates}
+              onChange={(autoCheckUpdates) =>
+                updateGeneralSettings({ autoCheckUpdates })
+              }
+            />
+          </SettingRow>
           <SettingRow label={labels.density}>
             <div className="setting-segments" data-count="3">
               {DENSITY_IDS.map((option) => (

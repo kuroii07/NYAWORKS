@@ -131,6 +131,7 @@ export interface UiCopy {
       startupPage: string;
       homePage: string;
       rememberLastPage: string;
+      autoCheckUpdates: string;
       density: string;
       densityOptions: Record<DensityId, string>;
       interactionSection: string;
@@ -193,5 +194,13 @@ export interface UiCopy {
     improvements: string;
     fixes: string;
     close: string;
+  };
+  updateDialog: {
+    title: string;
+    currentVersion: string;
+    availableVersion: string;
+    summaryFallback: string;
+    update: string;
+    notNow: string;
   };
 }

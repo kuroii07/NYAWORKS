@@ -9,3 +9,11 @@ export interface LocalizedReleaseNotes {
   releaseDate: string;
   sections: ReleaseNoteSections;
 }
+
+export interface ReleaseInfo {
+  tagName: string;
+  title: string;
+  body: string;
+  htmlUrl: string;
+  prerelease: boolean;
+}

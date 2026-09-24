@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  GITHUB_RELEASES_URL,
   GITHUB_REPOSITORY_URL,
   isSafeExternalUrl,
   openExternalUrl
@@ -11,6 +12,10 @@ describe("about page external links", () => {
       "https://github.com/kuroii07/NYAWORKS"
     );
     expect(isSafeExternalUrl(GITHUB_REPOSITORY_URL)).toBe(true);
+    expect(GITHUB_RELEASES_URL).toBe(
+      "https://github.com/kuroii07/NYAWORKS/releases"
+    );
+    expect(isSafeExternalUrl(GITHUB_RELEASES_URL)).toBe(true);
   });
 
   it("rejects non-HTTPS and script URLs", () => {
