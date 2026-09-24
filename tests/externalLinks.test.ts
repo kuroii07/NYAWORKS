@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  FEISHU_DOCUMENTATION_URL,
+  FEISHU_FEEDBACK_URL,
   GITHUB_RELEASES_URL,
   GITHUB_REPOSITORY_URL,
   isSafeExternalUrl,
@@ -16,6 +18,17 @@ describe("about page external links", () => {
       "https://github.com/kuroii07/NYAWORKS/releases"
     );
     expect(isSafeExternalUrl(GITHUB_RELEASES_URL)).toBe(true);
+  });
+
+  it("uses the configured Feishu documentation and feedback URLs", () => {
+    expect(FEISHU_DOCUMENTATION_URL).toBe(
+      "https://my.feishu.cn/wiki/FeezwKTyViNhNgkqBwQc11dlnXg"
+    );
+    expect(FEISHU_FEEDBACK_URL).toBe(
+      "https://my.feishu.cn/wiki/GHwlwFP34iePl0knqj0cZBDZnVf?table=tbly1bSNZDhA4pje&view=vewZV2r5Lz"
+    );
+    expect(isSafeExternalUrl(FEISHU_DOCUMENTATION_URL)).toBe(true);
+    expect(isSafeExternalUrl(FEISHU_FEEDBACK_URL)).toBe(true);
   });
 
   it("rejects non-HTTPS and script URLs", () => {

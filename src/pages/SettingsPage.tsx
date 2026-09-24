@@ -1,39 +1,24 @@
 import type { ComponentType, ReactNode } from "react";
 import type { IconProps } from "@phosphor-icons/react";
 import {
-  ArrowSquareOut,
   ArrowsClockwise,
   Check,
   CursorClick,
-  Desktop,
   Eye,
   FolderOpen,
   GearSix,
-  GithubLogo,
-  Heart,
   House,
   Info,
   RocketLaunch,
-  ShieldCheck,
   Sparkle
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import { AppDialog } from "../components/AppDialog";
-import { BrandMark } from "../components/BrandMark";
 import { BrightnessControl } from "../components/BrightnessControl";
 import {
   SettingSelect,
   type SettingSelectOption
 } from "../components/SettingSelect";
-import {
-  AFTER_EFFECTS_SUPPORT,
-  CEP_RUNTIME_SUPPORT,
-  EXTENSION_ID,
-  GITHUB_REPOSITORY_URL,
-  isSafeExternalUrl,
-  openExternalUrl,
-  PRODUCT_VERSION
-} from "../about/productInfo";
 import { useDensity } from "../density/DensityProvider";
 import { DENSITY_IDS, type DensityId } from "../density/types";
 import { useLanguage } from "../i18n/LanguageProvider";
@@ -55,6 +40,7 @@ import {
   STARTUP_PAGE_IDS,
   type StartupPageId
 } from "../types/navigation";
+import { AboutSettingsPanel } from "./AboutSettingsPanel";
 
 type SettingIcon = ComponentType<IconProps>;
 
@@ -411,147 +397,6 @@ function GeneralSettingsPanel({
           onClose={() => setIsResetDialogOpen(false)}
         />
       ) : null}
-    </div>
-  );
-}
-
-function AboutSettingsPanel() {
-  const { copy } = useLanguage();
-  const labels = copy.settings.about;
-  const repositoryHref = isSafeExternalUrl(GITHUB_REPOSITORY_URL)
-    ? GITHUB_REPOSITORY_URL
-    : undefined;
-
-  return (
-    <div className="settings-about">
-      <section className="about-hero">
-        <img className="about-hero__art" src={settingsBannerUrl} alt="" />
-        <div className="about-hero__content">
-          <BrandMark className="about-hero__logo" />
-          <div className="about-hero__copy">
-            <strong>
-              <span>NYA</span>WORKS
-            </strong>
-            <small>FOR AFTER EFFECTS</small>
-            <p>{labels.productTagline}</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="about-summary" aria-label={labels.productSection}>
-        <div className="about-summary__version">
-          <span>{labels.version}</span>
-          <strong>{PRODUCT_VERSION}</strong>
-        </div>
-        <div>
-          <span>{labels.afterEffects}</span>
-          <strong>{AFTER_EFFECTS_SUPPORT}</strong>
-        </div>
-        <div>
-          <span>{labels.runtime}</span>
-          <strong>{CEP_RUNTIME_SUPPORT}</strong>
-        </div>
-      </section>
-
-      <div className="about-card-grid">
-        <section className="about-info-card">
-          <h2>
-            <Desktop aria-hidden="true" weight="regular" />
-            <span>{labels.compatibilitySection}</span>
-          </h2>
-          <div className="about-info-list">
-            <div>
-              <span>{labels.afterEffects}</span>
-              <strong>{AFTER_EFFECTS_SUPPORT}</strong>
-            </div>
-            <div>
-              <span>{labels.runtime}</span>
-              <strong>{CEP_RUNTIME_SUPPORT}</strong>
-            </div>
-          </div>
-          <p>{labels.hostVerificationValue}</p>
-        </section>
-
-        <section className="about-info-card about-info-card--update">
-          <h2>
-            <ArrowsClockwise aria-hidden="true" weight="regular" />
-            <span>{labels.updateSection}</span>
-          </h2>
-          <strong className="about-info-card__lead">
-            {labels.updateChannelValue}
-          </strong>
-          <small>
-            {labels.automaticUpdates} · {labels.automaticUpdatesValue}
-          </small>
-          <a
-            className="about-link-button"
-            href={repositoryHref}
-            target="_blank"
-            rel="noreferrer"
-            aria-disabled={!repositoryHref || undefined}
-            onClick={(event) => {
-              event.preventDefault();
-              openExternalUrl(GITHUB_REPOSITORY_URL);
-            }}
-          >
-            <GithubLogo aria-hidden="true" weight="regular" />
-            <span>{labels.openRepository}</span>
-            <ArrowSquareOut aria-hidden="true" weight="regular" />
-          </a>
-        </section>
-      </div>
-
-      <div className="about-card-grid about-card-grid--secondary">
-        <section className="about-info-card">
-          <h2>
-            <Info aria-hidden="true" weight="regular" />
-            <span>{labels.productSection}</span>
-          </h2>
-          <div className="about-info-list about-info-list--stacked">
-            <div>
-              <span>{labels.supportedLanguages}</span>
-              <strong>{labels.supportedLanguagesValue}</strong>
-            </div>
-            <div>
-              <span>{labels.extensionId}</span>
-              <strong>{EXTENSION_ID}</strong>
-            </div>
-          </div>
-        </section>
-
-        <section className="about-info-card">
-          <h2>
-            <ShieldCheck aria-hidden="true" weight="regular" />
-            <span>{labels.privacySection}</span>
-          </h2>
-          <div className="about-info-list about-info-list--stacked">
-            <div>
-              <span>{labels.localPreferences}</span>
-              <strong>{labels.localPreferencesValue}</strong>
-            </div>
-            <div>
-              <span>{labels.aiData}</span>
-              <strong>{labels.aiDataValue}</strong>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <section className="about-thanks">
-        <Heart aria-hidden="true" weight="regular" />
-        <div>
-          <strong>{labels.thanksSection}</strong>
-          <p>{labels.thanksBody}</p>
-        </div>
-        <span
-          className="about-thanks__signature"
-          aria-label="Creative Together"
-        >
-          Creative
-          <br />
-          Together.
-        </span>
-      </section>
     </div>
   );
 }

@@ -91,6 +91,36 @@ describe("localized UI copy", () => {
       expect(
         UI_COPY[languageId].settings.about.hostVerificationValue.length
       ).toBeGreaterThan(0);
+      const about = UI_COPY[languageId].settings.about as Record<string, string>;
+      for (const key of [
+        "currentAfterEffects",
+        "hostDisconnected",
+        "licensingSection",
+        "licenseStatus",
+        "licenseNotConfigured",
+        "licenseType",
+        "licenseTypePending",
+        "currentDevice",
+        "deviceUnavailable",
+        "purchaseLicense",
+        "activateLicense",
+        "manageDevices",
+        "helpSection",
+        "documentation",
+        "videoTutorials",
+        "feedback",
+        "officialWebsite",
+        "diagnosticsSection",
+        "exportDiagnostics",
+        "openDataDirectory",
+        "privacyPolicy",
+        "openSourceLicenses",
+        "userAgreement",
+        "notConfiguredAction",
+        "hostOnlyAction"
+      ]) {
+        expect(about[key]?.length, `${languageId}.${key}`).toBeGreaterThan(0);
+      }
       expect(UI_COPY[languageId].settings.comingSoon.body.length).toBeGreaterThan(
         0
       );

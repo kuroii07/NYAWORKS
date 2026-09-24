@@ -6,6 +6,10 @@ export const GITHUB_REPOSITORY_URL =
   "https://github.com/kuroii07/NYAWORKS";
 export const GITHUB_RELEASES_URL =
   "https://github.com/kuroii07/NYAWORKS/releases";
+export const FEISHU_DOCUMENTATION_URL =
+  "https://my.feishu.cn/wiki/FeezwKTyViNhNgkqBwQc11dlnXg";
+export const FEISHU_FEEDBACK_URL =
+  "https://my.feishu.cn/wiki/GHwlwFP34iePl0knqj0cZBDZnVf?table=tbly1bSNZDhA4pje&view=vewZV2r5Lz";
 
 export function isSafeExternalUrl(url: string): boolean {
   try {
