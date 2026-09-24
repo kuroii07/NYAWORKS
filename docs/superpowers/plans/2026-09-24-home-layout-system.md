@@ -14,7 +14,7 @@
 
 - The global search, Banner, “新建 / 选择” grid, and “锚点 / 对齐” grid remain outside layout switching.
 - The first built-in layout is “创作通用”; it always renders five groups with seven tool slots per group.
-- Every layout group always contains exactly seven slots; a slot is a tool ID or `null`.
+- Every layout group always contains exactly eight slots; a slot is a tool ID or `null`.
 - Built-in layouts cannot be renamed or deleted; editing one creates a custom copy first.
 - Custom text entry must use NYAWORKS controls, never `window.prompt()`, AE native input, or Windows native dialogs.
 - Layout controls use compact icons and Tooltip text; the selector row is `[layout ▼] [＋] [···]`.
@@ -499,7 +499,7 @@ Blank layouts start with one visible empty group and seven `null` slots so the u
 - [ ] **Step 4: Add group and slot mutation tests**
 
 ```ts
-it("keeps every group at seven slots while replacing and moving tools", () => {
+it("keeps every group at eight compact slots while replacing and moving tools", () => {
   const created = createCustomLayout(DEFAULT_HOME_SETTINGS, {
     id: "custom:test",
     name: "测试",
@@ -558,7 +558,7 @@ it("exports one layout without unrelated application settings", () => {
   const preset = createHomeLayoutPreset(customLayout, "2026-09-24T10:00:00.000Z");
   const json = JSON.stringify(preset);
 
-  expect(preset.layout.groups.every((group) => group.toolSlots.length === 7))
+  expect(preset.layout.groups.every((group) => group.toolSlots.length === 8))
     .toBe(true);
   expect(json).not.toContain("theme");
   expect(json).not.toContain("language");
@@ -622,7 +622,7 @@ export interface HomeLayoutPreset {
 - force `kind: "custom"`,
 - normalize unknown icon IDs to `"folder"`,
 - normalize unknown tool IDs to `null`,
-- normalize every group to seven slots.
+- normalize every group to eight compact slots.
 
 - [ ] **Step 4: Run preset tests**
 
@@ -857,7 +857,7 @@ For custom layouts:
 - row `···` opens rename/change icon/duplicate/delete,
 - drag handle and arrow buttons reorder groups,
 - eye button controls group visibility,
-- expanded group renders exactly seven slots.
+- expanded group renders exactly eight slots.
 
 For the built-in layout:
 
@@ -926,7 +926,7 @@ git commit -m "feat: build homepage layout editor"
 - [ ] **Step 1: Replace count assertions with active-layout assertions**
 
 ```tsx
-it("renders the built-in layout name and all thirty-five fixed slots", () => {
+it("renders the built-in layout name and all forty fixed slots", () => {
   const markup = renderHomePage();
 
   expect(markup).toContain("<h2>创作通用</h2>");
@@ -956,7 +956,7 @@ const layoutName = getHomeLayoutLabel(activeLayout.name, copy);
 const visibleGroups = activeLayout.groups.filter((group) => group.visible);
 ```
 
-Render `layoutName` as the section `<h2>`. Render each group and all seven slots in stored order. A `null` slot renders a disabled empty “＋” placeholder until the user edits it from settings.
+Render `layoutName` as the section `<h2>`. Render each group and all eight slots in stored order. A `null` slot renders a disabled empty “＋” placeholder until the user edits it from settings.
 
 - [ ] **Step 4: Preserve the direct edit entry**
 
@@ -1006,7 +1006,7 @@ git commit -m "feat: render selected layout on homepage"
 README must state:
 
 - “创作通用” is the protected built-in layout.
-- The homepage displays five groups with seven slots each by default.
+- The homepage displays five groups with eight slots each by default.
 - Custom layouts support create/copy/rename/delete.
 - Groups support create/copy/rename/icon/reorder/delete.
 - Layouts can be imported and exported.
@@ -1088,7 +1088,7 @@ Verify in `http://127.0.0.1:4174/`:
 3. New/copy/rename dialogs use NYAWORKS styling.
 4. Built-in rename/delete actions are disabled.
 5. A custom layout can add, rename, icon-change, reorder, and delete a group.
-6. Every group stays at seven slots.
+6. Every group stays at eight slots.
 7. Import/export/restore controls are icon-only with Tooltip.
 8. No horizontal scrollbar exists at 493px.
 9. Chinese, Traditional Chinese, English, Japanese, and Korean do not visibly overflow.

@@ -46,6 +46,18 @@ describe("home layout responsive styles", () => {
     );
   });
 
+  it("uses eight compact columns for homepage tool groups at every density", () => {
+    expect(styles).toMatch(
+      /\.tool-group__grid\s*\{[^}]*grid-template-columns:\s*repeat\(8,\s*minmax\(0,\s*1fr\)\)/s
+    );
+    expect(styles).toMatch(
+      /\[data-density="medium"\] \.tool-group__grid\s*\{[^}]*grid-template-columns:\s*repeat\(8,\s*minmax\(0,\s*1fr\)\)/s
+    );
+    expect(styles).toMatch(
+      /\[data-density="small"\] \.tool-group__grid\s*\{[^}]*grid-template-columns:\s*repeat\(8,\s*minmax\(0,\s*1fr\)\)/s
+    );
+  });
+
   it("allows compact action menus to extend beyond home settings cards", () => {
     expect(styles).toMatch(
       /\.home-settings-section\s*\{[^}]*overflow:\s*visible/s

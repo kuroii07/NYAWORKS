@@ -42,12 +42,12 @@ function renderHomePage(showQuickPanels = true): string {
 }
 
 describe("HomePage layout settings", () => {
-  it("renders the built-in layout name and all thirty-five slots", () => {
+  it("renders the built-in layout name and all forty slots", () => {
     const markup = renderHomePage();
 
     expect(markup).toContain("<h2>创作通用</h2>");
     expect(markup.match(/data-home-layout-group="true"/g)).toHaveLength(5);
-    expect(markup.match(/data-home-layout-slot="true"/g)).toHaveLength(35);
+    expect(markup.match(/data-home-layout-slot="true"/g)).toHaveLength(40);
     expect(markup).not.toContain("自定义快捷");
   });
 

@@ -25,7 +25,7 @@ describe("home layout presets", () => {
     );
     const json = JSON.stringify(preset);
 
-    expect(preset.layout.groups.every((group) => group.toolSlots.length === 7))
+    expect(preset.layout.groups.every((group) => group.toolSlots.length === 8))
       .toBe(true);
     expect(json).not.toContain("theme");
     expect(json).not.toContain("language");
@@ -61,6 +61,7 @@ describe("home layout presets", () => {
     expect(imported.kind).toBe("custom");
     expect(imported.groups[0].iconId).toBe("folder");
     expect(imported.groups[0].toolSlots).toEqual([
+      null,
       null,
       null,
       null,

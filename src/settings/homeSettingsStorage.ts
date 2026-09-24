@@ -114,6 +114,9 @@ function normalizeGroup(value: unknown, index: number): HomeLayoutGroup | null {
   const inputSlots = Array.isArray(candidate.toolSlots)
     ? candidate.toolSlots
     : [];
+  const validTools = inputSlots
+    .filter(isKnownHomeToolId)
+    .slice(0, HOME_GROUP_SLOT_COUNT);
 
   return {
     id,
@@ -122,10 +125,10 @@ function normalizeGroup(value: unknown, index: number): HomeLayoutGroup | null {
       ? candidate.iconId
       : "folder",
     visible: isBoolean(candidate.visible) ? candidate.visible : true,
-    toolSlots: Array.from({ length: HOME_GROUP_SLOT_COUNT }, (_, slotIndex) => {
-      const toolId = inputSlots[slotIndex];
-      return isKnownHomeToolId(toolId) ? toolId : null;
-    })
+    toolSlots: Array.from(
+      { length: HOME_GROUP_SLOT_COUNT },
+      (_, slotIndex) => validTools[slotIndex] ?? null
+    )
   };
 }
 

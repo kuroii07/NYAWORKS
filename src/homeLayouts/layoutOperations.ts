@@ -38,6 +38,22 @@ function cloneLayout(layout: HomeLayout): HomeLayout {
   };
 }
 
+function compactToolSlots(
+  toolSlots: readonly (ToolId | null)[]
+): Array<ToolId | null> {
+  const tools = toolSlots
+    .filter((toolId): toolId is ToolId => Boolean(toolId))
+    .slice(0, HOME_GROUP_SLOT_COUNT);
+
+  return [
+    ...tools,
+    ...Array.from(
+      { length: HOME_GROUP_SLOT_COUNT - tools.length },
+      () => null
+    )
+  ];
+}
+
 function findLayout(settings: HomeSettings, layoutId: string): HomeLayout | null {
   return (
     BUILT_IN_HOME_LAYOUTS.find((layout) => layout.id === layoutId) ??
@@ -354,9 +370,22 @@ export function setToolSlot(
         return group;
       }
 
-      const toolSlots = [...group.toolSlots];
-      toolSlots[slotIndex] = toolId;
-      return { ...group, toolSlots };
+      const tools = compactToolSlots(group.toolSlots).filter(
+        (candidate): candidate is ToolId => Boolean(candidate)
+      );
+
+      if (toolId === null) {
+        if (slotIndex >= tools.length) {
+          return group;
+        }
+        tools.splice(slotIndex, 1);
+      } else if (slotIndex < tools.length) {
+        tools[slotIndex] = toolId;
+      } else {
+        tools.push(toolId);
+      }
+
+      return { ...group, toolSlots: compactToolSlots(tools) };
     }),
     updatedAt: now
   }));
@@ -386,10 +415,89 @@ export function moveToolSlot(
         return group;
       }
 
-      const toolSlots = [...group.toolSlots];
-      const [source] = toolSlots.splice(sourceIndex, 1);
-      toolSlots.splice(targetIndex, 0, source ?? null);
-      return { ...group, toolSlots };
+      const tools = compactToolSlots(group.toolSlots).filter(
+        (toolId): toolId is ToolId => Boolean(toolId)
+      );
+      const source = tools[sourceIndex];
+
+      if (!source) {
+        return group;
+      }
+
+      tools.splice(sourceIndex, 1);
+      tools.splice(Math.min(targetIndex, tools.length), 0, source);
+      return { ...group, toolSlots: compactToolSlots(tools) };
+    }),
+    updatedAt: now
+  }));
+}
+
+export function moveToolBetweenGroups(
+  settings: HomeSettings,
+  layoutId: string,
+  sourceGroupId: string,
+  sourceIndex: number,
+  targetGroupId: string,
+  targetIndex: number,
+  now = new Date().toISOString()
+): HomeSettings {
+  if (sourceGroupId === targetGroupId) {
+    return moveToolSlot(
+      settings,
+      layoutId,
+      sourceGroupId,
+      sourceIndex,
+      targetIndex,
+      now
+    );
+  }
+
+  if (
+    sourceIndex < 0 ||
+    targetIndex < 0 ||
+    sourceIndex >= HOME_GROUP_SLOT_COUNT ||
+    targetIndex >= HOME_GROUP_SLOT_COUNT
+  ) {
+    return settings;
+  }
+
+  const layout = findLayout(settings, layoutId);
+  const sourceGroup = layout?.groups.find((group) => group.id === sourceGroupId);
+  const targetGroup = layout?.groups.find((group) => group.id === targetGroupId);
+  const sourceTools = sourceGroup
+    ? compactToolSlots(sourceGroup.toolSlots).filter(
+        (toolId): toolId is ToolId => Boolean(toolId)
+      )
+    : [];
+  const targetTools = targetGroup
+    ? compactToolSlots(targetGroup.toolSlots).filter(
+        (toolId): toolId is ToolId => Boolean(toolId)
+      )
+    : [];
+  const sourceTool = sourceTools[sourceIndex];
+
+  if (
+    !sourceGroup ||
+    !targetGroup ||
+    !sourceTool ||
+    targetTools.length >= HOME_GROUP_SLOT_COUNT
+  ) {
+    return settings;
+  }
+
+  sourceTools.splice(sourceIndex, 1);
+  targetTools.splice(Math.min(targetIndex, targetTools.length), 0, sourceTool);
+
+  return updateCustomLayout(settings, layoutId, (customLayout) => ({
+    ...customLayout,
+    groups: customLayout.groups.map((group) => {
+      if (group.id === sourceGroupId) {
+        return { ...group, toolSlots: compactToolSlots(sourceTools) };
+      }
+      if (group.id === targetGroupId) {
+        return { ...group, toolSlots: compactToolSlots(targetTools) };
+      }
+      return group;
     }),
     updatedAt: now
   }));

@@ -136,12 +136,20 @@ function translatedGroup(
   iconId: HomeGroupIconId,
   toolSlots: ToolId[]
 ) {
+  const normalizedSlots = [
+    ...toolSlots.slice(0, HOME_GROUP_SLOT_COUNT),
+    ...Array.from(
+      { length: Math.max(0, HOME_GROUP_SLOT_COUNT - toolSlots.length) },
+      () => null
+    )
+  ];
+
   return {
     id,
     name: { kind: "translation", key: id } as const,
     iconId,
     visible: true,
-    toolSlots
+    toolSlots: normalizedSlots
   };
 }
 

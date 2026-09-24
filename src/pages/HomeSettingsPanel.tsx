@@ -1,10 +1,12 @@
 import {
+  useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   type ChangeEvent,
   type ComponentType,
-  type DragEvent,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode
 } from "react";
 import type { IconProps } from "@phosphor-icons/react";
@@ -53,7 +55,7 @@ import {
   deleteLayoutGroup,
   duplicateLayoutGroup,
   moveLayoutGroup,
-  moveToolSlot,
+  moveToolBetweenGroups,
   renameLayout,
   setActiveLayout,
   setToolSlot,
@@ -61,6 +63,10 @@ import {
 } from "../homeLayouts/layoutOperations";
 import type { HomeGroupIconId } from "../homeLayouts/types";
 import type { ToolId } from "../i18n/types";
+import {
+  getPointerAutoScrollDelta,
+  hasPointerDragExceededThreshold
+} from "../interactions/pointerReorder";
 import {
   createHomeLayoutPreset,
   parseHomeLayoutPreset
@@ -76,6 +82,38 @@ type NameDialog =
   | { kind: "renameLayout"; layoutId: string }
   | { kind: "newGroup"; layoutId: string }
   | { kind: "renameGroup"; layoutId: string; groupId: string };
+
+interface PointerDragBase {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  x: number;
+  y: number;
+  offsetX: number;
+  offsetY: number;
+  width: number;
+  height: number;
+  active: boolean;
+}
+
+type HomePointerDrag =
+  | (PointerDragBase & {
+      kind: "group";
+      sourceGroupId: string;
+      targetGroupId: string | null;
+      label: string;
+      iconId: HomeGroupIconId;
+    })
+  | (PointerDragBase & {
+      kind: "tool";
+      sourceGroupId: string;
+      sourceIndex: number;
+      targetGroupId: string | null;
+      targetIndex: number | null;
+      blocked: boolean;
+      toolId: ToolId;
+      label: string;
+    });
 
 function makeLocalId(prefix: string): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -164,12 +202,18 @@ export function HomeSettingsPanel({
   const [deleteTarget, setDeleteTarget] = useState<
     { kind: "layout"; id: string } | { kind: "group"; id: string } | null
   >(null);
-  const [draggedGroupId, setDraggedGroupId] = useState<string | null>(null);
-  const [draggedSlotIndex, setDraggedSlotIndex] = useState<number | null>(null);
+  const [pointerDrag, setPointerDrag] = useState<HomePointerDrag | null>(null);
   const [importStatus, setImportStatus] = useState<"success" | "error" | null>(
     null
   );
   const importInputRef = useRef<HTMLInputElement>(null);
+  const pointerDragRef = useRef<HomePointerDrag | null>(null);
+  const suppressClickRef = useRef(false);
+  const autoScrollFrameRef = useRef<number | null>(null);
+  const autoScrollPointerYRef = useRef<number | null>(null);
+  const flipRectsRef = useRef<Map<string, DOMRect> | null>(null);
+
+  pointerDragRef.current = pointerDrag;
 
   const layoutOptions = useMemo<
     readonly SettingSelectOption<string>[]
@@ -191,6 +235,427 @@ export function HomeSettingsPanel({
       ),
     [copy, toolSearch]
   );
+
+  function updatePointerDrag(
+    update:
+      | HomePointerDrag
+      | null
+      | ((current: HomePointerDrag | null) => HomePointerDrag | null)
+  ) {
+    if (typeof update !== "function") {
+      pointerDragRef.current = update;
+      setPointerDrag(update);
+      return;
+    }
+
+    setPointerDrag((current) => {
+      const next = update(current);
+      pointerDragRef.current = next;
+      return next;
+    });
+  }
+
+  function stopAutoScroll() {
+    autoScrollPointerYRef.current = null;
+    if (autoScrollFrameRef.current !== null) {
+      window.cancelAnimationFrame(autoScrollFrameRef.current);
+      autoScrollFrameRef.current = null;
+    }
+  }
+
+  function startAutoScroll() {
+    if (autoScrollFrameRef.current !== null) {
+      return;
+    }
+
+    const scroll = () => {
+      const drag = pointerDragRef.current;
+      const pointerY = autoScrollPointerYRef.current;
+      const workspace = document.querySelector<HTMLElement>(
+        ".settings-workspace"
+      );
+
+      if (!drag?.active || pointerY === null || !workspace) {
+        autoScrollFrameRef.current = null;
+        return;
+      }
+
+      const bounds = workspace.getBoundingClientRect();
+      const delta = getPointerAutoScrollDelta(pointerY, {
+        top: bounds.top,
+        bottom: bounds.bottom
+      });
+
+      if (delta !== 0) {
+        workspace.scrollTop += delta;
+      }
+
+      autoScrollFrameRef.current = window.requestAnimationFrame(scroll);
+    };
+
+    autoScrollFrameRef.current = window.requestAnimationFrame(scroll);
+  }
+
+  function captureFlipRects() {
+    const rects = new Map<string, DOMRect>();
+    document
+      .querySelectorAll<HTMLElement>("[data-home-reorder-key]")
+      .forEach((element) => {
+        const key = element.dataset.homeReorderKey;
+        if (key) {
+          rects.set(key, element.getBoundingClientRect());
+        }
+      });
+    flipRectsRef.current = rects;
+  }
+
+  useLayoutEffect(() => {
+    const previousRects = flipRectsRef.current;
+    if (!previousRects || typeof document === "undefined") {
+      return;
+    }
+
+    flipRectsRef.current = null;
+    const duration =
+      document.documentElement.dataset.motion === "off"
+        ? 0
+        : document.documentElement.dataset.motion === "reduced"
+          ? 110
+          : 180;
+
+    if (duration === 0) {
+      return;
+    }
+
+    document
+      .querySelectorAll<HTMLElement>("[data-home-reorder-key]")
+      .forEach((element) => {
+        const key = element.dataset.homeReorderKey;
+        const previous = key ? previousRects.get(key) : null;
+        if (!previous || typeof element.animate !== "function") {
+          return;
+        }
+
+        const next = element.getBoundingClientRect();
+        const deltaX = previous.left - next.left;
+        const deltaY = previous.top - next.top;
+
+        if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) {
+          return;
+        }
+
+        element.animate(
+          [
+            { transform: `translate(${deltaX}px, ${deltaY}px)` },
+            { transform: "translate(0, 0)" }
+          ],
+          {
+            duration,
+            easing: "cubic-bezier(0.2, 0.8, 0.2, 1)"
+          }
+        );
+      });
+  }, [activeLayout.groups]);
+
+  useEffect(() => {
+    if (!pointerDrag) {
+      return;
+    }
+
+    function releaseSuppressedClickAfterPointerEnd(pointerId: number) {
+      const release = (event: PointerEvent) => {
+        if (event.pointerId !== pointerId) {
+          return;
+        }
+
+        document.removeEventListener("pointerup", release, true);
+        document.removeEventListener("pointercancel", release, true);
+        window.setTimeout(() => {
+          suppressClickRef.current = false;
+        }, 0);
+      };
+
+      document.addEventListener("pointerup", release, true);
+      document.addEventListener("pointercancel", release, true);
+    }
+
+    function finishPointerDrag(
+      commit: boolean,
+      waitForPointerEnd = false
+    ) {
+      const drag = pointerDragRef.current;
+      stopAutoScroll();
+      delete document.documentElement.dataset.reordering;
+
+      if (drag?.active) {
+        suppressClickRef.current = true;
+        if (waitForPointerEnd) {
+          releaseSuppressedClickAfterPointerEnd(drag.pointerId);
+        } else {
+          window.setTimeout(() => {
+            suppressClickRef.current = false;
+          }, 0);
+        }
+      }
+
+      if (
+        commit &&
+        drag?.active &&
+        isEditing &&
+        isCustomLayout &&
+        drag.targetGroupId
+      ) {
+        captureFlipRects();
+
+        if (drag.kind === "group") {
+          if (drag.sourceGroupId !== drag.targetGroupId) {
+            updateHomeSettings(
+              moveLayoutGroup(
+                homeSettings,
+                activeLayout.id,
+                drag.sourceGroupId,
+                drag.targetGroupId
+              )
+            );
+          }
+        } else if (
+          !drag.blocked &&
+          drag.targetIndex !== null &&
+          (drag.sourceGroupId !== drag.targetGroupId ||
+            drag.sourceIndex !== drag.targetIndex)
+        ) {
+          updateHomeSettings(
+            moveToolBetweenGroups(
+              homeSettings,
+              activeLayout.id,
+              drag.sourceGroupId,
+              drag.sourceIndex,
+              drag.targetGroupId,
+              drag.targetIndex
+            )
+          );
+        }
+      }
+
+      updatePointerDrag(null);
+    }
+
+    function handlePointerMove(event: PointerEvent) {
+      const current = pointerDragRef.current;
+      if (!current || event.pointerId !== current.pointerId) {
+        return;
+      }
+
+      const active =
+        current.active ||
+        hasPointerDragExceededThreshold(
+          { x: current.startX, y: current.startY },
+          { x: event.clientX, y: event.clientY }
+        );
+
+      if (!active) {
+        return;
+      }
+
+      event.preventDefault();
+      document.documentElement.dataset.reordering = "true";
+      autoScrollPointerYRef.current = event.clientY;
+
+      const hit = document.elementFromPoint(
+        event.clientX,
+        event.clientY
+      ) as HTMLElement | null;
+
+      if (current.kind === "group") {
+        const groupTarget = hit?.closest<HTMLElement>(
+          "[data-home-group-drop-id]"
+        );
+        const targetGroupId = groupTarget?.dataset.homeGroupDropId ?? null;
+        updatePointerDrag({
+          ...current,
+          active: true,
+          x: event.clientX,
+          y: event.clientY,
+          targetGroupId
+        });
+        startAutoScroll();
+        return;
+      }
+
+      const slotTarget = hit?.closest<HTMLElement>(
+        "[data-home-tool-drop-group]"
+      );
+      const groupTarget = hit?.closest<HTMLElement>(
+        "[data-home-group-drop-id]"
+      );
+      const targetGroupId =
+        slotTarget?.dataset.homeToolDropGroup ??
+        groupTarget?.dataset.homeGroupDropId ??
+        null;
+      const targetGroup = activeLayout.groups.find(
+        (group) => group.id === targetGroupId
+      );
+      const toolCount =
+        targetGroup?.toolSlots.filter((toolId) => Boolean(toolId)).length ?? 0;
+      const parsedTargetIndex = Number(
+        slotTarget?.dataset.homeToolDropIndex
+      );
+      const targetIndex = slotTarget
+        ? Math.min(
+            Number.isInteger(parsedTargetIndex) ? parsedTargetIndex : toolCount,
+            HOME_GROUP_SLOT_COUNT - 1
+          )
+        : targetGroupId
+          ? Math.min(toolCount, HOME_GROUP_SLOT_COUNT - 1)
+          : null;
+      const blocked = Boolean(
+        targetGroupId &&
+          targetGroupId !== current.sourceGroupId &&
+          toolCount >= HOME_GROUP_SLOT_COUNT
+      );
+
+      updatePointerDrag({
+        ...current,
+        active: true,
+        x: event.clientX,
+        y: event.clientY,
+        targetGroupId,
+        targetIndex,
+        blocked
+      });
+      startAutoScroll();
+    }
+
+    function handlePointerUp(event: PointerEvent) {
+      if (event.pointerId === pointerDragRef.current?.pointerId) {
+        finishPointerDrag(true);
+      }
+    }
+
+    function handlePointerCancel(event: PointerEvent) {
+      if (event.pointerId === pointerDragRef.current?.pointerId) {
+        finishPointerDrag(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        finishPointerDrag(false, true);
+      }
+    }
+
+    document.addEventListener("pointermove", handlePointerMove, {
+      passive: false
+    });
+    document.addEventListener("pointerup", handlePointerUp);
+    document.addEventListener("pointercancel", handlePointerCancel);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointermove", handlePointerMove);
+      document.removeEventListener("pointerup", handlePointerUp);
+      document.removeEventListener("pointercancel", handlePointerCancel);
+      document.removeEventListener("keydown", handleKeyDown);
+      delete document.documentElement.dataset.reordering;
+      stopAutoScroll();
+    };
+  }, [pointerDrag?.pointerId, isEditing, isCustomLayout]);
+
+  useEffect(
+    () => () => {
+      stopAutoScroll();
+    },
+    []
+  );
+
+  function beginGroupDrag(
+    event: ReactPointerEvent<HTMLButtonElement>,
+    groupId: string,
+    label: string,
+    iconId: HomeGroupIconId
+  ) {
+    if (
+      event.button !== 0 ||
+      !isEditing ||
+      !isCustomLayout ||
+      pointerDragRef.current
+    ) {
+      return;
+    }
+
+    const row = event.currentTarget.closest<HTMLElement>(
+      ".home-group-setting"
+    );
+    if (!row) {
+      return;
+    }
+
+    const rect = row.getBoundingClientRect();
+    event.preventDefault();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    setGroupMenuId(null);
+    setSlotMenuKey(null);
+    updatePointerDrag({
+      kind: "group",
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      x: event.clientX,
+      y: event.clientY,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+      width: rect.width,
+      height: rect.height,
+      active: false,
+      sourceGroupId: groupId,
+      targetGroupId: groupId,
+      label,
+      iconId
+    });
+  }
+
+  function beginToolDrag(
+    event: ReactPointerEvent<HTMLButtonElement>,
+    groupId: string,
+    slotIndex: number,
+    toolId: ToolId,
+    label: string
+  ) {
+    if (
+      event.button !== 0 ||
+      !isEditing ||
+      !isCustomLayout ||
+      pointerDragRef.current
+    ) {
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    setGroupMenuId(null);
+    setSlotMenuKey(null);
+    updatePointerDrag({
+      kind: "tool",
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      x: event.clientX,
+      y: event.clientY,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+      width: rect.width,
+      height: rect.height,
+      active: false,
+      sourceGroupId: groupId,
+      sourceIndex: slotIndex,
+      targetGroupId: groupId,
+      targetIndex: slotIndex,
+      blocked: false,
+      toolId,
+      label
+    });
+  }
 
   function validateLayoutName(value: string, excludedId?: string) {
     const normalized = value.trim().toLocaleLowerCase();
@@ -556,45 +1021,46 @@ export function HomeSettingsPanel({
               <div
                 className="home-group-setting-wrap"
                 data-home-layout-group="true"
+                data-home-group-drop-id={group.id}
+                data-home-reorder-key={`group:${group.id}`}
                 key={group.id}
               >
                 <div
                   className="home-group-setting"
-                  data-dragging={draggedGroupId === group.id || undefined}
-                  draggable={isEditing && isCustomLayout}
-                  onDragStart={(event: DragEvent<HTMLDivElement>) => {
-                    setDraggedGroupId(group.id);
-                    event.dataTransfer.effectAllowed = "move";
-                  }}
-                  onDragOver={(event) => {
-                    event.preventDefault();
-                    event.dataTransfer.dropEffect = "move";
-                  }}
-                  onDrop={() => {
-                    if (draggedGroupId && isCustomLayout) {
-                      updateHomeSettings(
-                        moveLayoutGroup(
-                          homeSettings,
-                          activeLayout.id,
-                          draggedGroupId,
-                          group.id
-                        )
-                      );
-                    }
-                    setDraggedGroupId(null);
-                  }}
-                  onDragEnd={() => setDraggedGroupId(null)}
+                  data-dragging={
+                    pointerDrag?.active &&
+                    pointerDrag.kind === "group" &&
+                    pointerDrag.sourceGroupId === group.id
+                      ? true
+                      : undefined
+                  }
+                  data-drop-state={
+                    pointerDrag?.active &&
+                    pointerDrag.targetGroupId === group.id &&
+                    pointerDrag.sourceGroupId !== group.id
+                      ? pointerDrag.kind === "tool" && pointerDrag.blocked
+                        ? "blocked"
+                        : "active"
+                      : undefined
+                  }
                   onContextMenu={(event) => {
                     event.preventDefault();
                     setGroupMenuId(group.id);
                   }}
                 >
-                  <DotsSixVertical
+                  <button
                     className="home-group-setting__handle"
+                    type="button"
+                    disabled={!isEditing || !isCustomLayout}
                     data-enabled={isEditing && isCustomLayout ? true : undefined}
-                    aria-hidden="true"
-                    weight="bold"
-                  />
+                    aria-label={`${labels.groupActions}：${groupLabel}`}
+                    title={labels.groupActions}
+                    onPointerDown={(event) =>
+                      beginGroupDrag(event, group.id, groupLabel, group.iconId)
+                    }
+                  >
+                    <DotsSixVertical aria-hidden="true" weight="bold" />
+                  </button>
                   <GroupIcon
                     className="home-group-setting__icon"
                     aria-hidden="true"
@@ -703,15 +1169,47 @@ export function HomeSettingsPanel({
                         : labels.emptySlot;
 
                       return (
-                        <div className="home-layout-slot-wrap" key={slotKey}>
+                        <div
+                          className="home-layout-slot-wrap"
+                          data-home-reorder-key={
+                            toolId
+                              ? `tool:${group.id}:${toolId}:${group.toolSlots
+                                  .slice(0, slotIndex)
+                                  .filter((candidate) => candidate === toolId).length}`
+                              : `empty:${group.id}:${slotIndex}`
+                          }
+                          key={slotKey}
+                        >
                           <button
                             className="home-layout-slot"
                             type="button"
                             data-home-layout-slot="true"
-                            data-empty={!toolId || undefined}
-                            draggable={Boolean(
+                            data-home-tool-drop-group={group.id}
+                            data-home-tool-drop-index={slotIndex}
+                            data-reorder-enabled={
                               toolId && isEditing && isCustomLayout
-                            )}
+                                ? true
+                                : undefined
+                            }
+                            data-empty={!toolId || undefined}
+                            data-dragging={
+                              pointerDrag?.active &&
+                              pointerDrag.kind === "tool" &&
+                              pointerDrag.sourceGroupId === group.id &&
+                              pointerDrag.sourceIndex === slotIndex
+                                ? true
+                                : undefined
+                            }
+                            data-drop-state={
+                              pointerDrag?.active &&
+                              pointerDrag.kind === "tool" &&
+                              pointerDrag.targetGroupId === group.id &&
+                              pointerDrag.targetIndex === slotIndex
+                                ? pointerDrag.blocked
+                                  ? "blocked"
+                                  : "active"
+                                : undefined
+                            }
                             aria-label={slotLabel}
                             title={
                               isEditing && isCustomLayout
@@ -721,12 +1219,26 @@ export function HomeSettingsPanel({
                                 : slotLabel
                             }
                             onClick={() => {
+                              if (suppressClickRef.current) {
+                                return;
+                              }
                               if (isEditing && isCustomLayout) {
                                 setToolTarget({
                                   groupId: group.id,
                                   slotIndex
                                 });
                                 setToolSearch("");
+                              }
+                            }}
+                            onPointerDown={(event) => {
+                              if (toolId) {
+                                beginToolDrag(
+                                  event,
+                                  group.id,
+                                  slotIndex,
+                                  toolId,
+                                  slotLabel
+                                );
                               }
                             }}
                             onContextMenu={(event) => {
@@ -736,33 +1248,6 @@ export function HomeSettingsPanel({
                               event.preventDefault();
                               setSlotMenuKey(slotKey);
                             }}
-                            onDragStart={(event) => {
-                              setDraggedSlotIndex(slotIndex);
-                              event.dataTransfer.effectAllowed = "move";
-                            }}
-                            onDragOver={(event) => {
-                              if (isEditing && isCustomLayout) {
-                                event.preventDefault();
-                              }
-                            }}
-                            onDrop={() => {
-                              if (
-                                draggedSlotIndex !== null &&
-                                isCustomLayout
-                              ) {
-                                updateHomeSettings(
-                                  moveToolSlot(
-                                    homeSettings,
-                                    activeLayout.id,
-                                    group.id,
-                                    draggedSlotIndex,
-                                    slotIndex
-                                  )
-                                );
-                              }
-                              setDraggedSlotIndex(null);
-                            }}
-                            onDragEnd={() => setDraggedSlotIndex(null)}
                           >
                             <ToolIcon aria-hidden="true" weight="regular" />
                             <span>{slotLabel}</span>
@@ -940,6 +1425,37 @@ export function HomeSettingsPanel({
           </div>
         </div>
       </SettingsSection>
+
+      {pointerDrag?.active ? (
+        <div
+          className="home-reorder-ghost"
+          data-kind={pointerDrag.kind}
+          data-blocked={
+            pointerDrag.kind === "tool" && pointerDrag.blocked
+              ? true
+              : undefined
+          }
+          style={{
+            left: pointerDrag.x - pointerDrag.offsetX,
+            top: pointerDrag.y - pointerDrag.offsetY,
+            width: pointerDrag.width,
+            height: pointerDrag.height
+          }}
+          aria-hidden="true"
+        >
+          {pointerDrag.kind === "group"
+            ? (() => {
+                const DragIcon =
+                  HOME_GROUP_ICON_CATALOG[pointerDrag.iconId];
+                return <DragIcon weight="regular" />;
+              })()
+            : (() => {
+                const DragIcon = HOME_TOOL_CATALOG[pointerDrag.toolId].icon;
+                return <DragIcon weight="regular" />;
+              })()}
+          <span>{pointerDrag.label}</span>
+        </div>
+      ) : null}
 
       {nameDialog ? (
         <TextInputDialog

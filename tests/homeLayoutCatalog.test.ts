@@ -6,7 +6,7 @@ import {
 } from "../src/homeLayouts/catalog";
 
 describe("home layout catalog", () => {
-  it("defines the protected creative layout with five complete groups", () => {
+  it("defines five built-in groups with seven tools and one trailing add slot", () => {
     const layout = BUILT_IN_HOME_LAYOUTS.find(
       (item) => item.id === BUILT_IN_CREATIVE_LAYOUT_ID
     );
@@ -18,8 +18,12 @@ describe("home layout catalog", () => {
         (group) => group.toolSlots.length === HOME_GROUP_SLOT_COUNT
       )
     ).toBe(true);
-    expect(layout?.groups.flatMap((group) => group.toolSlots)).not.toContain(
-      null
-    );
+    expect(
+      layout?.groups.every(
+        (group) =>
+          group.toolSlots.slice(0, 7).every(Boolean) &&
+          group.toolSlots[7] === null
+      )
+    ).toBe(true);
   });
 });

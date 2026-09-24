@@ -99,6 +99,50 @@ describe("home settings storage", () => {
       null,
       null,
       null,
+      null,
+      null
+    ]);
+  });
+
+  it("upgrades legacy seven-slot groups and compacts tools before padding", () => {
+    const normalized = normalizeHomeSettings({
+      activeLayoutId: "custom:legacy",
+      customLayouts: [
+        {
+          id: "custom:legacy",
+          kind: "custom",
+          name: { kind: "custom", value: "Legacy" },
+          createdAt: "2026-09-24T10:00:00.000Z",
+          updatedAt: "2026-09-24T10:00:00.000Z",
+          groups: [
+            {
+              id: "group:legacy",
+              name: { kind: "custom", value: "Legacy Group" },
+              iconId: "folder",
+              visible: true,
+              toolSlots: [
+                "newText",
+                null,
+                "rectangle",
+                null,
+                null,
+                null,
+                null
+              ]
+            }
+          ]
+        }
+      ]
+    });
+
+    expect(normalized.customLayouts[0].groups[0].toolSlots).toEqual([
+      "newText",
+      "rectangle",
+      null,
+      null,
+      null,
+      null,
+      null,
       null
     ]);
   });

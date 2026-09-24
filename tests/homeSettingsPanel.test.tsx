@@ -41,7 +41,7 @@ describe("HomeSettingsPanel", () => {
     expect(markup).not.toContain("功能页将在后续阶段实现");
   });
 
-  it("renders five groups and seven slots for the expanded group", () => {
+  it("renders five groups and eight slots for the expanded group", () => {
     const markup = renderToStaticMarkup(
       <ThemeProvider>
         <LanguageProvider>
@@ -55,6 +55,6 @@ describe("HomeSettingsPanel", () => {
     );
 
     expect(markup.match(/data-home-layout-group="true"/g)).toHaveLength(5);
-    expect(markup.match(/data-home-layout-slot="true"/g)).toHaveLength(7);
+    expect(markup.match(/data-home-layout-slot="true"/g)).toHaveLength(8);
   });
 });

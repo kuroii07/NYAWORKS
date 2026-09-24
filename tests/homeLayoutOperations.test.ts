@@ -9,6 +9,7 @@ import {
   duplicateLayout,
   isDuplicateLayoutName,
   moveLayoutGroup,
+  moveToolBetweenGroups,
   moveToolSlot,
   setToolSlot
 } from "../src/homeLayouts/layoutOperations";
@@ -64,7 +65,7 @@ describe("home layout operations", () => {
     expect(isDuplicateLayoutName(created, " motion ")).toBe(true);
   });
 
-  it("keeps every group at seven slots while replacing and moving tools", () => {
+  it("keeps every group at eight compact slots while replacing and moving tools", () => {
     const created = createCustomLayout(DEFAULT_HOME_SETTINGS, {
       id: "custom:test",
       name: "测试",
@@ -85,12 +86,124 @@ describe("home layout operations", () => {
       "custom:test",
       "group:first",
       0,
-      6
+      7
     );
 
-    expect(moved.customLayouts[0].groups[0].toolSlots).toHaveLength(7);
-    expect(moved.customLayouts[0].groups[0].toolSlots[0]).toBeNull();
-    expect(moved.customLayouts[0].groups[0].toolSlots[6]).toBe("newText");
+    expect(moved.customLayouts[0].groups[0].toolSlots).toEqual([
+      "newText",
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]);
+  });
+
+  it("removing a tool compacts later tools and leaves add slots at the end", () => {
+    const created = duplicateLayout(
+      DEFAULT_HOME_SETTINGS,
+      BUILT_IN_CREATIVE_LAYOUT_ID,
+      {
+        id: "custom:compact",
+        name: "Compact",
+        now: "2026-09-24T10:00:00.000Z"
+      }
+    );
+    const groupId = created.customLayouts[0].groups[0].id;
+    const removed = setToolSlot(
+      created,
+      "custom:compact",
+      groupId,
+      2,
+      null
+    );
+    const slots = removed.customLayouts[0].groups[0].toolSlots;
+
+    expect(slots).toHaveLength(8);
+    expect(slots.slice(0, 6)).toEqual([
+      "newProjectFolder",
+      "organizeProject",
+      "packageLayers",
+      "fitComp",
+      "findFootage",
+      "removeUnused"
+    ]);
+    expect(slots.slice(6)).toEqual([null, null]);
+  });
+
+  it("moves a tool between groups and compacts both groups", () => {
+    const created = duplicateLayout(
+      DEFAULT_HOME_SETTINGS,
+      BUILT_IN_CREATIVE_LAYOUT_ID,
+      {
+        id: "custom:cross-group",
+        name: "Cross Group",
+        now: "2026-09-24T10:00:00.000Z"
+      }
+    );
+    const [sourceGroup, targetGroup] = created.customLayouts[0].groups;
+    const moved = moveToolBetweenGroups(
+      created,
+      "custom:cross-group",
+      sourceGroup.id,
+      0,
+      targetGroup.id,
+      2
+    );
+    const [nextSource, nextTarget] = moved.customLayouts[0].groups;
+
+    expect(nextSource.toolSlots).toEqual([
+      "organizeProject",
+      "duplicateComp",
+      "packageLayers",
+      "fitComp",
+      "findFootage",
+      "removeUnused",
+      null,
+      null
+    ]);
+    expect(nextTarget.toolSlots).toEqual([
+      "duplicateLayer",
+      "linkParent",
+      "newProjectFolder",
+      "unlinkParent",
+      "moveUp",
+      "moveDown",
+      "reverseOrder",
+      "soloLayers"
+    ]);
+  });
+
+  it("rejects a cross-group move when the target already has eight tools", () => {
+    const created = duplicateLayout(
+      DEFAULT_HOME_SETTINGS,
+      BUILT_IN_CREATIVE_LAYOUT_ID,
+      {
+        id: "custom:full-target",
+        name: "Full Target",
+        now: "2026-09-24T10:00:00.000Z"
+      }
+    );
+    const [sourceGroup, targetGroup] = created.customLayouts[0].groups;
+    const filled = setToolSlot(
+      created,
+      "custom:full-target",
+      targetGroup.id,
+      7,
+      "camera"
+    );
+    const moved = moveToolBetweenGroups(
+      filled,
+      "custom:full-target",
+      sourceGroup.id,
+      0,
+      targetGroup.id,
+      3
+    );
+
+    expect(moved).toBe(filled);
   });
 
   it("moves a group down to the adjacent target position", () => {
