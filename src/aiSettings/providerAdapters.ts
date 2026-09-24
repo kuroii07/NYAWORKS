@@ -1,4 +1,5 @@
 import { getAiProviderDefinition } from "./providerCatalog";
+import { createDevelopmentAiFetcher } from "./developmentFixtures";
 import type { AiConnectionDraft, AiProviderId } from "./types";
 
 export type AiRequestErrorCode =
@@ -156,10 +157,30 @@ function normalizeThrownError(error: unknown): AiRequestErrorCode {
     : "unreachable";
 }
 
+function resolveFetcher(fetcher?: typeof fetch): typeof fetch {
+  if (fetcher) {
+    return fetcher;
+  }
+
+  if (
+    import.meta.env.DEV &&
+    typeof window !== "undefined" &&
+    typeof window.location?.search === "string"
+  ) {
+    const fixtureFetcher = createDevelopmentAiFetcher(window.location.search);
+
+    if (fixtureFetcher) {
+      return fixtureFetcher;
+    }
+  }
+
+  return fetch;
+}
+
 export async function listAiModels(
   draft: AiConnectionDraft,
   secret: string,
-  fetcher: typeof fetch = fetch,
+  fetcher?: typeof fetch,
   signal?: AbortSignal
 ): Promise<AiModelListResult> {
   if (!supportsModelDiscovery(draft.providerId)) {
@@ -179,7 +200,7 @@ export async function listAiModels(
   }
 
   try {
-    const response = await fetcher(request.url, {
+    const response = await resolveFetcher(fetcher)(request.url, {
       method: "GET",
       headers: request.headers,
       signal
@@ -203,11 +224,10 @@ export async function listAiModels(
 export async function testAiConnection(
   draft: AiConnectionDraft,
   secret: string,
-  fetcher: typeof fetch = fetch,
+  fetcher?: typeof fetch,
   signal?: AbortSignal
 ): Promise<AiConnectionTestResult> {
   const result = await listAiModels(draft, secret, fetcher, signal);
 
   return result.ok ? { ok: true } : result;
 }
-

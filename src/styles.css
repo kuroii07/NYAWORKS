@@ -3180,6 +3180,13 @@ html[data-reordering="true"] * {
   overflow: visible;
 }
 
+.ai-settings-section h2 > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .ai-settings-section .settings-section__rows {
   padding: 10px 12px 12px;
 }
@@ -3294,7 +3301,7 @@ html[data-reordering="true"] * {
   width: 100%;
 }
 
-.ai-custom-selector button {
+.ai-custom-selector button:not(.setting-select) {
   width: 30px;
   height: 30px;
   padding: 0;
@@ -4881,6 +4888,87 @@ html[data-reordering="true"] * {
   padding: 32px 22px;
 }
 
+[data-density="medium"] .settings-ai {
+  gap: 8px;
+}
+
+[data-density="medium"] .ai-default-summary {
+  min-height: 60px;
+  padding: 8px 10px;
+  grid-template-columns: 34px minmax(0, 1fr) 28px;
+  gap: 8px;
+}
+
+[data-density="medium"] .ai-default-summary__icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+}
+
+[data-density="medium"] .ai-default-summary__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+[data-density="medium"] .ai-default-summary > button {
+  width: 28px;
+  height: 28px;
+}
+
+[data-density="medium"] .ai-settings-section .settings-section__rows {
+  padding: 8px 10px 10px;
+}
+
+[data-density="medium"] .ai-provider-grid {
+  gap: 5px;
+}
+
+[data-density="medium"] .ai-provider-grid > button {
+  min-height: 38px;
+  padding: 0 7px;
+  grid-template-columns: 15px minmax(0, 1fr) 5px;
+  gap: 5px;
+}
+
+[data-density="medium"] .ai-provider-grid svg {
+  width: 14px;
+  height: 14px;
+}
+
+[data-density="medium"] .ai-custom-selector {
+  margin-top: 7px;
+  padding-top: 7px;
+  gap: 8px;
+}
+
+[data-density="medium"] .ai-custom-selector > div {
+  flex-basis: 230px;
+  grid-template-columns: minmax(0, 1fr) 27px 27px;
+  gap: 4px;
+}
+
+[data-density="medium"] .ai-custom-selector button:not(.setting-select) {
+  width: 27px;
+  height: 27px;
+}
+
+[data-density="medium"] .ai-connection-form,
+[data-density="medium"] .ai-settings-columns {
+  gap: 7px 8px;
+}
+
+[data-density="medium"] .ai-routing-rows > label,
+[data-density="medium"] .ai-preference-rows > label,
+[data-density="medium"] .ai-privacy-grid > label {
+  min-height: 34px;
+}
+
+[data-density="medium"] .ai-connection-actions button,
+[data-density="medium"] .ai-privacy-actions button {
+  min-height: 27px;
+  padding: 0 8px;
+}
+
 [data-density="medium"] .global-search {
   min-height: 42px;
   padding: 0 10px 0 13px;
@@ -5463,6 +5551,121 @@ html[data-reordering="true"] * {
 [data-density="small"] .settings-placeholder {
   min-height: 210px;
   padding: 26px 18px;
+}
+
+[data-density="small"] .settings-ai {
+  gap: 6px;
+}
+
+[data-density="small"] .ai-default-summary {
+  min-height: 52px;
+  padding: 7px 8px;
+  grid-template-columns: 30px minmax(0, 1fr) 25px;
+  gap: 7px;
+}
+
+[data-density="small"] .ai-default-summary__icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+}
+
+[data-density="small"] .ai-default-summary__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+[data-density="small"] .ai-default-summary__copy strong {
+  font-size: 10px;
+}
+
+[data-density="small"] .ai-default-summary > button {
+  width: 25px;
+  height: 25px;
+}
+
+[data-density="small"] .ai-settings-section .settings-section__rows {
+  padding: 7px 8px 8px;
+}
+
+[data-density="small"] .ai-provider-grid {
+  gap: 4px;
+}
+
+[data-density="small"] .ai-provider-grid > button {
+  min-height: 34px;
+  padding: 0 6px;
+  grid-template-columns: 14px minmax(0, 1fr) 5px;
+  gap: 4px;
+  font-size: 7px;
+}
+
+[data-density="small"] .ai-provider-grid svg {
+  width: 13px;
+  height: 13px;
+}
+
+[data-density="small"] .ai-custom-selector {
+  margin-top: 6px;
+  padding-top: 6px;
+  gap: 6px;
+}
+
+[data-density="small"] .ai-custom-selector > span {
+  font-size: 8px;
+}
+
+[data-density="small"] .ai-custom-selector > div {
+  flex-basis: 205px;
+  grid-template-columns: minmax(0, 1fr) 25px 25px;
+  gap: 3px;
+}
+
+[data-density="small"] .ai-custom-selector button:not(.setting-select) {
+  width: 25px;
+  height: 25px;
+}
+
+[data-density="small"] .ai-connection-form,
+[data-density="small"] .ai-settings-columns {
+  gap: 6px;
+}
+
+[data-density="small"] .ai-connection-form .ai-secret-input {
+  grid-template-columns: minmax(0, 1fr) 28px 28px;
+}
+
+[data-density="small"] .ai-connection-form .ai-secret-input .nyaworks-text-input,
+[data-density="small"] .ai-connection-form .ai-secret-input > button,
+[data-density="small"] .model-combobox {
+  height: 28px;
+}
+
+[data-density="small"] .ai-connection-form .ai-secret-input > button {
+  width: 28px;
+}
+
+[data-density="small"] .model-combobox {
+  grid-template-columns: minmax(0, 1fr) 28px;
+}
+
+[data-density="small"] .ai-routing-rows > label,
+[data-density="small"] .ai-preference-rows > label,
+[data-density="small"] .ai-privacy-grid > label {
+  min-height: 31px;
+}
+
+[data-density="small"] .ai-routing-rows .setting-select,
+[data-density="small"] .ai-preference-rows .setting-select {
+  width: min(108px, 56%);
+  height: 25px;
+}
+
+[data-density="small"] .ai-connection-actions button,
+[data-density="small"] .ai-privacy-actions button {
+  min-height: 25px;
+  padding: 0 7px;
+  font-size: 7px;
 }
 
 [data-density="small"] .global-search {
