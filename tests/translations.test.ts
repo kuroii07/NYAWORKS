@@ -58,6 +58,7 @@ describe("localized UI copy", () => {
         UI_COPY[languageId].settings.general.autoCheckUpdates.length
       ).toBeGreaterThan(0);
       const home = UI_COPY[languageId].settings.home;
+      const ai = UI_COPY[languageId].settings.ai;
       expect(home.currentLayout).toBeTruthy();
       expect(home.newLayout).toBeTruthy();
       expect(home.layoutActions).toBeTruthy();
@@ -65,6 +66,11 @@ describe("localized UI copy", () => {
       expect(home.deleteLayout).toBeTruthy();
       expect(home.newGroup).toBeTruthy();
       expect(home.changeGroupIcon).toBeTruthy();
+      expect(ai.currentDefault).toBeTruthy();
+      expect(ai.aiServices).toBeTruthy();
+      expect(ai.saveConfiguration).toBeTruthy();
+      expect(ai.modelRouting).toBeTruthy();
+      expect(ai.privacy).toBeTruthy();
       expect(UI_COPY[languageId].topbar.whatsNewAria.length).toBeGreaterThan(0);
       expect(UI_COPY[languageId].topbar.whatsNewTitle.length).toBeGreaterThan(0);
       expect(UI_COPY[languageId].whatsNew.title.length).toBeGreaterThan(0);

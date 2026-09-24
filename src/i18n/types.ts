@@ -3,6 +3,7 @@ import type {
   MotionPreference,
   SettingsTabId
 } from "../settings/types";
+import type { AiRequestErrorCode } from "../aiSettings/providerAdapters";
 
 export type ToolId =
   | "textLayer"
@@ -65,6 +66,103 @@ export type ToolGroupId =
   | "animationTime"
   | "textShapes"
   | "effectsPresets";
+
+export interface AiSettingsCopy {
+  currentDefault: string;
+  noDefault: string;
+  noDefaultHint: string;
+  connected: string;
+  failed: string;
+  unverified: string;
+  unconfigured: string;
+  needsKey: string;
+  dirty: string;
+  aiServices: string;
+  customConnections: string;
+  noCustomConnections: string;
+  addCustomConnection: string;
+  customConnectionActions: string;
+  connectionActions: string;
+  setAsDefault: string;
+  rename: string;
+  duplicate: string;
+  enable: string;
+  disable: string;
+  delete: string;
+  clearConfiguration: string;
+  restoreEndpoint: string;
+  configuration: string;
+  apiKey: string;
+  apiKeyPlaceholder: string;
+  savedKeyPlaceholder: string;
+  showApiKey: string;
+  hideApiKey: string;
+  clearApiKey: string;
+  baseUrl: string;
+  model: string;
+  modelPlaceholder: string;
+  modelExample: string;
+  refreshModels: string;
+  enabled: string;
+  testConnection: string;
+  saveConfiguration: string;
+  saved: string;
+  sessionOnly: string;
+  globalDefaultModel: string;
+  modelRouting: string;
+  chat: string;
+  expression: string;
+  script: string;
+  chatModel: string;
+  expressionModel: string;
+  scriptModel: string;
+  inherit: string;
+  generation: string;
+  creativity: string;
+  outputLength: string;
+  outputShort: string;
+  outputMedium: string;
+  outputLong: string;
+  streaming: string;
+  timeout: string;
+  retry: string;
+  privacy: string;
+  saveHistory: string;
+  includeAeContext: string;
+  clearHistory: string;
+  clearAll: string;
+  localOnly: string;
+  newConnectionTitle: string;
+  editConnectionTitle: string;
+  connectionName: string;
+  connectionNamePlaceholder: string;
+  protocol: string;
+  protocolValue: string;
+  baseUrlPlaceholder: string;
+  createAndSave: string;
+  save: string;
+  cancel: string;
+  nameRequired: string;
+  nameDuplicate: string;
+  invalidUrl: string;
+  modelsLoaded: (count: number) => string;
+  connectionOk: string;
+  missingKey: string;
+  missingModel: string;
+  requestErrors: Record<AiRequestErrorCode, string>;
+  unsavedTitle: string;
+  unsavedBody: string;
+  saveAndContinue: string;
+  discardAndContinue: string;
+  deleteTitle: string;
+  deleteBody: string;
+  confirmDelete: string;
+  clearAllTitle: string;
+  clearAllBody: string;
+  confirmClearAll: string;
+  historyCleared: string;
+  selectSavedConnection: string;
+}
 
 export interface UiCopy {
   navigationAria: string;
@@ -253,6 +351,7 @@ export interface UiCopy {
       resetCancel: string;
       autoSaveNote: string;
     };
+    ai: AiSettingsCopy;
     about: {
       productTagline: string;
       developmentBadge: string;

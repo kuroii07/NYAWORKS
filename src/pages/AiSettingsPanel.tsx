@@ -62,6 +62,7 @@ import {
   SettingSelect,
   type SettingSelectOption
 } from "../components/SettingSelect";
+import { useLanguage } from "../i18n/LanguageProvider";
 import { useSettings } from "../settings/SettingsProvider";
 import {
   AiConnectionDialog,
@@ -92,110 +93,6 @@ interface CustomDialogState {
 const NONE_VALUE = "__none";
 const INHERIT_VALUE = "__inherit";
 
-const AI_COPY = {
-  currentDefault: "当前默认 AI",
-  noDefault: "尚未设置",
-  noDefaultHint: "保存连接后可设为全局默认",
-  connected: "已连接",
-  failed: "连接失败",
-  unverified: "已配置 · 未验证",
-  unconfigured: "未配置",
-  needsKey: "需要重新填写密钥",
-  dirty: "未保存",
-  aiServices: "AI 服务",
-  customConnections: "自定义连接",
-  noCustomConnections: "尚未创建",
-  addCustomConnection: "新建自定义连接",
-  customConnectionActions: "自定义连接操作",
-  connectionActions: "连接操作",
-  setAsDefault: "设为全局默认",
-  rename: "重命名",
-  duplicate: "复制连接",
-  enable: "启用连接",
-  disable: "停用连接",
-  delete: "删除连接",
-  clearConfiguration: "清除平台配置",
-  restoreEndpoint: "恢复默认接口",
-  configuration: "连接配置",
-  apiKey: "API Key",
-  apiKeyPlaceholder: "输入 API Key",
-  savedKeyPlaceholder: "已保存于本次会话",
-  showApiKey: "显示 API Key",
-  hideApiKey: "隐藏 API Key",
-  clearApiKey: "清除 API Key",
-  baseUrl: "接口地址",
-  model: "模型",
-  modelPlaceholder: "输入模型名称",
-  refreshModels: "刷新模型",
-  enabled: "启用连接",
-  testConnection: "测试连接",
-  saveConfiguration: "保存配置",
-  saved: "已保存",
-  sessionOnly: "API Key 仅在本次会话中保存，不会写入浏览器本地存储",
-  globalDefaultModel: "全局默认模型",
-  modelRouting: "功能模型分配",
-  chat: "普通对话",
-  expression: "表达式",
-  script: "脚本",
-  chatModel: "普通对话模型",
-  expressionModel: "表达式模型",
-  scriptModel: "脚本模型",
-  inherit: "跟随全局",
-  generation: "生成偏好",
-  creativity: "创意程度",
-  outputLength: "输出长度",
-  outputShort: "精简",
-  outputMedium: "中等",
-  outputLong: "详细",
-  streaming: "流式输出",
-  timeout: "请求超时",
-  retry: "失败重试",
-  privacy: "数据与隐私",
-  saveHistory: "保存对话历史",
-  includeAeContext: "附带 AE 环境信息",
-  clearHistory: "清除对话历史",
-  clearAll: "清除全部 AI 数据",
-  localOnly: "配置仅保存在本机；不会自动上传 AE 工程或素材",
-  newConnectionTitle: "新建自定义连接",
-  editConnectionTitle: "编辑自定义连接",
-  connectionName: "连接名称",
-  connectionNamePlaceholder: "例如：公司接口",
-  protocol: "接口协议",
-  protocolValue: "OpenAI Compatible",
-  baseUrlPlaceholder: "https://example.com/v1",
-  createAndSave: "创建并保存",
-  save: "保存",
-  cancel: "取消",
-  nameRequired: "请输入连接名称",
-  nameDuplicate: "连接名称已存在",
-  invalidUrl: "请输入有效的 HTTP 或 HTTPS 地址",
-  modelsLoaded: (count: number) => `已获取 ${count} 个模型`,
-  connectionOk: "连接测试成功",
-  missingKey: "请填写 API Key",
-  missingModel: "请填写模型名称",
-  requestErrors: {
-    "missing-configuration": "请检查 API Key 和接口地址",
-    "invalid-key": "API Key 无效或没有访问权限",
-    unsupported: "该平台暂不支持获取模型，请手动填写",
-    timeout: "请求超时，请稍后重试",
-    unreachable: "无法访问接口地址",
-    "server-error": "服务暂时不可",
-    "invalid-response": "接口返回格式不受支持"
-  } satisfies Record<AiRequestErrorCode, string>,
-  unsavedTitle: "保存当前修改？",
-  unsavedBody: "切换连接前，需要保存或放弃当前修改。",
-  saveAndContinue: "保存并继续",
-  discardAndContinue: "放弃修改",
-  deleteTitle: "删除自定义连接",
-  deleteBody: "连接配置和本次会话中的密钥将被删除，相关功能会回退到全局默认。",
-  confirmDelete: "确认删除",
-  clearAllTitle: "清除全部 AI 数据",
-  clearAllBody: "将清除所有自定义连接、平台配置、模型分配和本次会话密钥。",
-  confirmClearAll: "确认清除",
-  historyCleared: "对话历史已清除",
-  selectSavedConnection: "请先保存连接和模型"
-};
-
 const PROVIDER_ICONS: Record<string, SettingIcon> = {
   openai: Robot,
   claude: Brain,
@@ -206,14 +103,6 @@ const PROVIDER_ICONS: Record<string, SettingIcon> = {
   kimi: MoonStars,
   zhipu: Hexagon,
   "openai-compatible": PlugsConnected
-};
-
-const STATUS_LABELS: Record<AiConnection["verificationStatus"], string> = {
-  unconfigured: AI_COPY.unconfigured,
-  "needs-key": AI_COPY.needsKey,
-  unverified: AI_COPY.unverified,
-  connected: AI_COPY.connected,
-  failed: AI_COPY.failed
 };
 
 function toDraft(connection: AiConnection): AiConnectionDraft {
@@ -347,6 +236,18 @@ export function AiSettingsPanel({
 }: {
   onDirtyStateChange?: (dirty: boolean) => void;
 }) {
+  const { copy } = useLanguage();
+  const AI_COPY = copy.settings.ai;
+  const STATUS_LABELS: Record<
+    AiConnection["verificationStatus"],
+    string
+  > = {
+    unconfigured: AI_COPY.unconfigured,
+    "needs-key": AI_COPY.needsKey,
+    unverified: AI_COPY.unverified,
+    connected: AI_COPY.connected,
+    failed: AI_COPY.failed
+  };
   const {
     aiSettings,
     updateAiSettings,
@@ -1581,3 +1482,4 @@ export function AiSettingsPanel({
     </div>
   );
 }
+

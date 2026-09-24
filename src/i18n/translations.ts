@@ -1,5 +1,6 @@
 import type { LanguageId } from "./languages";
 import type { UiCopy } from "./types";
+import { AI_SETTINGS_COPY } from "./aiSettingsCopy";
 
 export const UI_COPY: Record<LanguageId, UiCopy> = {
   "zh-CN": {
@@ -253,6 +254,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         resetCancel: "取消",
         autoSaveNote: "首页设置会自动保存并立即生效"
       },
+      ai: AI_SETTINGS_COPY["zh-CN"],
       about: {
         productTagline: "为 After Effects 打造的高频创作工具合集",
         developmentBadge: "开发预览",
@@ -579,6 +581,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         resetCancel: "取消",
         autoSaveNote: "首頁設定會自動儲存並立即生效"
       },
+      ai: AI_SETTINGS_COPY["zh-TW"],
       about: {
         productTagline: "為 After Effects 打造的高頻創作工具合集",
         developmentBadge: "開發預覽",
@@ -905,6 +908,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         resetCancel: "Cancel",
         autoSaveNote: "Home preferences save automatically and apply immediately"
       },
+      ai: AI_SETTINGS_COPY.en,
       about: {
         productTagline: "A high-frequency creative toolkit for After Effects",
         developmentBadge: "Development Preview",
@@ -1232,6 +1236,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         resetCancel: "キャンセル",
         autoSaveNote: "ホーム設定は自動保存され、すぐに反映されます"
       },
+      ai: AI_SETTINGS_COPY.ja,
       about: {
         productTagline: "After Effects 向けの高頻度クリエイティブツール集",
         developmentBadge: "開発プレビュー",
@@ -1558,6 +1563,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         resetCancel: "취소",
         autoSaveNote: "홈 설정은 자동 저장되고 즉시 적용됩니다"
       },
+      ai: AI_SETTINGS_COPY.ko,
       about: {
         productTagline: "After Effects를 위한 고빈도 크리에이티브 도구 모음",
         developmentBadge: "개발 미리보기",
