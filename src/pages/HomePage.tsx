@@ -194,8 +194,9 @@ export function HomePage({
         </button>
       </div>
 
-      <section className="quick-panels" aria-label={home.quickToolsAria}>
-        <article className="quick-panel">
+      {homeSettings.showQuickPanels ? (
+        <section className="quick-panels" aria-label={home.quickToolsAria}>
+          <article className="quick-panel">
           <h3>
             <span aria-hidden="true" />
             {homeSettings.createMode === "create"
@@ -238,9 +239,9 @@ export function HomePage({
               />
             ))}
           </div>
-        </article>
+          </article>
 
-        <article className="quick-panel">
+          <article className="quick-panel">
           <h3>
             <span aria-hidden="true" />
             {homeSettings.spaceMode === "anchor"
@@ -272,8 +273,9 @@ export function HomePage({
             </button>
           </div>
           <SpatialGrid copy={home} mode={homeSettings.spaceMode} />
-        </article>
-      </section>
+          </article>
+        </section>
+      ) : null}
 
       <section className="tool-groups" aria-label={home.toolGroupsAria}>
         {visibleToolGroups.map((group, groupIndex) => (

@@ -23,6 +23,7 @@ class MemoryStorage {
 describe("home settings storage", () => {
   it("returns safe defaults when no saved value exists", () => {
     expect(readStoredHomeSettings()).toEqual(DEFAULT_HOME_SETTINGS);
+    expect(DEFAULT_HOME_SETTINGS.showQuickPanels).toBe(true);
   });
 
   it("falls back to the built-in layout when stored data is corrupt", () => {
@@ -43,6 +44,23 @@ describe("home settings storage", () => {
     expect(normalized.activeLayoutId).toBe(BUILT_IN_CREATIVE_LAYOUT_ID);
     expect(normalized).not.toHaveProperty("fixedToolCount");
     expect(normalized).not.toHaveProperty("customShortcutSlots");
+  });
+
+  it("defaults legacy data to visible quick panels and preserves an explicit hidden state", () => {
+    expect(
+      normalizeHomeSettings({
+        activeLayoutId: BUILT_IN_CREATIVE_LAYOUT_ID,
+        customLayouts: []
+      }).showQuickPanels
+    ).toBe(true);
+
+    expect(
+      normalizeHomeSettings({
+        activeLayoutId: BUILT_IN_CREATIVE_LAYOUT_ID,
+        customLayouts: [],
+        showQuickPanels: false
+      }).showQuickPanels
+    ).toBe(false);
   });
 
   it("repairs invalid custom groups and unknown tool slots", () => {
@@ -89,6 +107,7 @@ describe("home settings storage", () => {
     const storage = new MemoryStorage();
     const settings = normalizeHomeSettings({
       activeLayoutId: "custom:test",
+      showQuickPanels: false,
       rememberPanelModes: true,
       createMode: "select",
       spaceMode: "align",

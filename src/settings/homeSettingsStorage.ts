@@ -174,6 +174,9 @@ export function normalizeHomeSettings(value: unknown): HomeSettings {
   }
 
   const candidate = value as Partial<Record<keyof HomeSettings, unknown>>;
+  const showQuickPanels = isBoolean(candidate.showQuickPanels)
+    ? candidate.showQuickPanels
+    : DEFAULT_HOME_SETTINGS.showQuickPanels;
   const rememberPanelModes = isBoolean(candidate.rememberPanelModes)
     ? candidate.rememberPanelModes
     : DEFAULT_HOME_SETTINGS.rememberPanelModes;
@@ -206,6 +209,7 @@ export function normalizeHomeSettings(value: unknown): HomeSettings {
   return {
     activeLayoutId,
     customLayouts,
+    showQuickPanels,
     rememberPanelModes,
     defaultCreateMode,
     defaultSpaceMode,

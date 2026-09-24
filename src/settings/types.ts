@@ -29,6 +29,7 @@ export type HomeSpaceMode = (typeof HOME_SPACE_MODES)[number];
 export interface HomeSettings {
   activeLayoutId: string;
   customLayouts: HomeLayout[];
+  showQuickPanels: boolean;
   rememberPanelModes: boolean;
   defaultCreateMode: HomeCreateMode;
   defaultSpaceMode: HomeSpaceMode;
@@ -39,6 +40,7 @@ export interface HomeSettings {
 export const DEFAULT_HOME_SETTINGS: HomeSettings = {
   activeLayoutId: BUILT_IN_CREATIVE_LAYOUT_ID,
   customLayouts: [],
+  showQuickPanels: true,
   rememberPanelModes: true,
   defaultCreateMode: "create",
   defaultSpaceMode: "anchor",

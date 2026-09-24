@@ -858,6 +858,18 @@ export function HomeSettingsPanel({
 
       <SettingsSection icon={GridFour} title={labels.gridDefaultsSection}>
         <div className="setting-row">
+          <span className="setting-row__label">{labels.showQuickPanels}</span>
+          <div className="setting-row__control">
+            <SwitchControl
+              checked={homeSettings.showQuickPanels}
+              label={labels.showQuickPanels}
+              onChange={(showQuickPanels) =>
+                updateHomeSettings({ showQuickPanels })
+              }
+            />
+          </div>
+        </div>
+        <div className="setting-row">
           <span className="setting-row__label">{labels.rememberPanelModes}</span>
           <div className="setting-row__control">
             <SwitchControl

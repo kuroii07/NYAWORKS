@@ -30,6 +30,7 @@ describe("HomeSettingsPanel", () => {
     expect(markup).toContain("首页工具组");
     expect(markup).toContain("合成与项目");
     expect(markup).toContain("九宫格默认状态");
+    expect(markup).toContain("显示九宫格工具");
     expect(markup).toContain("记住上次模式");
     expect(markup).toContain("新建 / 选择");
     expect(markup).toContain("锚点 / 对齐");

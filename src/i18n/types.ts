@@ -237,6 +237,7 @@ export interface UiCopy {
       importSuccess: string;
       importError: string;
       gridDefaultsSection: string;
+      showQuickPanels: string;
       rememberPanelModes: string;
       createSelectDefault: string;
       anchorAlignDefault: string;
