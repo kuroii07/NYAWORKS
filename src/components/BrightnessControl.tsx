@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 interface BrightnessControlProps {
   value: number;
   min: number;
@@ -13,6 +15,12 @@ export function BrightnessControl({
   ariaLabel,
   onChange
 }: BrightnessControlProps) {
+  const progress =
+    max > min ? Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100)) : 0;
+  const sliderStyle = {
+    "--brightness-progress": `${progress}%`
+  } as CSSProperties;
+
   return (
     <div className="brightness-control">
       <input
@@ -21,6 +29,7 @@ export function BrightnessControl({
         max={max}
         step={1}
         value={value}
+        style={sliderStyle}
         aria-label={ariaLabel}
         onChange={(event) => onChange(Number(event.currentTarget.value))}
       />

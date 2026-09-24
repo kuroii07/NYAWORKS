@@ -115,4 +115,17 @@ describe("localized UI copy", () => {
       "Available · External download"
     );
   });
+
+  it("uses the approved concise labels for density and release-note alerts", () => {
+    expect(UI_COPY["zh-CN"].settings.general.density).toBe("界面与图标");
+    expect(UI_COPY["zh-CN"].settings.general.showWhatsNew).toBe("新功能提示");
+    expect(UI_COPY["zh-TW"].settings.general.density).toBe("介面與圖示");
+    expect(UI_COPY["zh-TW"].settings.general.showWhatsNew).toBe("新功能提示");
+    expect(UI_COPY.en.settings.general.density).toBe("Interface & Icons");
+    expect(UI_COPY.en.settings.general.showWhatsNew).toBe("What's New Alerts");
+    expect(UI_COPY.ja.settings.general.density).toBe("画面・アイコン");
+    expect(UI_COPY.ja.settings.general.showWhatsNew).toBe("新機能通知");
+    expect(UI_COPY.ko.settings.general.density).toBe("화면 및 아이콘");
+    expect(UI_COPY.ko.settings.general.showWhatsNew).toBe("새 기능 알림");
+  });
 });
