@@ -1,5 +1,4 @@
 import {
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -41,7 +40,6 @@ import {
 } from "../components/SettingSelect";
 import { TextInputDialog } from "../components/TextInputDialog";
 import {
-  BUILT_IN_CREATIVE_LAYOUT_ID,
   BUILT_IN_HOME_LAYOUTS,
   HOME_GROUP_ICON_CATALOG,
   HOME_GROUP_SLOT_COUNT,
@@ -193,17 +191,6 @@ export function HomeSettingsPanel({
       ),
     [copy, toolSearch]
   );
-
-  useEffect(() => {
-    if (
-      initialEditing &&
-      activeLayout.id === BUILT_IN_CREATIVE_LAYOUT_ID &&
-      !nameDialog
-    ) {
-      setNameValue(`${activeLayoutName} 2`);
-      setNameDialog({ kind: "createLayout", source: "current" });
-    }
-  }, [activeLayout.id, activeLayoutName, initialEditing, nameDialog]);
 
   function validateLayoutName(value: string, excludedId?: string) {
     const normalized = value.trim().toLocaleLowerCase();
@@ -399,7 +386,9 @@ export function HomeSettingsPanel({
       <SettingsSection icon={PencilSimple} title={labels.layoutSection}>
         <div className="home-layout-summary">
           <div>
-            <strong>{labels.customLayout}</strong>
+            <strong>
+              {isCustomLayout ? labels.customLayout : labels.builtInLayout}
+            </strong>
             <small>{labels.autoSaveNote}</small>
           </div>
           <button

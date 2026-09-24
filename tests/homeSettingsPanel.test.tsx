@@ -23,6 +23,8 @@ describe("HomeSettingsPanel", () => {
     expect(markup).toContain('aria-label="当前布局"');
     expect(markup).toContain('aria-label="新建布局"');
     expect(markup).toContain('aria-label="布局操作"');
+    expect(markup).toContain("<strong>内置布局</strong>");
+    expect(markup).not.toContain('role="dialog"');
     expect(markup).not.toContain("固定工具数量");
     expect(markup).not.toContain("自定义快捷位");
     expect(markup).toContain("首页工具组");

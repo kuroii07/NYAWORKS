@@ -297,8 +297,8 @@ export function HomePage({
                       disabled
                       key={`${group.id}-slot-${slotIndex}`}
                       type="button"
-                      aria-label={`${home.customSlotLabel} ${slotIndex + 1}`}
-                      title={`${home.customSlotLabel} ${slotIndex + 1}`}
+                      aria-label={`${copy.settings.home.emptySlot} ${slotIndex + 1}`}
+                      title={`${copy.settings.home.emptySlot} ${slotIndex + 1}`}
                     >
                       <Plus aria-hidden="true" weight="regular" />
                     </button>

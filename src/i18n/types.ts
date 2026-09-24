@@ -119,8 +119,6 @@ export interface UiCopy {
     plannedAriaSuffix: string;
     plannedTitleSuffix: string;
     toolGroupsAria: string;
-    customShortcutsTitle: string;
-    customSlotLabel: string;
     groupTitles: Record<ToolGroupId, string>;
     toolLabels: Record<ToolId, string>;
   };
@@ -194,8 +192,6 @@ export interface UiCopy {
       nameDuplicate: string;
       editLayout: string;
       finishEditing: string;
-      fixedToolCount: string;
-      customShortcutSlots: string;
       toolGroupsSection: string;
       toolGroupsDescription: string;
       newGroup: string;

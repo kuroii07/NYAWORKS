@@ -57,6 +57,14 @@ describe("localized UI copy", () => {
       expect(
         UI_COPY[languageId].settings.general.autoCheckUpdates.length
       ).toBeGreaterThan(0);
+      const home = UI_COPY[languageId].settings.home;
+      expect(home.currentLayout).toBeTruthy();
+      expect(home.newLayout).toBeTruthy();
+      expect(home.layoutActions).toBeTruthy();
+      expect(home.renameLayout).toBeTruthy();
+      expect(home.deleteLayout).toBeTruthy();
+      expect(home.newGroup).toBeTruthy();
+      expect(home.changeGroupIcon).toBeTruthy();
       expect(UI_COPY[languageId].topbar.whatsNewAria.length).toBeGreaterThan(0);
       expect(UI_COPY[languageId].topbar.whatsNewTitle.length).toBeGreaterThan(0);
       expect(UI_COPY[languageId].whatsNew.title.length).toBeGreaterThan(0);
@@ -157,5 +165,14 @@ describe("localized UI copy", () => {
     expect(UI_COPY.ja.settings.general.showWhatsNew).toBe("新機能通知");
     expect(UI_COPY.ko.settings.general.density).toBe("화면 및 아이콘");
     expect(UI_COPY.ko.settings.general.showWhatsNew).toBe("새 기능 알림");
+  });
+
+  it("does not expose the retired count-based homepage controls", () => {
+    const serializedCopy = JSON.stringify(UI_COPY);
+
+    expect(serializedCopy).not.toContain("fixedToolCount");
+    expect(serializedCopy).not.toContain("customShortcutSlots");
+    expect(serializedCopy).not.toContain("固定工具数量");
+    expect(serializedCopy).not.toContain("自定义快捷位");
   });
 });

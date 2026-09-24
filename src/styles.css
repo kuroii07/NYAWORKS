@@ -737,9 +737,13 @@ input:focus-visible {
 }
 
 .shortcut-heading h2 {
+  min-width: 0;
   margin: 0;
+  overflow: hidden;
   font-size: 27px;
   line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .shortcut-heading button {
@@ -2128,6 +2132,13 @@ input:focus-visible {
   width: 17px;
   height: 17px;
   color: var(--nw-accent-bright);
+}
+
+.home-group-setting > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .home-group-setting__actions {
