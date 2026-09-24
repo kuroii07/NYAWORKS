@@ -103,4 +103,16 @@ describe("localized UI copy", () => {
     expect(UI_COPY.ko.home.toolLabels.camera).toBe("카메라");
     expect(UI_COPY["zh-TW"].home.shortcutHeading).toBe("我的快捷工具");
   });
+
+  it("describes the implemented external GitHub update flow accurately", () => {
+    expect(UI_COPY["zh-CN"].settings.about.updateChannelValue).toBe(
+      "GitHub Releases"
+    );
+    expect(UI_COPY["zh-CN"].settings.about.automaticUpdatesValue).toBe(
+      "已接入 · 外部下载"
+    );
+    expect(UI_COPY.en.settings.about.automaticUpdatesValue).toBe(
+      "Available · External download"
+    );
+  });
 });
