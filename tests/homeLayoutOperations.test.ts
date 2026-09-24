@@ -8,6 +8,7 @@ import {
   deleteLayout,
   duplicateLayout,
   isDuplicateLayoutName,
+  moveLayoutGroup,
   moveToolSlot,
   setToolSlot
 } from "../src/homeLayouts/layoutOperations";
@@ -89,5 +90,27 @@ describe("home layout operations", () => {
     expect(moved.customLayouts[0].groups[0].toolSlots).toHaveLength(7);
     expect(moved.customLayouts[0].groups[0].toolSlots[0]).toBeNull();
     expect(moved.customLayouts[0].groups[0].toolSlots[6]).toBe("newText");
+  });
+
+  it("moves a group down to the adjacent target position", () => {
+    const created = duplicateLayout(
+      DEFAULT_HOME_SETTINGS,
+      BUILT_IN_CREATIVE_LAYOUT_ID,
+      {
+        id: "custom:reorder",
+        name: "Reorder",
+        now: "2026-09-24T10:00:00.000Z"
+      }
+    );
+    const [first, second] = created.customLayouts[0].groups;
+    const moved = moveLayoutGroup(
+      created,
+      "custom:reorder",
+      first.id,
+      second.id
+    );
+
+    expect(moved.customLayouts[0].groups.slice(0, 2).map((group) => group.id))
+      .toEqual([second.id, first.id]);
   });
 });

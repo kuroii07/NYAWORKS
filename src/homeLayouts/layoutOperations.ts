@@ -317,14 +317,19 @@ export function moveLayoutGroup(
       return layout;
     }
 
-    const source = layout.groups.find((group) => group.id === sourceId);
-    const groups = layout.groups.filter((group) => group.id !== sourceId);
-    const targetIndex = groups.findIndex((group) => group.id === targetId);
+    const sourceIndex = layout.groups.findIndex(
+      (group) => group.id === sourceId
+    );
+    const targetIndex = layout.groups.findIndex(
+      (group) => group.id === targetId
+    );
 
-    if (!source || targetIndex === -1) {
+    if (sourceIndex === -1 || targetIndex === -1) {
       return layout;
     }
 
+    const groups = [...layout.groups];
+    const [source] = groups.splice(sourceIndex, 1);
     groups.splice(targetIndex, 0, source);
     return { ...layout, groups, updatedAt: now };
   });
