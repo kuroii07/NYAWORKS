@@ -10,6 +10,7 @@ import { createPortal } from "react-dom";
 export interface AppDialogAction {
   label: string;
   onClick: () => void;
+  disabled?: boolean;
 }
 
 interface AppDialogProps {
@@ -96,6 +97,7 @@ export function AppDialog({
             ref={primaryActionRef}
             className="app-dialog__button app-dialog__button--primary"
             type="button"
+            disabled={primaryAction.disabled}
             onClick={primaryAction.onClick}
           >
             {primaryAction.label}

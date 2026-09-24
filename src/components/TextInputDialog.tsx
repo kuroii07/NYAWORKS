@@ -51,7 +51,8 @@ export function TextInputDialog({
       description={description}
       primaryAction={{
         label: confirmLabel,
-        onClick: canConfirm ? onConfirm : () => undefined
+        onClick: onConfirm,
+        disabled: !canConfirm
       }}
       secondaryAction={{
         label: cancelLabel,

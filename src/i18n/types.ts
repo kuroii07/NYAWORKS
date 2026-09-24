@@ -204,6 +204,7 @@ export interface UiCopy {
       changeGroupIcon: string;
       duplicateGroup: string;
       deleteGroup: string;
+      defaultGroupName: string;
       groupNamePlaceholder: string;
       selectIcon: string;
       selectTool: string;

@@ -6,7 +6,12 @@ import { SettingsPage } from "../src/pages/SettingsPage";
 import { SettingsProvider } from "../src/settings/SettingsProvider";
 import { ThemeProvider } from "../src/theme/ThemeProvider";
 
-function renderSettingsPage(): string {
+function renderSettingsPage(
+  options: {
+    initialTab?: "general" | "home";
+    editHomeOnOpen?: boolean;
+  } = {}
+): string {
   const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
 
   try {
@@ -15,7 +20,11 @@ function renderSettingsPage(): string {
         <LanguageProvider>
           <SettingsProvider>
             <DensityProvider>
-              <SettingsPage onResetComplete={() => undefined} />
+              <SettingsPage
+                onResetComplete={() => undefined}
+                initialTab={options.initialTab}
+                editHomeOnOpen={options.editHomeOnOpen}
+              />
             </DensityProvider>
           </SettingsProvider>
         </LanguageProvider>
@@ -45,5 +54,16 @@ describe("settings dropdown controls", () => {
     expect(markup).toContain('max="110"');
     expect(markup).toContain('aria-label="界面亮度"');
     expect(markup).toContain("100%");
+  });
+
+  it("opens the home settings tab directly in layout editing mode", () => {
+    const markup = renderSettingsPage({
+      initialTab: "home",
+      editHomeOnOpen: true
+    });
+
+    expect(markup).toContain("首页布局");
+    expect(markup).toContain("完成编辑");
+    expect(markup).not.toContain('aria-label="启动页面"');
   });
 });
