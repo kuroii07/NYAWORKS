@@ -41,6 +41,7 @@ import {
   type StartupPageId
 } from "../types/navigation";
 import { AboutSettingsPanel } from "./AboutSettingsPanel";
+import { HomeSettingsPanel } from "./HomeSettingsPanel";
 
 type SettingIcon = ComponentType<IconProps>;
 
@@ -58,10 +59,9 @@ const TAB_ICONS: Record<SettingsTabId, SettingIcon> = {
 };
 
 const PLACEHOLDER_ICONS: Record<
-  Exclude<SettingsTabId, "general" | "about">,
+  Exclude<SettingsTabId, "general" | "home" | "about">,
   SettingIcon
 > = {
-  home: House,
   ai: Sparkle,
   resources: FolderOpen
 };
@@ -136,7 +136,8 @@ function GeneralSettingsPanel({
   const {
     generalSettings,
     updateGeneralSettings,
-    resetGeneralSettings
+    resetGeneralSettings,
+    resetHomeSettings
   } = useSettings();
   const { themeId, setTheme, resetTheme } = useTheme();
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
@@ -378,6 +379,7 @@ function GeneralSettingsPanel({
             label: labels.resetConfirm,
             onClick: () => {
               resetGeneralSettings();
+              resetHomeSettings();
               resetTheme();
               resetLanguage();
               resetDensity();
@@ -404,7 +406,7 @@ function GeneralSettingsPanel({
 function SettingsPlaceholder({
   tabId
 }: {
-  tabId: Exclude<SettingsTabId, "general" | "about">;
+  tabId: Exclude<SettingsTabId, "general" | "home" | "about">;
 }) {
   const { copy } = useLanguage();
   const Icon = PLACEHOLDER_ICONS[tabId];
@@ -422,12 +424,16 @@ function SettingsPlaceholder({
 }
 
 export function SettingsPage({
-  onResetComplete
+  onResetComplete,
+  initialTab = "general",
+  editHomeOnOpen = false
 }: {
   onResetComplete: () => void;
+  initialTab?: SettingsTabId;
+  editHomeOnOpen?: boolean;
 }) {
   const { copy } = useLanguage();
-  const [activeTab, setActiveTab] = useState<SettingsTabId>("general");
+  const [activeTab, setActiveTab] = useState<SettingsTabId>(initialTab);
 
   return (
     <main className="settings-workspace">
@@ -459,6 +465,8 @@ export function SettingsPage({
       <div className="settings-content">
         {activeTab === "general" ? (
           <GeneralSettingsPanel onResetComplete={onResetComplete} />
+        ) : activeTab === "home" ? (
+          <HomeSettingsPanel initialEditing={editHomeOnOpen} />
         ) : activeTab === "about" ? (
           <AboutSettingsPanel />
         ) : (

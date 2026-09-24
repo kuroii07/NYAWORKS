@@ -13,6 +13,7 @@ import {
   resolveStartupPage,
   writeStoredLastPage
 } from "./settings/lastPageStorage";
+import type { SettingsTabId } from "./settings/types";
 import type { PageId } from "./types/navigation";
 import { CURRENT_RELEASE_NOTES } from "./updates/releaseNotes";
 import { useUpdates } from "./updates/UpdatesProvider";
@@ -35,6 +36,13 @@ export default function App() {
       typeof window === "undefined" ? undefined : window.localStorage
     )
   );
+  const [settingsEntry, setSettingsEntry] = useState<{
+    tab: SettingsTabId;
+    editHome: boolean;
+  }>({
+    tab: "general",
+    editHome: false
+  });
 
   function handlePageChange(pageId: PageId) {
     setActivePage(pageId);
@@ -48,18 +56,28 @@ export default function App() {
     setActivePage("home");
   }
 
+  function openSettings(tab: SettingsTabId, editHome = false) {
+    setSettingsEntry({ tab, editHome });
+    handlePageChange("settings");
+  }
+
   return (
     <div className="app-shell">
       <TopBar
         isSettingsActive={activePage === "settings"}
-        onOpenSettings={() => handlePageChange("settings")}
+        onOpenSettings={() => openSettings("general")}
       />
       <div className="app-body">
         <Sidebar activePage={activePage} onPageChange={handlePageChange} />
         {activePage === "home" ? (
-          <HomePage />
+          <HomePage onEditLayout={() => openSettings("home", true)} />
         ) : activePage === "settings" ? (
-          <SettingsPage onResetComplete={handleResetComplete} />
+          <SettingsPage
+            key={`${settingsEntry.tab}-${settingsEntry.editHome}`}
+            onResetComplete={handleResetComplete}
+            initialTab={settingsEntry.tab}
+            editHomeOnOpen={settingsEntry.editHome}
+          />
         ) : (
           <PlaceholderPage pageId={activePage} />
         )}

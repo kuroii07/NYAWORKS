@@ -53,7 +53,6 @@ import {
   createCustomLayout,
   deleteLayout,
   deleteLayoutGroup,
-  duplicateLayout,
   duplicateLayoutGroup,
   moveLayoutGroup,
   moveToolSlot,
