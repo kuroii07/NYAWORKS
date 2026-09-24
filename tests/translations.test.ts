@@ -52,6 +52,18 @@ describe("localized UI copy", () => {
         UI_COPY[languageId].settings.general.resetCancel.length
       ).toBeGreaterThan(0);
       expect(
+        UI_COPY[languageId].settings.general.showWhatsNew.length
+      ).toBeGreaterThan(0);
+      expect(UI_COPY[languageId].topbar.whatsNewAria.length).toBeGreaterThan(0);
+      expect(UI_COPY[languageId].topbar.whatsNewTitle.length).toBeGreaterThan(0);
+      expect(UI_COPY[languageId].whatsNew.title.length).toBeGreaterThan(0);
+      expect(UI_COPY[languageId].whatsNew.features.length).toBeGreaterThan(0);
+      expect(UI_COPY[languageId].whatsNew.improvements.length).toBeGreaterThan(
+        0
+      );
+      expect(UI_COPY[languageId].whatsNew.fixes.length).toBeGreaterThan(0);
+      expect(UI_COPY[languageId].whatsNew.close.length).toBeGreaterThan(0);
+      expect(
         UI_COPY[languageId].settings.about.productTagline.length
       ).toBeGreaterThan(0);
       expect(

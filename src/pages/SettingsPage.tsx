@@ -274,6 +274,15 @@ function GeneralSettingsPanel({
               ))}
             </div>
           </SettingRow>
+          <SettingRow label={labels.showWhatsNew}>
+            <SwitchControl
+              checked={generalSettings.showWhatsNew}
+              label={labels.showWhatsNew}
+              onChange={(showWhatsNew) =>
+                updateGeneralSettings({ showWhatsNew })
+              }
+            />
+          </SettingRow>
           <SettingRow label={labels.confirmDangerousActions}>
             <SwitchControl
               checked={generalSettings.confirmDangerousActions}

@@ -3,6 +3,7 @@ import { useLanguage } from "../i18n/LanguageProvider";
 import { BrandMark } from "./BrandMark";
 import { LanguageMenu } from "./LanguageMenu";
 import { ThemeMenu } from "./ThemeMenu";
+import { WhatsNewButton } from "./WhatsNewButton";
 
 interface TopBarProps {
   isSettingsActive: boolean;
@@ -25,6 +26,7 @@ export function TopBar({ isSettingsActive, onOpenSettings }: TopBarProps) {
       </div>
 
       <div className="topbar-actions">
+        <WhatsNewButton />
         <ThemeMenu />
         <LanguageMenu />
         <button

@@ -17,6 +17,8 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       media: "媒体"
     },
     topbar: {
+      whatsNewAria: "查看新功能",
+      whatsNewTitle: "查看本版本更新内容",
       languageAria: "切换语言",
       languageTitle: "左键切换中英 · 右键选择语言",
       settingsAria: "打开设置",
@@ -136,6 +138,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         tooltipDelay: "提示延迟",
         motion: "界面动效",
         motionOptions: { standard: "标准", reduced: "减少", off: "关闭" },
+        showWhatsNew: "显示新功能提示",
         confirmDangerousActions: "危险操作确认",
         appearanceSection: "外观与主题",
         currentTheme: "当前主题",
@@ -181,6 +184,15 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         heading: "该设置页将在后续阶段实现",
         body: "当前先保留完整结构与主题适配，不伪装为已完成功能。"
       }
+    },
+    whatsNew: {
+      title: "本次更新",
+      version: "版本",
+      releaseDate: "发布日期",
+      features: "新增功能",
+      improvements: "体验优化",
+      fixes: "问题修复",
+      close: "知道了"
     }
   },
   "zh-TW": {
@@ -198,6 +210,8 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       media: "媒體"
     },
     topbar: {
+      whatsNewAria: "查看新功能",
+      whatsNewTitle: "查看此版本更新內容",
       languageAria: "切換語言",
       languageTitle: "左鍵切換中英 · 右鍵選擇語言",
       settingsAria: "開啟設定",
@@ -317,6 +331,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         tooltipDelay: "提示延遲",
         motion: "介面動效",
         motionOptions: { standard: "標準", reduced: "減少", off: "關閉" },
+        showWhatsNew: "顯示新功能提示",
         confirmDangerousActions: "危險操作確認",
         appearanceSection: "外觀與主題",
         currentTheme: "目前主題",
@@ -362,6 +377,15 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         heading: "此設定頁將於後續階段實作",
         body: "目前先保留完整結構與主題適配，不會偽裝成已完成功能。"
       }
+    },
+    whatsNew: {
+      title: "本次更新",
+      version: "版本",
+      releaseDate: "發布日期",
+      features: "新增功能",
+      improvements: "體驗優化",
+      fixes: "問題修正",
+      close: "知道了"
     }
   },
   en: {
@@ -379,6 +403,8 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       media: "Media"
     },
     topbar: {
+      whatsNewAria: "View what's new",
+      whatsNewTitle: "View changes in this version",
       languageAria: "Switch language",
       languageTitle: "Left-click: Chinese / English · Right-click: choose",
       settingsAria: "Open settings",
@@ -498,6 +524,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         tooltipDelay: "Hint delay",
         motion: "Interface motion",
         motionOptions: { standard: "Standard", reduced: "Reduced", off: "Off" },
+        showWhatsNew: "Show What's New notifications",
         confirmDangerousActions: "Confirm dangerous actions",
         appearanceSection: "Appearance & Theme",
         currentTheme: "Current theme",
@@ -544,6 +571,15 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         heading: "This settings page is planned for a later stage",
         body: "Its structure and theme support are reserved without presenting unfinished options as complete."
       }
+    },
+    whatsNew: {
+      title: "What's New",
+      version: "Version",
+      releaseDate: "Released",
+      features: "Features",
+      improvements: "Improvements",
+      fixes: "Fixes",
+      close: "Got it"
     }
   },
   ja: {
@@ -561,6 +597,8 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       media: "メディア"
     },
     topbar: {
+      whatsNewAria: "新機能を見る",
+      whatsNewTitle: "このバージョンの更新内容を見る",
       languageAria: "言語を切り替え",
       languageTitle: "左クリック：中国語 / 英語 · 右クリック：言語選択",
       settingsAria: "設定を開く",
@@ -680,6 +718,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         tooltipDelay: "表示遅延",
         motion: "画面モーション",
         motionOptions: { standard: "標準", reduced: "軽減", off: "オフ" },
+        showWhatsNew: "新機能のお知らせを表示",
         confirmDangerousActions: "危険な操作を確認",
         appearanceSection: "外観とテーマ",
         currentTheme: "現在のテーマ",
@@ -725,6 +764,15 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         heading: "この設定ページは今後の段階で実装します",
         body: "未完成の機能を完成済みと見せず、構造とテーマ対応のみ保持します。"
       }
+    },
+    whatsNew: {
+      title: "新機能",
+      version: "バージョン",
+      releaseDate: "リリース日",
+      features: "新機能",
+      improvements: "改善",
+      fixes: "修正",
+      close: "確認"
     }
   },
   ko: {
@@ -742,6 +790,8 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       media: "미디어"
     },
     topbar: {
+      whatsNewAria: "새 기능 보기",
+      whatsNewTitle: "이번 버전의 변경 내용 보기",
       languageAria: "언어 전환",
       languageTitle: "왼쪽 클릭: 중국어 / 영어 · 오른쪽 클릭: 언어 선택",
       settingsAria: "설정 열기",
@@ -861,6 +911,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         tooltipDelay: "힌트 지연",
         motion: "화면 모션",
         motionOptions: { standard: "표준", reduced: "감소", off: "끄기" },
+        showWhatsNew: "새 기능 알림 표시",
         confirmDangerousActions: "위험 작업 확인",
         appearanceSection: "외관 및 테마",
         currentTheme: "현재 테마",
@@ -906,6 +957,15 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         heading: "이 설정 페이지는 이후 단계에서 구현됩니다",
         body: "미완성 기능을 완료된 것처럼 보이지 않고 구조와 테마 대응만 유지합니다."
       }
+    },
+    whatsNew: {
+      title: "새 기능",
+      version: "버전",
+      releaseDate: "출시일",
+      features: "새 기능",
+      improvements: "개선",
+      fixes: "수정",
+      close: "확인"
     }
   }
 };

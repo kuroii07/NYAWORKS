@@ -72,6 +72,8 @@ export interface UiCopy {
     media: string;
   };
   topbar: {
+    whatsNewAria: string;
+    whatsNewTitle: string;
     languageAria: string;
     languageTitle: string;
     settingsAria: string;
@@ -136,6 +138,7 @@ export interface UiCopy {
       tooltipDelay: string;
       motion: string;
       motionOptions: Record<MotionPreference, string>;
+      showWhatsNew: string;
       confirmDangerousActions: string;
       appearanceSection: string;
       currentTheme: string;
@@ -181,5 +184,14 @@ export interface UiCopy {
       heading: string;
       body: string;
     };
+  };
+  whatsNew: {
+    title: string;
+    version: string;
+    releaseDate: string;
+    features: string;
+    improvements: string;
+    fixes: string;
+    close: string;
   };
 }

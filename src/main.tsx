@@ -5,6 +5,7 @@ import { DensityProvider } from "./density/DensityProvider";
 import { LanguageProvider } from "./i18n/LanguageProvider";
 import { SettingsProvider } from "./settings/SettingsProvider";
 import { ThemeProvider } from "./theme/ThemeProvider";
+import { UpdatesProvider } from "./updates/UpdatesProvider";
 import "./styles.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
@@ -12,9 +13,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <ThemeProvider>
       <LanguageProvider>
         <SettingsProvider>
-          <DensityProvider>
-            <App />
-          </DensityProvider>
+          <UpdatesProvider>
+            <DensityProvider>
+              <App />
+            </DensityProvider>
+          </UpdatesProvider>
         </SettingsProvider>
       </LanguageProvider>
     </ThemeProvider>

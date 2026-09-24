@@ -180,6 +180,18 @@ input:focus-visible {
   transform: translateY(1px);
 }
 
+.whats-new-button__badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--nw-surface-strong);
+  border-radius: 50%;
+  background: var(--nw-secondary);
+  box-shadow: 0 0 8px var(--nw-secondary);
+}
+
 .icon-button svg {
   width: 29px;
   height: 29px;
@@ -2469,6 +2481,32 @@ input:focus-visible {
 
 .app-dialog__content {
   padding: 14px 18px;
+}
+
+.whats-new-dialog {
+  display: grid;
+  gap: 12px;
+}
+
+.whats-new-dialog section {
+  padding: 11px 12px;
+  border: 1px solid var(--nw-border);
+  border-radius: var(--nw-radius-control);
+  background: var(--nw-surface);
+}
+
+.whats-new-dialog h3 {
+  margin: 0 0 7px;
+  color: var(--nw-accent-bright);
+  font-size: 11px;
+}
+
+.whats-new-dialog ul {
+  margin: 0;
+  padding-left: 17px;
+  color: var(--nw-text-muted);
+  font-size: 9px;
+  line-height: 1.55;
 }
 
 .app-dialog__actions {
