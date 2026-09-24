@@ -523,4 +523,3 @@ export const AI_SETTINGS_COPY: Record<LanguageId, AiSettingsCopy> = {
     selectSavedConnection: "연결과 모델을 먼저 저장하세요"
   }
 };
-

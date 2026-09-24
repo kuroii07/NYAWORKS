@@ -46,4 +46,3 @@ describe("AI secret store", () => {
     expect(await store.has(second)).toBe(false);
   });
 });
-

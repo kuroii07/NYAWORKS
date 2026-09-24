@@ -712,4 +712,3 @@ Do not add the existing untracked `output/` directory.
 git add src/aiSettings/developmentFixtures.ts src/aiSettings/providerAdapters.ts README.md docs/screenshots/settings-ai.png tests/aiDevelopmentFixtures.test.ts tests/aiSettingsStyles.test.js
 git commit -m "docs: finalize AI settings preview"
 ```
-

@@ -40,4 +40,3 @@ describe("AI development fixtures", () => {
     ).toBeTypeOf("function");
   });
 });
-

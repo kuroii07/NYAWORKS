@@ -61,4 +61,3 @@ describe("AI settings navigation guard", () => {
     }
   });
 });
-

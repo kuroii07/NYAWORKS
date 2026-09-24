@@ -86,4 +86,3 @@ export interface AiProviderDefinition {
   defaultBaseUrl: string;
   supportsModelDiscovery: boolean;
 }
-

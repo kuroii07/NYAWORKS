@@ -65,4 +65,3 @@ describe("ModelComboBox", () => {
     expect(markup).toContain("无法获取模型");
   });
 });
-

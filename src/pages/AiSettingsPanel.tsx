@@ -1513,4 +1513,3 @@ export function AiSettingsPanel({
     </div>
   );
 }
-
