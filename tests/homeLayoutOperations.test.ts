@@ -12,6 +12,7 @@ import {
   moveToolSlot,
   setToolSlot
 } from "../src/homeLayouts/layoutOperations";
+import { normalizeHomeSettings } from "../src/settings/homeSettingsStorage";
 import { DEFAULT_HOME_SETTINGS } from "../src/settings/types";
 
 describe("home layout operations", () => {
@@ -112,5 +113,34 @@ describe("home layout operations", () => {
 
     expect(moved.customLayouts[0].groups.slice(0, 2).map((group) => group.id))
       .toEqual([second.id, first.id]);
+  });
+
+  it("keeps copied group ids unique after repeated copies and storage normalization", () => {
+    const first = duplicateLayout(
+      DEFAULT_HOME_SETTINGS,
+      BUILT_IN_CREATIVE_LAYOUT_ID,
+      {
+        id: "layout:11111111-1111-4111-8111-111111111111",
+        name: "First",
+        now: "2026-09-24T10:00:00.000Z"
+      }
+    );
+    const second = duplicateLayout(
+      first,
+      first.activeLayoutId,
+      {
+        id: "layout:22222222-2222-4222-8222-222222222222",
+        name: "Second",
+        now: "2026-09-24T10:01:00.000Z"
+      }
+    );
+    const restored = normalizeHomeSettings(
+      JSON.parse(JSON.stringify(second))
+    );
+    const copiedGroups = restored.customLayouts[1].groups;
+
+    expect(copiedGroups).toHaveLength(5);
+    expect(new Set(copiedGroups.map((group) => group.id)).size).toBe(5);
+    expect(copiedGroups.every((group) => group.id.length <= 80)).toBe(true);
   });
 });

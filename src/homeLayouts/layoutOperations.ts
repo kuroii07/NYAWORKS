@@ -120,9 +120,9 @@ export function createCustomLayout(
       ? findLayout(settings, settings.activeLayoutId)
       : null;
   const groups = sourceLayout
-    ? sourceLayout.groups.map((group) => ({
+    ? sourceLayout.groups.map((group, index) => ({
         ...cloneGroup(group),
-        id: `${input.id}:${group.id}`
+        id: `${input.id}:group:${index + 1}`
       }))
     : [
         {

@@ -26,6 +26,20 @@ interface ParseHomeLayoutPresetInput {
   existingNames: readonly string[];
 }
 
+function hasImportableGroupShape(value: unknown): value is HomeLayoutGroup {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const group = value as Partial<HomeLayoutGroup>;
+  return (
+    typeof group.id === "string" &&
+    Boolean(group.id.trim()) &&
+    Boolean(group.name && typeof group.name === "object") &&
+    Array.isArray(group.toolSlots)
+  );
+}
+
 function clonePortableLayout(layout: HomeLayout): PortableHomeLayout {
   return {
     name: { ...layout.name },
@@ -60,7 +74,9 @@ export function parseHomeLayoutPreset(
       parsed.schemaVersion !== HOME_LAYOUT_SCHEMA_VERSION ||
       parsed.product !== "NYAWORKS" ||
       !parsed.layout ||
-      typeof parsed.layout !== "object"
+      typeof parsed.layout !== "object" ||
+      !Array.isArray(parsed.layout.groups) ||
+      !parsed.layout.groups.every(hasImportableGroupShape)
     ) {
       throw new Error("INVALID_HOME_LAYOUT_PRESET");
     }
@@ -92,7 +108,10 @@ export function parseHomeLayoutPreset(
           id: input.id,
           kind: "custom",
           name: { kind: "custom", value: candidateName },
-          groups: parsed.layout.groups,
+          groups: parsed.layout.groups.map((group, index) => ({
+            ...group,
+            id: `${input.id}:group:${index + 1}`
+          })),
           createdAt: input.now,
           updatedAt: input.now
         }

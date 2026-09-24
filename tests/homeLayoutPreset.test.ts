@@ -71,12 +71,67 @@ describe("home layout presets", () => {
     ]);
   });
 
+  it("regenerates imported group ids so normalization cannot collapse groups", () => {
+    const sharedPrefix = "group:" + "x".repeat(90);
+    const imported = parseHomeLayoutPreset(
+      JSON.stringify({
+        schemaVersion: 1,
+        product: "NYAWORKS",
+        layout: {
+          name: { kind: "custom", value: "Imported IDs" },
+          groups: [
+            {
+              id: `${sharedPrefix}:one`,
+              name: { kind: "custom", value: "One" },
+              iconId: "folder",
+              visible: true,
+              toolSlots: []
+            },
+            {
+              id: `${sharedPrefix}:two`,
+              name: { kind: "custom", value: "Two" },
+              iconId: "folder",
+              visible: true,
+              toolSlots: []
+            }
+          ]
+        }
+      }),
+      {
+        id: "layout:33333333-3333-4333-8333-333333333333",
+        now: "2026-09-24T10:00:00.000Z",
+        existingNames: []
+      }
+    );
+
+    expect(imported.groups).toHaveLength(2);
+    expect(new Set(imported.groups.map((group) => group.id)).size).toBe(2);
+    expect(imported.groups.every((group) => group.id.length <= 80)).toBe(true);
+  });
+
   it("rejects invalid files and duplicate layout names", () => {
     expect(() =>
       parseHomeLayoutPreset(
         JSON.stringify({ schemaVersion: 1, product: "OtherApp" }),
         {
           id: "custom:bad",
+          now: "2026-09-24T10:00:00.000Z",
+          existingNames: []
+        }
+      )
+    ).toThrow("INVALID_HOME_LAYOUT_PRESET");
+
+    expect(() =>
+      parseHomeLayoutPreset(
+        JSON.stringify({
+          schemaVersion: 1,
+          product: "NYAWORKS",
+          layout: {
+            name: { kind: "custom", value: "Broken" }
+          }
+        }),
+        {
+          id: "custom:missing-groups",
           now: "2026-09-24T10:00:00.000Z",
           existingNames: []
         }
