@@ -1972,6 +1972,7 @@ input:focus-visible {
   color: var(--nw-text);
   background: var(--nw-bg-elevated);
   font-size: 9px;
+  white-space: nowrap;
 }
 
 .home-layout-edit-button[data-active="true"],
@@ -2654,6 +2655,13 @@ input:focus-visible {
   color: var(--nw-accent-bright);
   border-color: var(--nw-accent);
   background: var(--nw-accent-soft);
+}
+
+.setting-select-option > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .setting-select-option svg {

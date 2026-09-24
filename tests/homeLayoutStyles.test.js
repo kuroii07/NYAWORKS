@@ -29,6 +29,15 @@ describe("home layout responsive styles", () => {
     expect(styles).toMatch(
       /\.setting-select__value\s*\{[^}]*flex:\s*1\s+1\s+auto/s
     );
+    expect(styles).toMatch(
+      /\.setting-select-option > span\s*\{[^}]*text-overflow:\s*ellipsis/s
+    );
+  });
+
+  it("keeps the layout edit action on one line in translated interfaces", () => {
+    expect(styles).toMatch(
+      /\.home-layout-edit-button\s*\{[^}]*white-space:\s*nowrap/s
+    );
   });
 
   it("allows compact action menus to extend beyond home settings cards", () => {
