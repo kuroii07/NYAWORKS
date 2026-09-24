@@ -14,6 +14,15 @@ export type ToolId =
   | "camera"
   | "light"
   | "nullObject"
+  | "allLayers"
+  | "textLayers"
+  | "solidLayers"
+  | "shapeLayers"
+  | "adjustmentLayers"
+  | "cameraLayers"
+  | "lightLayers"
+  | "nullLayers"
+  | "invertSelection"
   | "newProjectFolder"
   | "organizeProject"
   | "duplicateComp"
@@ -97,14 +106,21 @@ export interface UiCopy {
     editTitle: string;
     quickToolsAria: string;
     createPanelTitle: string;
+    selectPanelTitle: string;
     spacePanelTitle: string;
+    alignPanelTitle: string;
     createSwitchAria: string;
     anchorSwitchAria: string;
+    selectGridAria: string;
     anchorGridAria: string;
+    alignGridAria: string;
     anchorLabel: string;
+    alignLabel: string;
     plannedAriaSuffix: string;
     plannedTitleSuffix: string;
     toolGroupsAria: string;
+    customShortcutsTitle: string;
+    customSlotLabel: string;
     groupTitles: Record<ToolGroupId, string>;
     toolLabels: Record<ToolId, string>;
   };
@@ -147,6 +163,44 @@ export interface UiCopy {
       interfaceBrightness: string;
       homeBanner: string;
       resetAllSettings: string;
+      resetAction: string;
+      resetDialogTitle: string;
+      resetDialogBody: string;
+      resetConfirm: string;
+      resetCancel: string;
+      autoSaveNote: string;
+    };
+    home: {
+      layoutNames: {
+        creativeGeneral: string;
+      };
+      layoutSection: string;
+      customLayout: string;
+      editLayout: string;
+      finishEditing: string;
+      fixedToolCount: string;
+      customShortcutSlots: string;
+      toolGroupsSection: string;
+      toolGroupsDescription: string;
+      moveUp: string;
+      moveDown: string;
+      showGroup: string;
+      showTool: string;
+      expandGroup: string;
+      collapseGroup: string;
+      importLayout: string;
+      exportLayout: string;
+      importSuccess: string;
+      importError: string;
+      gridDefaultsSection: string;
+      rememberPanelModes: string;
+      createSelectDefault: string;
+      anchorAlignDefault: string;
+      create: string;
+      select: string;
+      anchor: string;
+      align: string;
+      resetHomeSettings: string;
       resetAction: string;
       resetDialogTitle: string;
       resetDialogBody: string;
