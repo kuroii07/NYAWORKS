@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title">
+  <title id="title">NYAWORKS cat mark</title>
+  <path
+    d="M39 29 96 78c10-5 21-8 32-8s22 3 32 8l57-49-9 87 19 31-25 58-49 32-25-22-25 22-49-32-25-58 19-31-9-87Z"
+    fill="#020b10"
+    stroke="#20eef6"
+    stroke-width="10"
+    stroke-linejoin="round"
+  />
+  <path
+    d="m68 137 47 14-17 18-30-9-12-20 12-3Z"
+    fill="#20eef6"
+  />
+  <path
+    d="m188 137-47 14 17 18 30-9 12-20-12-3Z"
+    fill="#20eef6"
+  />
+  <path
+    d="m128 184-15 13 15 12 15-12-15-13Z"
+    fill="#20eef6"
+    opacity=".78"
+  />
+</svg>

@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+.vite/
+.playwright-cli/
+*.log
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+outputs/*
+!outputs/.gitkeep
+work/*
+!work/.gitkeep

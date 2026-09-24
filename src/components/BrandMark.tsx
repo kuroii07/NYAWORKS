@@ -1,0 +1,36 @@
+import { useId, type SVGProps } from "react";
+
+export function BrandMark(props: SVGProps<SVGSVGElement>) {
+  const maskId = `nyaworks-brand-mask-${useId().replace(/:/g, "")}`;
+
+  return (
+    <svg
+      viewBox="0 0 256 256"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      <defs>
+        <mask id={maskId}>
+          <rect width="256" height="256" fill="white" />
+          <ellipse cx="96" cy="151" rx="10" ry="14" fill="black" />
+          <ellipse cx="158" cy="151" rx="10" ry="14" fill="black" />
+        </mask>
+      </defs>
+
+      <path
+        d="M31 58C30 49 38 44 45 50L103 96C107 99 112 101 118 101H153C160 101 166 103 172 108L213 138C223 146 228 159 228 172V181C228 211 204 230 174 230H83C49 230 28 208 28 175V96C28 81 29 68 31 58Z"
+        fill="currentColor"
+        mask={`url(#${maskId})`}
+      />
+
+      <path
+        className="brand-mark__ear"
+        d="M166 80L207 48C214 43 220 47 221 56L228 110C229 119 221 124 214 119L168 91C163 88 162 84 166 80Z"
+        fill="#fff"
+      />
+    </svg>
+  );
+}
