@@ -1,6 +1,14 @@
 import type { StartupPageId } from "../types/navigation";
 import { BUILT_IN_CREATIVE_LAYOUT_ID } from "../homeLayouts/catalog";
 import type { HomeLayout } from "../homeLayouts/types";
+export type {
+  AiConnection,
+  AiConnectionDraft,
+  AiFeatureRouting,
+  AiGenerationPreferences,
+  AiModelTarget,
+  AiSettings
+} from "../aiSettings/types";
 
 export const SETTINGS_TAB_IDS = [
   "general",
