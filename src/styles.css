@@ -65,6 +65,7 @@ button {
 
 #root,
 .setting-select-popover,
+.compact-action-menu,
 .app-dialog-layer {
   filter: brightness(var(--nw-interface-brightness));
 }
@@ -2034,7 +2035,7 @@ input:focus-visible {
   width: 100%;
 }
 
-.home-layout-selector-row__controls > button,
+.home-layout-selector-row__controls > button:not(.setting-select),
 .home-layout-selector-row__controls .compact-menu-anchor > button,
 .settings-section__icon-action {
   width: 30px;
@@ -2078,6 +2079,10 @@ input:focus-visible {
 
 .home-settings-section .settings-section__rows {
   padding: 0 13px 5px;
+}
+
+.home-settings-section {
+  overflow: visible;
 }
 
 .home-settings-description {
@@ -2147,7 +2152,8 @@ input:focus-visible {
   gap: 4px;
 }
 
-.home-group-setting__actions button {
+.home-group-setting__actions > button,
+.home-group-setting__actions > .compact-menu-anchor > button {
   width: 27px;
   height: 27px;
   padding: 0;
@@ -2160,18 +2166,23 @@ input:focus-visible {
   cursor: pointer;
 }
 
-.home-group-setting__actions button:not(:disabled):hover {
+.home-group-setting__actions > button:not(:disabled):hover,
+.home-group-setting__actions
+  > .compact-menu-anchor
+  > button:not(:disabled):hover {
   color: var(--nw-accent-bright);
   border-color: var(--nw-accent);
   background: var(--nw-accent-soft);
 }
 
-.home-group-setting__actions button:disabled {
+.home-group-setting__actions > button:disabled,
+.home-group-setting__actions > .compact-menu-anchor > button:disabled {
   cursor: not-allowed;
   opacity: 0.28;
 }
 
-.home-group-setting__actions svg {
+.home-group-setting__actions > button > svg,
+.home-group-setting__actions > .compact-menu-anchor > button > svg {
   width: 13px;
   height: 13px;
 }
@@ -2549,6 +2560,7 @@ input:focus-visible {
 
 .setting-select__value {
   min-width: 0;
+  flex: 1 1 auto;
   overflow: hidden;
   color: inherit;
   text-overflow: ellipsis;
@@ -3228,11 +3240,12 @@ input:focus-visible {
 }
 
 .compact-action-menu {
-  position: absolute;
-  z-index: 80;
-  top: calc(100% + 6px);
+  position: fixed;
+  z-index: 1200;
   min-width: 148px;
+  max-height: calc(100vh - 16px);
   padding: 4px;
+  overflow-y: auto;
   border: 1px solid var(--nw-border-strong);
   border-radius: var(--nw-radius-control);
   display: grid;
@@ -3243,12 +3256,8 @@ input:focus-visible {
     0 0 12px var(--nw-accent-glow);
 }
 
-.compact-action-menu[data-align="left"] {
-  left: 0;
-}
-
-.compact-action-menu[data-align="right"] {
-  right: 0;
+.compact-action-menu__anchor-marker {
+  display: none;
 }
 
 .compact-action-menu button {
