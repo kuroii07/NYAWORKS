@@ -811,6 +811,8 @@ input:focus-visible {
 }
 
 .mode-switch {
+  position: relative;
+  isolation: isolate;
   width: 76%;
   height: 52px;
   margin: 16px auto 14px;
@@ -822,21 +824,50 @@ input:focus-visible {
   background: var(--nw-bg);
 }
 
+.mode-switch::before {
+  position: absolute;
+  z-index: 0;
+  top: 1px;
+  bottom: 1px;
+  left: 1px;
+  width: calc(50% - 1px);
+  border: 1px solid var(--nw-accent);
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--nw-accent-soft),
+    var(--nw-accent)
+  );
+  box-shadow: 0 0 14px var(--nw-accent-glow);
+  content: "";
+  pointer-events: none;
+  transform: translateX(0);
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.mode-switch[data-active-index="1"]::before {
+  transform: translateX(100%);
+}
+
 .mode-switch > span,
 .mode-switch > button {
+  position: relative;
+  z-index: 1;
   min-width: 0;
   padding: 0;
-  border: 1px solid transparent;
+  border: 0;
   display: grid;
   place-items: center;
   color: var(--nw-text-muted);
   background: transparent;
   cursor: pointer;
   transition:
-    color var(--nw-fast) ease,
-    border-color var(--nw-fast) ease,
-    background-color var(--nw-fast) ease,
-    box-shadow var(--nw-fast) ease;
+    color var(--nw-fast) ease;
+}
+
+.mode-switch > button:focus-visible {
+  outline: 2px solid var(--nw-accent-bright);
+  outline-offset: -4px;
 }
 
 .mode-switch svg {
@@ -847,14 +878,6 @@ input:focus-visible {
 .mode-switch__active,
 .mode-switch > button[data-active="true"] {
   color: var(--nw-text) !important;
-  border: 1px solid var(--nw-accent);
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    var(--nw-accent-soft),
-    var(--nw-accent)
-  );
-  box-shadow: 0 0 14px var(--nw-accent-glow);
 }
 
 .create-grid,
@@ -866,8 +889,97 @@ input:focus-visible {
   gap: 10px;
 }
 
+.create-grid {
+  position: relative;
+  aspect-ratio: 1;
+}
+
+.anchor-grid {
+  position: relative;
+  aspect-ratio: 1;
+  display: block;
+}
+
+.create-grid__layer {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: inherit;
+  pointer-events: none;
+}
+
+.spatial-grid__layer {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: inherit;
+  pointer-events: none;
+}
+
+.create-grid__layer .tool-button {
+  opacity: 0;
+  transition: opacity 140ms ease;
+  transition-delay: 0ms;
+}
+
+.spatial-grid__layer .anchor-button {
+  opacity: 0;
+  transition: opacity 140ms ease;
+  transition-delay: 0ms;
+}
+
+.create-grid__layer[data-active="true"] {
+  pointer-events: auto;
+}
+
+.spatial-grid__layer[data-active="true"] {
+  pointer-events: auto;
+}
+
+.create-grid__layer[data-active="true"] .tool-button {
+  opacity: 1;
+  transition-delay: calc(var(--create-motion-index) * 25ms);
+}
+
+.spatial-grid__layer[data-active="true"] .anchor-button {
+  opacity: 1;
+  transition-delay: calc(var(--spatial-motion-index) * 25ms);
+}
+
+.create-grid__layer[data-active="true"] .tool-button svg {
+  animation: create-grid-icon-enter 320ms cubic-bezier(0.2, 0.8, 0.2, 1)
+    both;
+  animation-delay: calc(var(--create-motion-index) * 25ms);
+}
+
+.spatial-grid__layer[data-active="true"] .spatial-icon > svg {
+  animation: create-grid-icon-enter 320ms cubic-bezier(0.2, 0.8, 0.2, 1)
+    both;
+  animation-delay: calc(var(--spatial-motion-index) * 25ms);
+}
+
+@keyframes create-grid-icon-enter {
+  0% {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+
+  72% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .tool-button,
 .anchor-button {
+  position: relative;
   height: 90px;
   aspect-ratio: 1;
   min-width: 0;
@@ -908,72 +1020,6 @@ input:focus-visible {
   min-height: 24px;
 }
 
-.anchor-button__frame {
-  position: relative;
-  height: 28px;
-  width: 29%;
-  aspect-ratio: 1;
-  border: 3px solid currentColor;
-}
-
-.anchor-button__dot {
-  position: absolute;
-  width: 7px;
-  height: 7px;
-  border-radius: 1px;
-  background: currentColor;
-}
-
-.anchor-button[data-position="top-left"] .anchor-button__dot {
-  left: -11px;
-  top: -11px;
-}
-
-.anchor-button[data-position="top"] .anchor-button__dot {
-  left: 50%;
-  top: -11px;
-  transform: translateX(-50%);
-}
-
-.anchor-button[data-position="top-right"] .anchor-button__dot {
-  right: -11px;
-  top: -11px;
-}
-
-.anchor-button[data-position="left"] .anchor-button__dot {
-  left: -11px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.anchor-button[data-position="center"] .anchor-button__dot {
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.anchor-button[data-position="right"] .anchor-button__dot {
-  right: -11px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.anchor-button[data-position="bottom-left"] .anchor-button__dot {
-  left: -11px;
-  bottom: -11px;
-}
-
-.anchor-button[data-position="bottom"] .anchor-button__dot {
-  left: 50%;
-  bottom: -11px;
-  transform: translateX(-50%);
-}
-
-.anchor-button[data-position="bottom-right"] .anchor-button__dot {
-  right: -11px;
-  bottom: -11px;
-}
-
 .tool-groups {
   margin-top: 12px;
   display: grid;
@@ -994,6 +1040,31 @@ input:focus-visible {
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 12px;
+}
+
+.spatial-mode-icon,
+.spatial-icon > svg {
+  display: block;
+  overflow: visible;
+}
+
+.spatial-icon > svg {
+  width: 34px;
+  height: 34px;
+}
+
+.spatial-svg__frame,
+.spatial-svg__guide {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.spatial-svg__marker,
+.spatial-svg__object {
+  fill: currentColor;
 }
 
 .home-tool-slot-wrap {
@@ -1162,6 +1233,30 @@ input:focus-visible {
     background-color var(--nw-fast) ease,
     box-shadow var(--nw-fast) ease,
     transform var(--nw-fast) ease;
+}
+
+.spatial-icon {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+[data-motion="reduced"] .create-grid__layer[data-active="true"] .tool-button,
+[data-motion="reduced"]
+  .create-grid__layer[data-active="true"]
+  .tool-button svg {
+  transition-delay: 0ms;
+  animation: none;
+}
+
+[data-motion="reduced"] .spatial-grid__layer[data-active="true"] .anchor-button,
+[data-motion="reduced"]
+  .spatial-grid__layer[data-active="true"]
+  .spatial-icon > svg {
+  transition-delay: 0ms;
+  animation: none;
 }
 
 .settings-tabs button:hover {
@@ -3668,6 +3763,11 @@ html[data-reordering="true"] * {
   transform: translateX(-50%);
 }
 
+.global-tooltip[data-placement="right"] {
+  text-align: left;
+  transform: translateY(-50%);
+}
+
 [data-motion="reduced"] {
   --nw-fast: 80ms;
 }
@@ -4633,6 +4733,15 @@ html[data-reordering="true"] * {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
   }
+
+  .create-grid__layer[data-active="true"] .tool-button,
+  .create-grid__layer[data-active="true"] .tool-button svg,
+  .spatial-grid__layer[data-active="true"] .anchor-button,
+  .spatial-grid__layer[data-active="true"] .spatial-icon > svg {
+    transition-delay: 0ms !important;
+    animation: none !important;
+    transform: none !important;
+  }
 }
 
 /*
@@ -5189,38 +5298,9 @@ html[data-reordering="true"] * {
   min-height: 17px;
 }
 
-[data-density="medium"] .anchor-button__frame {
-  height: 18px;
-  border-width: 2px;
-}
-
-[data-density="medium"] .anchor-button__dot {
-  width: 5px;
-  height: 5px;
-}
-
-[data-density="medium"] .anchor-button[data-position="top-left"] .anchor-button__dot,
-[data-density="medium"] .anchor-button[data-position="top"] .anchor-button__dot,
-[data-density="medium"] .anchor-button[data-position="top-right"] .anchor-button__dot {
-  top: -8px;
-}
-
-[data-density="medium"] .anchor-button[data-position="bottom-left"] .anchor-button__dot,
-[data-density="medium"] .anchor-button[data-position="bottom"] .anchor-button__dot,
-[data-density="medium"] .anchor-button[data-position="bottom-right"] .anchor-button__dot {
-  bottom: -8px;
-}
-
-[data-density="medium"] .anchor-button[data-position="top-left"] .anchor-button__dot,
-[data-density="medium"] .anchor-button[data-position="left"] .anchor-button__dot,
-[data-density="medium"] .anchor-button[data-position="bottom-left"] .anchor-button__dot {
-  left: -8px;
-}
-
-[data-density="medium"] .anchor-button[data-position="top-right"] .anchor-button__dot,
-[data-density="medium"] .anchor-button[data-position="right"] .anchor-button__dot,
-[data-density="medium"] .anchor-button[data-position="bottom-right"] .anchor-button__dot {
-  right: -8px;
+[data-density="medium"] .spatial-icon > svg {
+  width: 24px;
+  height: 24px;
 }
 
 [data-density="medium"] .tool-groups {
@@ -5888,38 +5968,9 @@ html[data-reordering="true"] * {
   min-height: 15px;
 }
 
-[data-density="small"] .anchor-button__frame {
-  height: 16px;
-  border-width: 2px;
-}
-
-[data-density="small"] .anchor-button__dot {
-  width: 4px;
-  height: 4px;
-}
-
-[data-density="small"] .anchor-button[data-position="top-left"] .anchor-button__dot,
-[data-density="small"] .anchor-button[data-position="top"] .anchor-button__dot,
-[data-density="small"] .anchor-button[data-position="top-right"] .anchor-button__dot {
-  top: -7px;
-}
-
-[data-density="small"] .anchor-button[data-position="bottom-left"] .anchor-button__dot,
-[data-density="small"] .anchor-button[data-position="bottom"] .anchor-button__dot,
-[data-density="small"] .anchor-button[data-position="bottom-right"] .anchor-button__dot {
-  bottom: -7px;
-}
-
-[data-density="small"] .anchor-button[data-position="top-left"] .anchor-button__dot,
-[data-density="small"] .anchor-button[data-position="left"] .anchor-button__dot,
-[data-density="small"] .anchor-button[data-position="bottom-left"] .anchor-button__dot {
-  left: -7px;
-}
-
-[data-density="small"] .anchor-button[data-position="top-right"] .anchor-button__dot,
-[data-density="small"] .anchor-button[data-position="right"] .anchor-button__dot,
-[data-density="small"] .anchor-button[data-position="bottom-right"] .anchor-button__dot {
-  right: -7px;
+[data-density="small"] .spatial-icon > svg {
+  width: 21px;
+  height: 21px;
 }
 
 [data-density="small"] .tool-groups {

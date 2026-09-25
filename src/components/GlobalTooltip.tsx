@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "../i18n/LanguageProvider";
 import { useSettings } from "../settings/SettingsProvider";
+import {
+  getTooltipPosition,
+  type TooltipPlacement
+} from "./tooltipPosition";
 import { resolveTooltipTitle } from "./tooltipTitle";
 
 interface TooltipState {
   text: string;
   left: number;
+  placement: TooltipPlacement;
   top: number;
 }
 
@@ -78,13 +83,13 @@ export function GlobalTooltip() {
 
       timer.current = window.setTimeout(() => {
         const rect = target.getBoundingClientRect();
-        const halfWidth = 96;
-        const left = Math.min(
-          window.innerWidth - halfWidth - 8,
-          Math.max(halfWidth + 8, rect.left + rect.width / 2)
+        const position = getTooltipPosition(
+          rect,
+          window.innerWidth,
+          window.innerHeight,
+          target.closest(".sidebar") !== null
         );
-        const top = Math.min(window.innerHeight - 44, rect.bottom + 8);
-        setTooltip({ text: title, left, top });
+        setTooltip({ text: title, ...position });
       }, generalSettings.tooltipDelayMs);
     }
 
@@ -152,6 +157,7 @@ export function GlobalTooltip() {
   return tooltip ? (
     <div
       className="global-tooltip"
+      data-placement={tooltip.placement}
       role="tooltip"
       style={{ left: tooltip.left, top: tooltip.top }}
     >

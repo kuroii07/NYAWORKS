@@ -18,12 +18,15 @@ class MemoryStorage {
   }
 }
 
-function renderHomePage(showQuickPanels = true): string {
+function renderHomePage(
+  showQuickPanels = true,
+  overrides: Partial<typeof DEFAULT_HOME_SETTINGS> = {}
+): string {
   const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
   const storage = new MemoryStorage();
   storage.setItem(
     HOME_SETTINGS_STORAGE_KEY,
-    JSON.stringify({ ...DEFAULT_HOME_SETTINGS, showQuickPanels })
+    JSON.stringify({ ...DEFAULT_HOME_SETTINGS, showQuickPanels, ...overrides })
   );
   vi.stubGlobal("window", { localStorage: storage });
 
@@ -63,5 +66,35 @@ describe("HomePage layout settings", () => {
 
     expect(markup).not.toContain('class="quick-panels"');
     expect(markup).toContain('class="tool-groups"');
+  });
+
+  it("uses a distinct alignment grid and a single sliding mode indicator", () => {
+    const markup = renderHomePage(true, { spaceMode: "align" });
+
+    expect(markup).toContain('class="anchor-grid anchor-grid--align"');
+    expect(markup).toContain('class="align-grid-icon"');
+    expect(markup).toContain('class="spatial-mode-icon"');
+    expect(markup).not.toContain('class="anchor-grid anchor-grid--anchor"');
+    expect(markup.match(/data-active-index="0"/g)).toHaveLength(1);
+    expect(markup.match(/data-active-index="1"/g)).toHaveLength(1);
+  });
+
+  it("exposes staggered motion metadata for the spatial grid", () => {
+    const markup = renderHomePage(true, { spaceMode: "align" });
+
+    expect(markup).toContain('data-spatial-motion="align"');
+    expect(markup).toContain('class="spatial-grid__layer spatial-grid__layer--anchor"');
+    expect(markup).toContain('class="spatial-grid__layer spatial-grid__layer--align"');
+    expect(markup.match(/data-motion-index="[0-8]"/g)).toHaveLength(18);
+    expect(markup.match(/--spatial-motion-index:/g)).toHaveLength(18);
+  });
+
+  it("renders both create and select motion layers for a unified switch", () => {
+    const markup = renderHomePage(true, { createMode: "select" });
+
+    expect(markup).toContain('data-create-motion="select"');
+    expect(markup).toContain('class="create-grid__layer create-grid__layer--create"');
+    expect(markup).toContain('class="create-grid__layer create-grid__layer--select"');
+    expect(markup.match(/--create-motion-index:/g)).toHaveLength(18);
   });
 });

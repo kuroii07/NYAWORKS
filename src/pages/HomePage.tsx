@@ -6,6 +6,7 @@ import {
   useState,
   type ButtonHTMLAttributes,
   type ComponentType,
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent
 } from "react";
 import type { IconProps } from "@phosphor-icons/react";
@@ -25,7 +26,6 @@ import {
   SelectionBackground,
   SlidersHorizontal,
   Stack,
-  TextAlignLeft,
   TextT,
   Trash,
   VideoCamera
@@ -100,6 +100,77 @@ const SELECT_TOOLS: readonly { id: ToolId; icon: ToolIcon }[] = [
   { id: "invertSelection", icon: SelectionBackground }
 ] as const;
 
+const SPATIAL_POSITIONS = [
+  "top-left",
+  "top",
+  "top-right",
+  "left",
+  "center",
+  "right",
+  "bottom-left",
+  "bottom",
+  "bottom-right"
+] as const;
+
+type SpatialPosition = (typeof SPATIAL_POSITIONS)[number];
+
+const SPATIAL_ICON_COORDINATES: Record<
+  SpatialPosition,
+  { guideX: number; guideY: number; objectX: number; objectY: number; pointX: number; pointY: number }
+> = {
+  "top-left": { guideX: 7, guideY: 7, objectX: 10, objectY: 10, pointX: 5, pointY: 5 },
+  top: { guideX: 16, guideY: 7, objectX: 12, objectY: 10, pointX: 13.5, pointY: 5 },
+  "top-right": { guideX: 25, guideY: 7, objectX: 14, objectY: 10, pointX: 22, pointY: 5 },
+  left: { guideX: 7, guideY: 16, objectX: 10, objectY: 13, pointX: 5, pointY: 13.5 },
+  center: { guideX: 16, guideY: 16, objectX: 12, objectY: 13, pointX: 13.5, pointY: 13.5 },
+  right: { guideX: 25, guideY: 16, objectX: 14, objectY: 13, pointX: 22, pointY: 13.5 },
+  "bottom-left": { guideX: 7, guideY: 25, objectX: 10, objectY: 16, pointX: 5, pointY: 22 },
+  bottom: { guideX: 16, guideY: 25, objectX: 12, objectY: 16, pointX: 13.5, pointY: 22 },
+  "bottom-right": { guideX: 25, guideY: 25, objectX: 14, objectY: 16, pointX: 22, pointY: 22 }
+};
+
+function AnchorModeIcon() {
+  return (
+    <svg className="spatial-mode-icon" viewBox="0 0 32 32" aria-hidden="true">
+      <rect className="spatial-svg__frame" x="8" y="8" width="16" height="16" rx="1.5" />
+      <path className="spatial-svg__guide" d="M16 4v4M16 24v4M4 16h4M24 16h4" />
+      <rect className="spatial-svg__marker" x="13.5" y="13.5" width="5" height="5" rx="0.8" />
+    </svg>
+  );
+}
+
+function AlignModeIcon() {
+  return (
+    <svg className="spatial-mode-icon" viewBox="0 0 32 32" aria-hidden="true">
+      <path className="spatial-svg__guide" d="M16 4v24" />
+      <rect className="spatial-svg__object" x="10" y="7" width="12" height="5" rx="1" />
+      <rect className="spatial-svg__object" x="10" y="20" width="12" height="5" rx="1" />
+    </svg>
+  );
+}
+
+function AnchorGridIcon({ position }: { position: SpatialPosition }) {
+  const { pointX, pointY } = SPATIAL_ICON_COORDINATES[position];
+
+  return (
+    <svg className="anchor-grid-icon" viewBox="0 0 32 32" aria-hidden="true">
+      <rect className="spatial-svg__frame" x="11" y="11" width="10" height="10" rx="1" />
+      <rect className="spatial-svg__marker" x={pointX} y={pointY} width="5" height="5" rx="0.8" />
+    </svg>
+  );
+}
+
+function AlignGridIcon({ position }: { position: SpatialPosition }) {
+  const { guideX, guideY, objectX, objectY } = SPATIAL_ICON_COORDINATES[position];
+
+  return (
+    <svg className="align-grid-icon" viewBox="0 0 32 32" aria-hidden="true">
+      <path className="spatial-svg__guide" d={`M${guideX} 4v24M4 ${guideY}h24`} />
+      <rect className="spatial-svg__object" x={objectX} y={objectY} width="8" height="6" rx="1" />
+    </svg>
+  );
+}
+
 function PlannedToolButton({
   icon: Icon,
   label,
@@ -131,6 +202,53 @@ function PlannedToolButton({
   );
 }
 
+function CreateToolGrid({
+  copy,
+  mode
+}: {
+  copy: UiCopy["home"];
+  mode: HomeCreateMode;
+}) {
+  const layers = [
+    { id: "create", tools: CREATE_TOOLS },
+    { id: "select", tools: SELECT_TOOLS }
+  ] as const;
+
+  return (
+    <div className="create-grid" data-create-motion={mode}>
+      {layers.map((layer) => {
+        const active = layer.id === mode;
+
+        return (
+          <div
+            aria-hidden={!active || undefined}
+            className={`create-grid__layer create-grid__layer--${layer.id}`}
+            data-active={active || undefined}
+            key={layer.id}
+          >
+            {layer.tools.map((tool, index) => (
+              <PlannedToolButton
+                icon={tool.icon}
+                key={tool.id}
+                label={copy.toolLabels[tool.id]}
+                ariaSuffix={copy.plannedAriaSuffix}
+                titleSuffix={copy.plannedTitleSuffix}
+                emphasized={index === 0}
+                tabIndex={active ? undefined : -1}
+                style={
+                  {
+                    "--create-motion-index": index
+                  } as CSSProperties
+                }
+              />
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function SpatialGrid({
   copy,
   mode
@@ -138,43 +256,57 @@ function SpatialGrid({
   copy: UiCopy["home"];
   mode: HomeSpaceMode;
 }) {
-  const positions = [
-    "top-left",
-    "top",
-    "top-right",
-    "left",
-    "center",
-    "right",
-    "bottom-left",
-    "bottom",
-    "bottom-right"
-  ] as const;
+  const layers = ["anchor", "align"] as const;
 
   return (
     <div
-      className="anchor-grid"
+      className={`anchor-grid ${
+        mode === "align" ? "anchor-grid--align" : "anchor-grid--anchor"
+      }`}
+      data-spatial-motion={mode}
       aria-label={mode === "anchor" ? copy.anchorGridAria : copy.alignGridAria}
     >
-      {positions.map((position) => (
-        <button
-          className="anchor-button"
-          data-position={position}
-          data-selected={position === "center" || undefined}
-          key={position}
-          type="button"
-          aria-label={`${position} ${
-            mode === "anchor" ? copy.anchorLabel : copy.alignLabel
-          }${copy.plannedAriaSuffix}`}
-          aria-disabled="true"
-          title={`${
-            mode === "anchor" ? copy.anchorLabel : copy.alignLabel
-          }${copy.plannedTitleSuffix}`}
-        >
-          <span className="anchor-button__frame" aria-hidden="true">
-            <span className="anchor-button__dot" />
-          </span>
-        </button>
-      ))}
+      {layers.map((layer) => {
+        const active = layer === mode;
+        const label = layer === "anchor" ? copy.anchorLabel : copy.alignLabel;
+
+        return (
+          <div
+            aria-hidden={!active || undefined}
+            className={`spatial-grid__layer spatial-grid__layer--${layer}`}
+            data-active={active || undefined}
+            key={layer}
+          >
+            {SPATIAL_POSITIONS.map((position, index) => (
+              <button
+                className="anchor-button"
+                data-position={position}
+                data-selected={position === "center" || undefined}
+                data-motion-index={index}
+                key={position}
+                style={
+                  {
+                    "--spatial-motion-index": index
+                  } as CSSProperties
+                }
+                tabIndex={active ? undefined : -1}
+                type="button"
+                aria-label={`${position} ${label}${copy.plannedAriaSuffix}`}
+                aria-disabled="true"
+                title={`${label}${copy.plannedTitleSuffix}`}
+              >
+                <span className="spatial-icon" aria-hidden="true">
+                  {layer === "anchor" ? (
+                    <AnchorGridIcon position={position} />
+                  ) : (
+                    <AlignGridIcon position={position} />
+                  )}
+                </span>
+              </button>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -187,8 +319,6 @@ export function HomePage({
   const { copy } = useLanguage();
   const { generalSettings, homeSettings, updateHomeSettings } = useSettings();
   const home = copy.home;
-  const activeCreateTools =
-    homeSettings.createMode === "create" ? CREATE_TOOLS : SELECT_TOOLS;
   const activeLayout = getActiveHomeLayout(homeSettings);
   const layoutName = getHomeLayoutLabel(activeLayout.name, copy);
   const visibleToolGroups = activeLayout.groups.filter((group) => group.visible);
@@ -557,7 +687,11 @@ export function HomePage({
               ? home.createPanelTitle
               : home.selectPanelTitle}
           </h3>
-          <div className="mode-switch" aria-label={home.createSwitchAria}>
+          <div
+            className="mode-switch"
+            data-active-index={homeSettings.createMode === "create" ? 0 : 1}
+            aria-label={home.createSwitchAria}
+          >
             <button
               type="button"
               data-active={homeSettings.createMode === "create" || undefined}
@@ -581,18 +715,7 @@ export function HomePage({
               <SelectionAll aria-hidden="true" />
             </button>
           </div>
-          <div className="create-grid">
-            {activeCreateTools.map((tool, index) => (
-              <PlannedToolButton
-                icon={tool.icon}
-                key={tool.id}
-                label={home.toolLabels[tool.id]}
-                ariaSuffix={home.plannedAriaSuffix}
-                titleSuffix={home.plannedTitleSuffix}
-                emphasized={index === 0}
-              />
-            ))}
-          </div>
+          <CreateToolGrid copy={home} mode={homeSettings.createMode} />
           </article>
 
           <article className="quick-panel">
@@ -602,7 +725,11 @@ export function HomePage({
               ? home.spacePanelTitle
               : home.alignPanelTitle}
           </h3>
-          <div className="mode-switch" aria-label={home.anchorSwitchAria}>
+          <div
+            className="mode-switch"
+            data-active-index={homeSettings.spaceMode === "anchor" ? 0 : 1}
+            aria-label={home.anchorSwitchAria}
+          >
             <button
               type="button"
               data-active={homeSettings.spaceMode === "anchor" || undefined}
@@ -612,7 +739,7 @@ export function HomePage({
                 updateHomeSettings({ spaceMode: "anchor" as HomeSpaceMode })
               }
             >
-              <AnchorSimple aria-hidden="true" />
+              <AnchorModeIcon />
             </button>
             <button
               type="button"
@@ -623,7 +750,7 @@ export function HomePage({
                 updateHomeSettings({ spaceMode: "align" as HomeSpaceMode })
               }
             >
-              <TextAlignLeft aria-hidden="true" />
+              <AlignModeIcon />
             </button>
           </div>
           <SpatialGrid copy={home} mode={homeSettings.spaceMode} />
