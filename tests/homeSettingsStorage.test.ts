@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { BUILT_IN_CREATIVE_LAYOUT_ID } from "../src/homeLayouts/catalog";
 import {
   HOME_SETTINGS_STORAGE_KEY,
+  getActiveHomeLayout,
   normalizeHomeSettings,
   readStoredHomeSettings,
   writeStoredHomeSettings
@@ -102,6 +103,77 @@ describe("home settings storage", () => {
       null,
       null
     ]);
+  });
+
+  it("migrates the accidental active copy back into the built-in layout without losing edits", () => {
+    const accidentalId = "layout:7834600e-8df9-4313-90ed-4f448d9960ea";
+    const preservedTools = [
+      "newText",
+      "star",
+      "textLayout",
+      "splitText",
+      "rectangle",
+      "circle",
+      "path",
+      null
+    ];
+    const migrated = normalizeHomeSettings({
+      activeLayoutId: accidentalId,
+      customLayouts: [
+        {
+          id: accidentalId,
+          kind: "custom",
+          name: { kind: "custom", value: "创作通用 2" },
+          createdAt: "2026-09-25T14:35:51.597Z",
+          updatedAt: "2026-09-25T15:08:08.205Z",
+          groups: [
+            {
+              id: `${accidentalId}:group:4`,
+              name: { kind: "translation", key: "textShapes" },
+              iconId: "text",
+              visible: true,
+              toolSlots: preservedTools
+            }
+          ]
+        }
+      ]
+    });
+
+    expect(migrated.activeLayoutId).toBe(BUILT_IN_CREATIVE_LAYOUT_ID);
+    expect(migrated.customLayouts).toEqual([]);
+    expect(getActiveHomeLayout(migrated).name).toEqual({
+      kind: "translation",
+      key: "creativeGeneral"
+    });
+    expect(getActiveHomeLayout(migrated).groups[0].toolSlots).toEqual(
+      preservedTools
+    );
+  });
+
+  it("keeps intentionally named custom layouts separate from the built-in", () => {
+    const normalized = normalizeHomeSettings({
+      activeLayoutId: "layout:user-created",
+      customLayouts: [
+        {
+          id: "layout:user-created",
+          kind: "custom",
+          name: { kind: "custom", value: "我的创作通用布局" },
+          groups: [
+            {
+              id: "layout:user-created:group:1",
+              name: { kind: "custom", value: "自定义组" },
+              iconId: "folder",
+              visible: true,
+              toolSlots: ["newText"]
+            }
+          ]
+        }
+      ]
+    });
+
+    expect(normalized.activeLayoutId).toBe("layout:user-created");
+    expect(normalized.customLayouts).toHaveLength(1);
+    expect(normalized).not.toHaveProperty("builtInLayoutOverride");
   });
 
   it("upgrades legacy seven-slot groups and compacts tools before padding", () => {

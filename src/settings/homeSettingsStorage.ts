@@ -171,6 +171,50 @@ function normalizeCustomLayout(value: unknown): HomeLayout | null {
   };
 }
 
+function normalizeBuiltInLayoutOverride(value: unknown): HomeLayout | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const candidate = value as Partial<HomeLayout>;
+  if (candidate.id !== BUILT_IN_CREATIVE_LAYOUT_ID) {
+    return undefined;
+  }
+
+  const groups = Array.isArray(candidate.groups)
+    ? candidate.groups
+        .map((group, index) => normalizeGroup(group, index))
+        .filter((group): group is HomeLayoutGroup => Boolean(group))
+    : [];
+
+  return {
+    ...BUILT_IN_HOME_LAYOUTS[0],
+    kind: "built-in",
+    groups,
+    updatedAt:
+      normalizeText(candidate.updatedAt, 40) ?? BUILT_IN_HOME_LAYOUTS[0].updatedAt
+  };
+}
+
+function isAccidentalBuiltInCopy(layout: HomeLayout): boolean {
+  if (
+    layout.name.kind !== "custom" ||
+    !/^(创作通用|創作通用|Creative General)\s+\d+$/i.test(layout.name.value) ||
+    layout.groups.length === 0
+  ) {
+    return false;
+  }
+
+  const generatedGroupPrefix = `${layout.id}:group:`;
+  return layout.groups.every((group) => {
+    const generatedIndex = group.id.slice(generatedGroupPrefix.length);
+    return (
+      group.id.startsWith(generatedGroupPrefix) &&
+      /^\d+$/.test(generatedIndex)
+    );
+  });
+}
+
 export function normalizeHomeSettings(value: unknown): HomeSettings {
   if (!value || typeof value !== "object") {
     return DEFAULT_HOME_SETTINGS;
@@ -189,7 +233,7 @@ export function normalizeHomeSettings(value: unknown): HomeSettings {
   const defaultSpaceMode = isSpaceMode(candidate.defaultSpaceMode)
     ? candidate.defaultSpaceMode
     : DEFAULT_HOME_SETTINGS.defaultSpaceMode;
-  const customLayouts = Array.isArray(candidate.customLayouts)
+  let customLayouts = Array.isArray(candidate.customLayouts)
     ? candidate.customLayouts
         .map(normalizeCustomLayout)
         .filter((layout): layout is HomeLayout => Boolean(layout))
@@ -199,6 +243,9 @@ export function normalizeHomeSettings(value: unknown): HomeSettings {
             index
         )
     : [];
+  let builtInLayoutOverride = normalizeBuiltInLayoutOverride(
+    candidate.builtInLayoutOverride
+  );
   const requestedActiveId =
     typeof candidate.activeLayoutId === "string"
       ? candidate.activeLayoutId
@@ -209,9 +256,34 @@ export function normalizeHomeSettings(value: unknown): HomeSettings {
       ? requestedActiveId
       : BUILT_IN_CREATIVE_LAYOUT_ID;
 
+  if (!builtInLayoutOverride && activeLayoutId !== BUILT_IN_CREATIVE_LAYOUT_ID) {
+    const activeCustomLayout = customLayouts.find(
+      (layout) => layout.id === activeLayoutId
+    );
+
+    if (activeCustomLayout && isAccidentalBuiltInCopy(activeCustomLayout)) {
+      builtInLayoutOverride = {
+        ...BUILT_IN_HOME_LAYOUTS[0],
+        groups: activeCustomLayout.groups,
+        updatedAt: activeCustomLayout.updatedAt
+      };
+      customLayouts = customLayouts.filter(
+        (layout) => layout.id !== activeCustomLayout.id
+      );
+    }
+  }
+
+  const resolvedActiveLayoutId =
+    !normalizeBuiltInLayoutOverride(candidate.builtInLayoutOverride) &&
+    activeLayoutId !== BUILT_IN_CREATIVE_LAYOUT_ID &&
+    !customLayouts.some((layout) => layout.id === activeLayoutId)
+      ? BUILT_IN_CREATIVE_LAYOUT_ID
+      : activeLayoutId;
+
   return {
-    activeLayoutId,
+    activeLayoutId: resolvedActiveLayoutId,
     customLayouts,
+    ...(builtInLayoutOverride ? { builtInLayoutOverride } : {}),
     showQuickPanels,
     rememberPanelModes,
     defaultCreateMode,
@@ -229,6 +301,9 @@ export function normalizeHomeSettings(value: unknown): HomeSettings {
 
 export function getActiveHomeLayout(settings: HomeSettings): HomeLayout {
   return (
+    (settings.activeLayoutId === BUILT_IN_CREATIVE_LAYOUT_ID
+      ? settings.builtInLayoutOverride
+      : undefined) ??
     BUILT_IN_HOME_LAYOUTS.find(
       (layout) => layout.id === settings.activeLayoutId
     ) ??

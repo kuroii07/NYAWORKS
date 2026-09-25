@@ -56,6 +56,9 @@ function compactToolSlots(
 
 function findLayout(settings: HomeSettings, layoutId: string): HomeLayout | null {
   return (
+    (layoutId === BUILT_IN_CREATIVE_LAYOUT_ID
+      ? settings.builtInLayoutOverride
+      : null) ??
     BUILT_IN_HOME_LAYOUTS.find((layout) => layout.id === layoutId) ??
     settings.customLayouts.find((layout) => layout.id === layoutId) ??
     null
@@ -67,6 +70,18 @@ function updateCustomLayout(
   layoutId: string,
   update: (layout: HomeLayout) => HomeLayout
 ): HomeSettings {
+  if (layoutId === BUILT_IN_CREATIVE_LAYOUT_ID) {
+    const current = findLayout(settings, layoutId);
+    if (!current) {
+      return settings;
+    }
+
+    return {
+      ...settings,
+      builtInLayoutOverride: update(current)
+    };
+  }
+
   let found = false;
   const customLayouts = settings.customLayouts.map((layout) => {
     if (layout.id !== layoutId) {

@@ -1,9 +1,19 @@
-import type { ButtonHTMLAttributes, ComponentType } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ButtonHTMLAttributes,
+  type ComponentType,
+  type PointerEvent as ReactPointerEvent
+} from "react";
 import type { IconProps } from "@phosphor-icons/react";
 import {
   AnchorSimple,
   BoundingBox,
   CaretDown,
+  Check,
   Cube,
   Lightbulb,
   MagnifyingGlass,
@@ -17,13 +27,25 @@ import {
   Stack,
   TextAlignLeft,
   TextT,
+  Trash,
   VideoCamera
 } from "@phosphor-icons/react";
+import { AppDialog } from "../components/AppDialog";
+import {
+  CompactActionMenu,
+  type CompactActionMenuItem
+} from "../components/CompactActionMenu";
 import {
   getHomeLayoutLabel,
+  HOME_GROUP_SLOT_COUNT,
   HOME_TOOL_CATALOG
 } from "../homeLayouts/catalog";
+import { moveToolBetweenGroups, setToolSlot } from "../homeLayouts/layoutOperations";
 import { useLanguage } from "../i18n/LanguageProvider";
+import {
+  getPointerAutoScrollDelta,
+  hasPointerDragExceededThreshold
+} from "../interactions/pointerReorder";
 import { useSettings } from "../settings/SettingsProvider";
 import { getActiveHomeLayout } from "../settings/homeSettingsStorage";
 import type {
@@ -31,6 +53,26 @@ import type {
   HomeSpaceMode
 } from "../settings/types";
 import type { ToolId, UiCopy } from "../i18n/types";
+
+interface HomeToolDrag {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  x: number;
+  y: number;
+  offsetX: number;
+  offsetY: number;
+  width: number;
+  height: number;
+  active: boolean;
+  sourceGroupId: string;
+  sourceIndex: number;
+  targetGroupId: string | null;
+  targetIndex: number | null;
+  blocked: boolean;
+  toolId: ToolId;
+  label: string;
+}
 
 type ToolIcon = ComponentType<IconProps>;
 
@@ -64,6 +106,7 @@ function PlannedToolButton({
   ariaSuffix,
   titleSuffix,
   emphasized = false,
+  planned = true,
   ...buttonProps
 }: {
   icon: ToolIcon;
@@ -71,6 +114,7 @@ function PlannedToolButton({
   ariaSuffix: string;
   titleSuffix: string;
   emphasized?: boolean;
+  planned?: boolean;
 } & ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
@@ -79,8 +123,8 @@ function PlannedToolButton({
       type="button"
       {...buttonProps}
       aria-label={`${label}${ariaSuffix}`}
-      aria-disabled="true"
-      title={`${label}${titleSuffix}`}
+      aria-disabled={planned || undefined}
+      title={planned ? `${label}${titleSuffix}` : label}
     >
       <Icon aria-hidden="true" weight="regular" />
     </button>
@@ -136,7 +180,7 @@ function SpatialGrid({
 }
 
 export function HomePage({
-  onEditLayout
+  onEditLayout: _onEditLayout
 }: {
   onEditLayout?: () => void;
 }) {
@@ -148,6 +192,315 @@ export function HomePage({
   const activeLayout = getActiveHomeLayout(homeSettings);
   const layoutName = getHomeLayoutLabel(activeLayout.name, copy);
   const visibleToolGroups = activeLayout.groups.filter((group) => group.visible);
+  const [isEditing, setIsEditing] = useState(false);
+  const [toolTarget, setToolTarget] = useState<{
+    groupId: string;
+    slotIndex: number;
+  } | null>(null);
+  const [toolSearch, setToolSearch] = useState("");
+  const [slotMenuKey, setSlotMenuKey] = useState<string | null>(null);
+  const [toolDrag, setToolDrag] = useState<HomeToolDrag | null>(null);
+  const toolDragRef = useRef<HomeToolDrag | null>(null);
+  const suppressToolClickRef = useRef(false);
+  const autoScrollFrameRef = useRef<number | null>(null);
+  const autoScrollPointerYRef = useRef<number | null>(null);
+  const flipRectsRef = useRef<Map<string, DOMRect> | null>(null);
+
+  toolDragRef.current = toolDrag;
+
+  const visibleTools = useMemo(
+    () =>
+      Object.values(HOME_TOOL_CATALOG).filter((tool) =>
+        home.toolLabels[tool.id]
+          .toLocaleLowerCase()
+          .includes(toolSearch.trim().toLocaleLowerCase())
+      ),
+    [home.toolLabels, toolSearch]
+  );
+
+  function startEditing() {
+    setIsEditing(true);
+  }
+
+  function beginToolDrag(
+    event: ReactPointerEvent<HTMLButtonElement>,
+    groupId: string,
+    slotIndex: number,
+    toolId: ToolId,
+    label: string
+  ) {
+    if (event.button !== 0 || !isEditing || toolDragRef.current) {
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    setSlotMenuKey(null);
+    setToolDrag({
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      x: event.clientX,
+      y: event.clientY,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+      width: rect.width,
+      height: rect.height,
+      active: false,
+      sourceGroupId: groupId,
+      sourceIndex: slotIndex,
+      targetGroupId: groupId,
+      targetIndex: slotIndex,
+      blocked: false,
+      toolId,
+      label
+    });
+  }
+
+  function stopAutoScroll() {
+    autoScrollPointerYRef.current = null;
+    if (autoScrollFrameRef.current !== null) {
+      window.cancelAnimationFrame(autoScrollFrameRef.current);
+      autoScrollFrameRef.current = null;
+    }
+  }
+
+  function startAutoScroll() {
+    if (autoScrollFrameRef.current !== null) {
+      return;
+    }
+
+    const scroll = () => {
+      const drag = toolDragRef.current;
+      const pointerY = autoScrollPointerYRef.current;
+      const workspace = document.querySelector<HTMLElement>(".home-workspace");
+
+      if (!drag?.active || pointerY === null || !workspace) {
+        autoScrollFrameRef.current = null;
+        return;
+      }
+
+      const bounds = workspace.getBoundingClientRect();
+      const delta = getPointerAutoScrollDelta(pointerY, {
+        top: bounds.top,
+        bottom: bounds.bottom
+      });
+
+      if (delta !== 0) {
+        workspace.scrollTop += delta;
+      }
+
+      autoScrollFrameRef.current = window.requestAnimationFrame(scroll);
+    };
+
+    autoScrollFrameRef.current = window.requestAnimationFrame(scroll);
+  }
+
+  function captureFlipRects() {
+    const rects = new Map<string, DOMRect>();
+    document
+      .querySelectorAll<HTMLElement>("[data-home-reorder-key]")
+      .forEach((element) => {
+        const key = element.dataset.homeReorderKey;
+        if (key) {
+          rects.set(key, element.getBoundingClientRect());
+        }
+      });
+    flipRectsRef.current = rects;
+  }
+
+  useLayoutEffect(() => {
+    const previousRects = flipRectsRef.current;
+    if (!previousRects || typeof document === "undefined") {
+      return;
+    }
+
+    flipRectsRef.current = null;
+    const duration =
+      document.documentElement.dataset.motion === "off"
+        ? 0
+        : document.documentElement.dataset.motion === "reduced"
+          ? 110
+          : 180;
+
+    if (duration === 0) {
+      return;
+    }
+
+    document
+      .querySelectorAll<HTMLElement>("[data-home-reorder-key]")
+      .forEach((element) => {
+        const key = element.dataset.homeReorderKey;
+        const previous = key ? previousRects.get(key) : null;
+        if (!previous || typeof element.animate !== "function") {
+          return;
+        }
+
+        const next = element.getBoundingClientRect();
+        const deltaX = previous.left - next.left;
+        const deltaY = previous.top - next.top;
+
+        if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) {
+          return;
+        }
+
+        element.animate(
+          [
+            { transform: `translate(${deltaX}px, ${deltaY}px)` },
+            { transform: "translate(0, 0)" }
+          ],
+          {
+            duration,
+            easing: "cubic-bezier(0.2, 0.8, 0.2, 1)"
+          }
+        );
+      });
+  }, [activeLayout.groups]);
+
+  useEffect(() => {
+    if (!toolDrag) {
+      return;
+    }
+
+    function finish(commit: boolean) {
+      const drag = toolDragRef.current;
+      stopAutoScroll();
+      delete document.documentElement.dataset.reordering;
+
+      if (drag?.active) {
+        suppressToolClickRef.current = true;
+        window.setTimeout(() => {
+          suppressToolClickRef.current = false;
+        }, 0);
+      }
+
+      if (
+        commit &&
+        drag?.active &&
+        !drag.blocked &&
+        drag.targetGroupId &&
+        drag.targetIndex !== null &&
+        (drag.sourceGroupId !== drag.targetGroupId ||
+          drag.sourceIndex !== drag.targetIndex)
+      ) {
+        captureFlipRects();
+        updateHomeSettings(
+          moveToolBetweenGroups(
+            homeSettings,
+            activeLayout.id,
+            drag.sourceGroupId,
+            drag.sourceIndex,
+            drag.targetGroupId,
+            drag.targetIndex
+          )
+        );
+      }
+
+      toolDragRef.current = null;
+      setToolDrag(null);
+    }
+
+    function handlePointerMove(event: PointerEvent) {
+      const current = toolDragRef.current;
+      if (!current || event.pointerId !== current.pointerId) {
+        return;
+      }
+
+      const active =
+        current.active ||
+        hasPointerDragExceededThreshold(
+          { x: current.startX, y: current.startY },
+          { x: event.clientX, y: event.clientY }
+        );
+      if (!active) {
+        return;
+      }
+
+      event.preventDefault();
+      document.documentElement.dataset.reordering = "true";
+      autoScrollPointerYRef.current = event.clientY;
+      const target = document
+        .elementFromPoint(event.clientX, event.clientY)
+        ?.closest<HTMLElement>("[data-home-tool-drop-group]");
+      const groupTarget = document
+        .elementFromPoint(event.clientX, event.clientY)
+        ?.closest<HTMLElement>("[data-home-group-drop-id]");
+      const targetGroupId =
+        target?.dataset.homeToolDropGroup ??
+        groupTarget?.dataset.homeGroupDropId ??
+        null;
+      const targetGroup = activeLayout.groups.find(
+        (group) => group.id === targetGroupId
+      );
+      const toolCount =
+        targetGroup?.toolSlots.filter((toolId) => Boolean(toolId)).length ?? 0;
+      const parsedTargetIndex = Number(target?.dataset.homeToolDropIndex);
+      const targetIndex = target
+        ? Math.min(
+            Number.isInteger(parsedTargetIndex) ? parsedTargetIndex : toolCount,
+            HOME_GROUP_SLOT_COUNT - 1
+          )
+        : targetGroupId
+          ? Math.min(toolCount, HOME_GROUP_SLOT_COUNT - 1)
+          : null;
+      const blocked = Boolean(
+        targetGroupId &&
+          targetGroupId !== current.sourceGroupId &&
+          toolCount >= HOME_GROUP_SLOT_COUNT
+      );
+
+      const next = {
+        ...current,
+        active: true,
+        x: event.clientX,
+        y: event.clientY,
+        targetGroupId,
+        targetIndex,
+        blocked
+      };
+      toolDragRef.current = next;
+      setToolDrag(next);
+      startAutoScroll();
+    }
+
+    function handlePointerUp(event: PointerEvent) {
+      if (event.pointerId === toolDragRef.current?.pointerId) {
+        finish(true);
+      }
+    }
+
+    function handlePointerCancel(event: PointerEvent) {
+      if (event.pointerId === toolDragRef.current?.pointerId) {
+        finish(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        finish(false);
+      }
+    }
+
+    document.addEventListener("pointermove", handlePointerMove, { passive: false });
+    document.addEventListener("pointerup", handlePointerUp);
+    document.addEventListener("pointercancel", handlePointerCancel);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointermove", handlePointerMove);
+      document.removeEventListener("pointerup", handlePointerUp);
+      document.removeEventListener("pointercancel", handlePointerCancel);
+      document.removeEventListener("keydown", handleKeyDown);
+      stopAutoScroll();
+      delete document.documentElement.dataset.reordering;
+    };
+  }, [toolDrag?.pointerId, activeLayout.id, activeLayout.groups, homeSettings]);
+
+  useEffect(
+    () => () => {
+      stopAutoScroll();
+    },
+    []
+  );
 
   return (
     <main className="home-workspace">
@@ -187,10 +540,11 @@ export function HomePage({
           type="button"
           aria-label={home.editAria}
           title={home.editTitle}
-          onClick={onEditLayout}
+          data-active={isEditing || undefined}
+          onClick={() => (isEditing ? setIsEditing(false) : startEditing())}
         >
-          <PencilSimple aria-hidden="true" />
-          {home.edit}
+          {isEditing ? <Check aria-hidden="true" /> : <PencilSimple aria-hidden="true" />}
+          {isEditing ? copy.settings.home.finishEditing : home.edit}
         </button>
       </div>
 
@@ -282,6 +636,7 @@ export function HomePage({
           <article
             className="tool-group"
             data-home-layout-group="true"
+            data-home-group-drop-id={group.id}
             data-tone={groupIndex % 2 === 0 ? "secondary" : "primary"}
             key={group.id}
           >
@@ -291,39 +646,203 @@ export function HomePage({
             </h3>
             <div className="tool-group__grid">
               {group.toolSlots.map((toolId, slotIndex) => {
+                const slotKey = `${group.id}:${slotIndex}`;
                 if (!toolId) {
                   return (
-                    <button
-                      className="tool-button tool-button--empty"
-                      data-home-layout-slot="true"
-                      disabled
+                    <div
+                      className="home-tool-slot-wrap"
+                      data-home-reorder-key={`empty:${group.id}:${slotIndex}`}
                       key={`${group.id}-slot-${slotIndex}`}
-                      type="button"
-                      aria-label={`${copy.settings.home.emptySlot} ${slotIndex + 1}`}
-                      title={`${copy.settings.home.emptySlot} ${slotIndex + 1}`}
                     >
-                      <Plus aria-hidden="true" weight="regular" />
-                    </button>
+                      <button
+                        className="tool-button tool-button--empty"
+                        data-home-layout-slot="true"
+                        data-home-tool-drop-group={group.id}
+                        data-home-tool-drop-index={slotIndex}
+                        disabled={!isEditing}
+                        type="button"
+                        aria-label={`${copy.settings.home.emptySlot} ${slotIndex + 1}`}
+                        title={`${copy.settings.home.emptySlot} ${slotIndex + 1}`}
+                        onClick={() => {
+                          setToolTarget({ groupId: group.id, slotIndex });
+                          setToolSearch("");
+                        }}
+                      >
+                        <Plus aria-hidden="true" weight="regular" />
+                      </button>
+                    </div>
                   );
                 }
 
                 const tool = HOME_TOOL_CATALOG[toolId];
 
+                const menuItems: readonly CompactActionMenuItem[] = [
+                  {
+                    id: "replace",
+                    label: copy.settings.home.replaceTool,
+                    icon: PencilSimple,
+                    onSelect: () => {
+                      setToolTarget({ groupId: group.id, slotIndex });
+                      setToolSearch("");
+                    }
+                  },
+                  {
+                    id: "remove",
+                    label: copy.settings.home.removeTool,
+                    icon: Trash,
+                    danger: true,
+                    onSelect: () =>
+                      updateHomeSettings(
+                        setToolSlot(
+                          homeSettings,
+                          activeLayout.id,
+                          group.id,
+                          slotIndex,
+                          null
+                        )
+                      )
+                  }
+                ];
+
                 return (
-                  <PlannedToolButton
-                    icon={tool.icon}
-                    key={`${group.id}-${tool.id}-${slotIndex}`}
-                    label={home.toolLabels[tool.id]}
-                    ariaSuffix={home.plannedAriaSuffix}
-                    titleSuffix={home.plannedTitleSuffix}
-                    data-home-layout-slot="true"
-                  />
+                  <div
+                    className="home-tool-slot-wrap"
+                    data-home-reorder-key={`tool:${group.id}:${toolId}:${group.toolSlots
+                      .slice(0, slotIndex)
+                      .filter((candidate) => candidate === toolId).length}`}
+                    key={slotKey}
+                  >
+                    <PlannedToolButton
+                      icon={tool.icon}
+                      label={home.toolLabels[tool.id]}
+                      ariaSuffix={home.plannedAriaSuffix}
+                      titleSuffix={home.plannedTitleSuffix}
+                      planned={!isEditing}
+                      data-home-layout-slot="true"
+                      data-home-tool-drop-group={group.id}
+                      data-home-tool-drop-index={slotIndex}
+                      data-reorder-enabled={isEditing || undefined}
+                      data-dragging={
+                        toolDrag?.active &&
+                        toolDrag.sourceGroupId === group.id &&
+                        toolDrag.sourceIndex === slotIndex
+                          ? true
+                          : undefined
+                      }
+                      data-drop-state={
+                        toolDrag?.active &&
+                        toolDrag.targetGroupId === group.id &&
+                        toolDrag.targetIndex === slotIndex
+                          ? toolDrag.blocked
+                            ? "blocked"
+                            : "active"
+                          : undefined
+                      }
+                      onPointerDown={(event) =>
+                        beginToolDrag(
+                          event,
+                          group.id,
+                          slotIndex,
+                          tool.id,
+                          home.toolLabels[tool.id]
+                        )
+                      }
+                      onClick={() => {
+                        if (isEditing && !suppressToolClickRef.current) {
+                          setToolTarget({ groupId: group.id, slotIndex });
+                          setToolSearch("");
+                        }
+                      }}
+                      onContextMenu={(event) => {
+                        if (!isEditing) {
+                          return;
+                        }
+                        event.preventDefault();
+                        setSlotMenuKey(slotKey);
+                      }}
+                    />
+                    <CompactActionMenu
+                      ariaLabel={home.toolLabels[tool.id]}
+                      open={isEditing && slotMenuKey === slotKey}
+                      items={menuItems}
+                      onClose={() => setSlotMenuKey(null)}
+                    />
+                  </div>
                 );
               })}
             </div>
           </article>
         ))}
       </section>
+
+      {toolDrag?.active ? (
+        <div
+          className="home-reorder-ghost"
+          data-kind="tool"
+          data-blocked={toolDrag.blocked || undefined}
+          style={{
+            left: toolDrag.x - toolDrag.offsetX,
+            top: toolDrag.y - toolDrag.offsetY,
+            width: toolDrag.width,
+            height: toolDrag.height
+          }}
+          aria-hidden="true"
+        >
+          {(() => {
+            const DragIcon = HOME_TOOL_CATALOG[toolDrag.toolId].icon;
+            return <DragIcon weight="regular" />;
+          })()}
+          <span>{toolDrag.label}</span>
+        </div>
+      ) : null}
+
+      {toolTarget ? (
+        <AppDialog
+          title={copy.settings.home.selectTool}
+          primaryAction={{
+            label: copy.settings.home.resetCancel,
+            onClick: () => setToolTarget(null)
+          }}
+          onClose={() => setToolTarget(null)}
+        >
+          <div className="home-tool-picker">
+            <input
+              className="nyaworks-text-input"
+              type="search"
+              value={toolSearch}
+              placeholder={home.searchPlaceholder}
+              onChange={(event) => setToolSearch(event.target.value)}
+            />
+            <div className="home-tool-picker__grid">
+              {visibleTools.map((tool) => {
+                const ToolIcon = tool.icon;
+                return (
+                  <button
+                    type="button"
+                    key={tool.id}
+                    title={home.toolLabels[tool.id]}
+                    onClick={() => {
+                      updateHomeSettings(
+                        setToolSlot(
+                          homeSettings,
+                          activeLayout.id,
+                          toolTarget.groupId,
+                          toolTarget.slotIndex,
+                          tool.id
+                        )
+                      );
+                      setToolTarget(null);
+                    }}
+                  >
+                    <ToolIcon aria-hidden="true" weight="regular" />
+                    <span>{home.toolLabels[tool.id]}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </AppDialog>
+      ) : null}
     </main>
   );
 }

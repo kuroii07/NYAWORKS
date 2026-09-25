@@ -37,6 +37,8 @@ export type HomeSpaceMode = (typeof HOME_SPACE_MODES)[number];
 export interface HomeSettings {
   activeLayoutId: string;
   customLayouts: HomeLayout[];
+  /** User edits to the protected built-in layout, kept under the same layout id. */
+  builtInLayoutOverride?: HomeLayout;
   showQuickPanels: boolean;
   rememberPanelModes: boolean;
   defaultCreateMode: HomeCreateMode;

@@ -35,6 +35,9 @@ export function AppDialog({
   const titleId = useId();
   const descriptionId = useId();
   const primaryActionRef = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(onClose);
+
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     const opener =
@@ -47,7 +50,7 @@ export function AppDialog({
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
       }
     }
 
@@ -57,7 +60,7 @@ export function AppDialog({
       document.removeEventListener("keydown", handleKeyDown);
       opener?.focus();
     };
-  }, [onClose]);
+  }, []);
 
   function handleBackdropClick(event: MouseEvent<HTMLDivElement>) {
     if (event.target === event.currentTarget) {

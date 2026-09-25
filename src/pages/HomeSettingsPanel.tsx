@@ -180,6 +180,7 @@ export function HomeSettingsPanel({
   const activeLayout = getActiveHomeLayout(homeSettings);
   const activeLayoutName = getHomeLayoutLabel(activeLayout.name, copy);
   const isCustomLayout = activeLayout.kind === "custom";
+  const isLayoutEditable = true;
   const allLayouts = [...BUILT_IN_HOME_LAYOUTS, ...homeSettings.customLayouts];
   const [isEditing, setIsEditing] = useState(initialEditing);
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(
@@ -402,7 +403,7 @@ export function HomeSettingsPanel({
         commit &&
         drag?.active &&
         isEditing &&
-        isCustomLayout &&
+        isLayoutEditable &&
         drag.targetGroupId
       ) {
         captureFlipRects();
@@ -578,7 +579,7 @@ export function HomeSettingsPanel({
     if (
       event.button !== 0 ||
       !isEditing ||
-      !isCustomLayout ||
+      !isLayoutEditable ||
       pointerDragRef.current
     ) {
       return;
@@ -625,7 +626,7 @@ export function HomeSettingsPanel({
     if (
       event.button !== 0 ||
       !isEditing ||
-      !isCustomLayout ||
+      !isLayoutEditable ||
       pointerDragRef.current
     ) {
       return;
@@ -797,14 +798,14 @@ export function HomeSettingsPanel({
     groupId: string,
     patch: Parameters<typeof updateLayoutGroup>[3]
   ) {
-    if (!isCustomLayout) return;
+    if (!isLayoutEditable) return;
     updateHomeSettings(
       updateLayoutGroup(homeSettings, activeLayout.id, groupId, patch)
     );
   }
 
   function moveGroupByOffset(groupId: string, offset: -1 | 1) {
-    if (!isCustomLayout) return;
+    if (!isLayoutEditable) return;
     const index = activeLayout.groups.findIndex((group) => group.id === groupId);
     const target = activeLayout.groups[index + offset];
     if (!target) return;
@@ -828,7 +829,7 @@ export function HomeSettingsPanel({
       id: "rename",
       label: labels.renameLayout,
       icon: PencilSimple,
-      disabled: !isCustomLayout,
+      disabled: activeLayout.id === BUILT_IN_HOME_LAYOUTS[0].id,
       onSelect: () =>
         openNameDialog(
           { kind: "renameLayout", layoutId: activeLayout.id },
@@ -839,7 +840,7 @@ export function HomeSettingsPanel({
       id: "delete",
       label: labels.deleteLayout,
       icon: Trash,
-      disabled: !isCustomLayout,
+      disabled: activeLayout.id === BUILT_IN_HOME_LAYOUTS[0].id,
       danger: true,
       onSelect: () =>
         setDeleteTarget({ kind: "layout", id: activeLayout.id })
@@ -863,7 +864,7 @@ export function HomeSettingsPanel({
             onClick={() => {
               if (isEditing) {
                 setIsEditing(false);
-              } else if (isCustomLayout) {
+              } else if (isLayoutEditable) {
                 setIsEditing(true);
               } else {
                 openNameDialog(
@@ -944,7 +945,7 @@ export function HomeSettingsPanel({
             type="button"
             aria-label={labels.newGroup}
             title={labels.newGroup}
-            disabled={!isEditing || !isCustomLayout}
+            disabled={!isEditing || !isLayoutEditable}
             onClick={() =>
               openNameDialog(
                 { kind: "newGroup", layoutId: activeLayout.id },
@@ -970,7 +971,7 @@ export function HomeSettingsPanel({
                 id: "rename",
                 label: labels.renameGroup,
                 icon: PencilSimple,
-                disabled: !isEditing || !isCustomLayout,
+                disabled: !isEditing || !isLayoutEditable,
                 onSelect: () =>
                   openNameDialog(
                     {
@@ -985,7 +986,7 @@ export function HomeSettingsPanel({
                 id: "icon",
                 label: labels.changeGroupIcon,
                 icon: GridFour,
-                disabled: !isEditing || !isCustomLayout,
+                disabled: !isEditing || !isLayoutEditable,
                 onSelect: () => {
                   setSelectedIconId(group.iconId);
                   setIconGroupId(group.id);
@@ -995,7 +996,7 @@ export function HomeSettingsPanel({
                 id: "copy",
                 label: labels.duplicateGroup,
                 icon: CopySimple,
-                disabled: !isEditing || !isCustomLayout,
+                disabled: !isEditing || !isLayoutEditable,
                 onSelect: () =>
                   updateHomeSettings(
                     duplicateLayoutGroup(
@@ -1010,7 +1011,7 @@ export function HomeSettingsPanel({
                 id: "delete",
                 label: labels.deleteGroup,
                 icon: Trash,
-                disabled: !isEditing || !isCustomLayout,
+                disabled: !isEditing || !isLayoutEditable,
                 danger: true,
                 onSelect: () =>
                   setDeleteTarget({ kind: "group", id: group.id })
@@ -1051,8 +1052,8 @@ export function HomeSettingsPanel({
                   <button
                     className="home-group-setting__handle"
                     type="button"
-                    disabled={!isEditing || !isCustomLayout}
-                    data-enabled={isEditing && isCustomLayout ? true : undefined}
+                    disabled={!isEditing || !isLayoutEditable}
+                    data-enabled={isEditing && isLayoutEditable ? true : undefined}
                     aria-label={`${labels.groupActions}：${groupLabel}`}
                     title={labels.groupActions}
                     onPointerDown={(event) =>
@@ -1072,7 +1073,7 @@ export function HomeSettingsPanel({
                       <>
                         <button
                           type="button"
-                          disabled={!isCustomLayout || index === 0}
+                          disabled={index === 0}
                           aria-label={`${labels.moveUp}：${groupLabel}`}
                           title={labels.moveUp}
                           onClick={() => moveGroupByOffset(group.id, -1)}
@@ -1082,7 +1083,7 @@ export function HomeSettingsPanel({
                         <button
                           type="button"
                           disabled={
-                            !isCustomLayout ||
+                            !isLayoutEditable ||
                             index === activeLayout.groups.length - 1
                           }
                           aria-label={`${labels.moveDown}：${groupLabel}`}
@@ -1096,7 +1097,7 @@ export function HomeSettingsPanel({
                     <button
                       className="home-group-visibility"
                       type="button"
-                      disabled={!isEditing || !isCustomLayout}
+                          disabled={!isEditing || !isLayoutEditable}
                       data-active={group.visible || undefined}
                       aria-pressed={group.visible}
                       aria-label={`${labels.showGroup}：${groupLabel}`}
@@ -1117,7 +1118,7 @@ export function HomeSettingsPanel({
                       <div className="compact-menu-anchor">
                         <button
                           type="button"
-                          disabled={!isCustomLayout}
+                          disabled={false}
                           aria-label={`${labels.groupActions}：${groupLabel}`}
                           title={labels.groupActions}
                           aria-expanded={menuOpen}
@@ -1187,7 +1188,7 @@ export function HomeSettingsPanel({
                             data-home-tool-drop-group={group.id}
                             data-home-tool-drop-index={slotIndex}
                             data-reorder-enabled={
-                              toolId && isEditing && isCustomLayout
+                              toolId && isEditing && isLayoutEditable
                                 ? true
                                 : undefined
                             }
@@ -1212,7 +1213,7 @@ export function HomeSettingsPanel({
                             }
                             aria-label={slotLabel}
                             title={
-                              isEditing && isCustomLayout
+                              isEditing && isLayoutEditable
                                 ? toolId
                                   ? labels.replaceTool
                                   : labels.selectTool
@@ -1222,7 +1223,7 @@ export function HomeSettingsPanel({
                               if (suppressClickRef.current) {
                                 return;
                               }
-                              if (isEditing && isCustomLayout) {
+                              if (isEditing && isLayoutEditable) {
                                 setToolTarget({
                                   groupId: group.id,
                                   slotIndex
@@ -1242,7 +1243,7 @@ export function HomeSettingsPanel({
                               }
                             }}
                             onContextMenu={(event) => {
-                              if (!toolId || !isEditing || !isCustomLayout) {
+                              if (!toolId || !isEditing || !isLayoutEditable) {
                                 return;
                               }
                               event.preventDefault();
