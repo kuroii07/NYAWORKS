@@ -28,19 +28,12 @@ type SourceDialog =
   | { mode: "edit"; source: ResourceSource }
   | null;
 
-function sourceItemCount(sourceId: string, resourceIds: readonly string[]): number {
-  return resourceIds.filter((resourceId) => resourceId.startsWith(`${sourceId}:`))
-    .length;
-}
-
 export function ResourceSettingsPanel() {
   const { copy } = useLanguage();
   const labels = copy.settings.resources;
   const {
     hostStatus,
-    hostVersion,
     sources,
-    resources,
     refreshingSourceIds,
     refreshAllSources,
     refreshSource,
@@ -68,7 +61,6 @@ export function ResourceSettingsPanel() {
   );
   const currentAeSources = sources.filter((source) => source.kind === "ae-default");
   const customSources = sources.filter((source) => source.kind === "custom");
-  const resourceIds = resources.map((resource) => resource.id);
   const isRefreshing = refreshingSourceIds.length > 0;
 
   function toggleSourceExpansion(sourceId: string) {
@@ -174,8 +166,6 @@ export function ResourceSettingsPanel() {
 
   function renderSource(source: ResourceSource) {
     const expanded = expandedSourceIds.includes(source.id);
-    const itemCount = sourceItemCount(source.id, resourceIds);
-    const isRefreshingSource = refreshingSourceIds.includes(source.id);
 
     return (
       <article
@@ -196,10 +186,6 @@ export function ResourceSettingsPanel() {
             <CaretRight aria-hidden="true" weight="bold" />
           )}
           <span className="resource-source-row__name">{source.name}</span>
-          <span className="resource-source-row__count">{itemCount}</span>
-          <span className="resource-source-row__status">
-            {isRefreshingSource ? labels.status.scanning : labels.status[source.status]}
-          </span>
         </button>
         <div className="resource-source-row__actions">
           <button
@@ -226,20 +212,6 @@ export function ResourceSettingsPanel() {
               <dt>{labels.sourcePath}</dt>
               <dd title={source.path}>{source.path}</dd>
             </div>
-            <div>
-              <dt>{labels.sourceStatus}</dt>
-              <dd>{labels.status[source.status]}</dd>
-            </div>
-            <div>
-              <dt>{labels.sourceCount}</dt>
-              <dd>{itemCount}</dd>
-            </div>
-            {source.hostVersion || hostVersion ? (
-              <div>
-                <dt>{labels.sourceVersion}</dt>
-                <dd>{source.hostVersion ?? hostVersion}</dd>
-              </div>
-            ) : null}
           </dl>
         ) : null}
       </article>

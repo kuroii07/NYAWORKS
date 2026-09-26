@@ -4679,9 +4679,6 @@ html[data-reordering="true"] * {
 .resource-source-row__summary:focus-visible { outline: 2px solid var(--nw-focus); outline-offset: -2px; border-radius: 4px; }
 .resource-source-row__summary > svg { flex: 0 0 auto; color: var(--nw-text-muted); }
 .resource-source-row__name { overflow: hidden; color: var(--nw-text); text-overflow: ellipsis; white-space: nowrap; font-size: 13px; line-height: 1.35; }
-.resource-source-row__count { margin-left: auto; color: var(--nw-text-muted); font-family: "Bahnschrift", sans-serif; font-size: 11px; }
-.resource-source-row__status { max-width: 110px; overflow: hidden; color: var(--nw-text-muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.resource-source-row[data-status="scanning"] .resource-source-row__status { color: var(--nw-accent-bright); }
 .resource-source-row__actions { padding-right: 4px; }
 .resource-source-row__menu-button { width: 28px; height: 28px; padding: 0; border: 0; border-radius: 5px; color: var(--nw-text-muted); background: transparent; cursor: pointer; }
 .resource-source-row__menu-button:hover { color: var(--nw-accent-bright); background: var(--nw-accent-soft); }
@@ -4954,7 +4951,6 @@ html[data-reordering="true"] * {
   .resource-settings__add-controls { width: 100%; }
   .resource-settings__add-controls .setting-select { flex: 1; }
   .resource-settings__add-controls > button { flex: 0 0 auto; }
-  .resource-source-row__status { max-width: 72px; }
   .resource-source-row__details { grid-template-columns: 1fr; padding-left: 30px; }
 }
 
@@ -5360,15 +5356,6 @@ html[data-reordering="true"] * {
 
 [data-density="medium"] .resource-source-row__name {
   font-size: 11px;
-}
-
-[data-density="medium"] .resource-source-row__count {
-  font-size: 10px;
-}
-
-[data-density="medium"] .resource-source-row__status {
-  max-width: 94px;
-  font-size: 9px;
 }
 
 [data-density="medium"] .resource-source-row__actions {
