@@ -10,6 +10,8 @@ import { createDevelopmentReleaseFetcher } from "./updates/githubReleaseService"
 import { cepResourceBridge } from "./host/resourceBridge";
 import { ResourceProvider } from "./resources/ResourceProvider";
 import { createDevelopmentResourceService } from "./resources/developmentResourceService";
+import { GlobalSearchProvider } from "./search/GlobalSearchProvider";
+import { createDevelopmentGlobalSearchService } from "./resources/developmentResourceService";
 import "./styles.css";
 
 const developmentReleaseFetcher = import.meta.env.DEV
@@ -21,6 +23,9 @@ const developmentReleaseFetcher = import.meta.env.DEV
 const resourceBridge = import.meta.env.DEV
   ? createDevelopmentResourceService()
   : cepResourceBridge;
+const globalSearchBridge = import.meta.env.DEV
+  ? createDevelopmentGlobalSearchService()
+  : undefined;
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
@@ -28,11 +33,13 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <LanguageProvider>
         <SettingsProvider>
           <ResourceProvider bridge={resourceBridge}>
-            <UpdatesProvider fetcher={developmentReleaseFetcher}>
-              <DensityProvider>
-                <App />
-              </DensityProvider>
-            </UpdatesProvider>
+            <GlobalSearchProvider bridge={globalSearchBridge}>
+              <UpdatesProvider fetcher={developmentReleaseFetcher}>
+                <DensityProvider>
+                  <App />
+                </DensityProvider>
+              </UpdatesProvider>
+            </GlobalSearchProvider>
           </ResourceProvider>
         </SettingsProvider>
       </LanguageProvider>
