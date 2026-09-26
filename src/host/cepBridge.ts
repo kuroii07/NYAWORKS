@@ -38,7 +38,7 @@ function resolveEnvironment(environment?: CepEnvironment): CepEnvironment {
     : (window as unknown as CepEnvironment);
 }
 
-function evaluateHostScript(
+export function evaluateHostScript(
   script: string,
   environment?: CepEnvironment
 ): Promise<string | null> {

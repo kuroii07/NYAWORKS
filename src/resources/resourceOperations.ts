@@ -3,7 +3,6 @@ import {
   normalizeResourcePath,
   type IndexedResource,
   type ResourceFolderNode,
-  type ResourceScanEntry,
   type ResourceScanResult,
   type ResourceSettings,
   type ResourceSource,
@@ -41,7 +40,8 @@ function extensionOf(relativePath: string): string | null {
 }
 
 function displayNameOf(relativePath: string): string {
-  const filename = relativePath.split("/").at(-1) ?? relativePath;
+  const segments = relativePath.split("/");
+  const filename = segments[segments.length - 1] ?? relativePath;
   return filename.replace(/\.[^.]+$/, "");
 }
 
@@ -129,10 +129,17 @@ export function removeCustomResourceSource(
   };
 }
 
+export type NormalizedResourceScanResult = Omit<
+  ResourceScanResult,
+  "resources"
+> & {
+  resources: IndexedResource[];
+};
+
 export function normalizeResourceScanResult(
   source: ResourceSource,
   result: ResourceScanResult
-): ResourceScanResult & { resources: IndexedResource[] } {
+): NormalizedResourceScanResult {
   const seen = new Set<string>();
   const resources = result.resources.reduce<IndexedResource[]>((items, entry) => {
     const relativePath = normalizeResourcePath(entry.relativePath.trim());
