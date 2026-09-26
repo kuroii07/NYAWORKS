@@ -231,10 +231,31 @@ export interface UiCopy {
     shapes: string;
     effects: string;
     media: string;
+    resources: string;
     settings: string;
     heading: string;
     body: string;
     currentTheme: string;
+  };
+  resources: {
+    title: string;
+    searchPlaceholder: string;
+    searchAria: string;
+    typeFilterAria: string;
+    sourceFilterAria: string;
+    allTypes: string;
+    allSources: string;
+    sources: string;
+    categories: string;
+    indexStatus: string;
+    cachedIndex: string;
+    noResults: string;
+    typeLabels: Record<"script" | "panel" | "startup" | "preset" | "expression", string>;
+    favorite: string;
+    copyPath: string;
+    revealSource: string;
+    refreshSource: string;
+    hostActionUnavailable: string;
   };
   settings: {
     navigationAria: string;

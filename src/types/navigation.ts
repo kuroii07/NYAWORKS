@@ -8,8 +8,11 @@ export const STARTUP_PAGE_IDS = [
   "text",
   "shapes",
   "effects",
-  "media"
+  "media",
+  "resources"
 ] as const;
+
+export const RESOURCE_NAVIGATION_ID = "resources" as const;
 
 export type StartupPageId = (typeof STARTUP_PAGE_IDS)[number];
 

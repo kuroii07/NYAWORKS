@@ -7,6 +7,7 @@ import {
   ImageSquare,
   MagicWand,
   ProjectorScreen,
+  Archive,
   Shapes,
   Sparkle,
   Stack,
@@ -14,6 +15,7 @@ import {
 } from "@phosphor-icons/react";
 import { useLanguage } from "../i18n/LanguageProvider";
 import type { PageId } from "../types/navigation";
+import { RESOURCE_NAVIGATION_ID } from "../types/navigation";
 
 type SidebarPageId = Exclude<PageId, "settings">;
 
@@ -32,7 +34,8 @@ const NAV_ITEMS: readonly NavItem[] = [
   { id: "text", icon: TextT },
   { id: "shapes", icon: Shapes },
   { id: "effects", icon: MagicWand },
-  { id: "media", icon: ImageSquare }
+  { id: "media", icon: ImageSquare },
+  { id: RESOURCE_NAVIGATION_ID, icon: Archive }
 ];
 
 interface SidebarProps {

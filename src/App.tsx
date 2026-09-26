@@ -6,6 +6,7 @@ import { Sidebar } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
 import { HomePage } from "./pages/HomePage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
+import { ResourcesPage } from "./pages/ResourcesPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { useSettings } from "./settings/SettingsProvider";
 import { useLanguage } from "./i18n/LanguageProvider";
@@ -78,6 +79,8 @@ export default function App() {
             initialTab={settingsEntry.tab}
             editHomeOnOpen={settingsEntry.editHome}
           />
+        ) : activePage === "resources" ? (
+          <ResourcesPage />
         ) : (
           <PlaceholderPage pageId={activePage} />
         )}
