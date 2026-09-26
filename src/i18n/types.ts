@@ -196,9 +196,20 @@ export interface UiCopy {
   home: {
     searchPlaceholder: string;
     searchAria: string;
+    searchEmpty: string;
+    searchNoResults: string;
+    searchKindLabels: {
+      tool: string;
+      script: string;
+      preset: string;
+      effect: string;
+      expression: string;
+    };
     bannerLead: string;
     bannerAccent: string;
     bannerSubtitle: string;
+    bannerToolEyebrow: string;
+    bannerReset: string;
     shortcutHeading: string;
     edit: string;
     editAria: string;

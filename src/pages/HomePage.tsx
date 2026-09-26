@@ -13,11 +13,9 @@ import type { IconProps } from "@phosphor-icons/react";
 import {
   AnchorSimple,
   BoundingBox,
-  CaretDown,
   Check,
   Cube,
   Lightbulb,
-  MagnifyingGlass,
   PencilSimple,
   Plus,
   ProjectorScreen,
@@ -31,6 +29,8 @@ import {
   VideoCamera
 } from "@phosphor-icons/react";
 import { AppDialog } from "../components/AppDialog";
+import { BannerWorkspace, type BannerToolId } from "../components/BannerWorkspace";
+import { GlobalSearchPanel } from "../components/GlobalSearchPanel";
 import {
   CompactActionMenu,
   type CompactActionMenuItem
@@ -53,6 +53,7 @@ import type {
   HomeSpaceMode
 } from "../settings/types";
 import type { ToolId, UiCopy } from "../i18n/types";
+import type { GlobalSearchItem } from "../search/types";
 
 interface HomeToolDrag {
   pointerId: number;
@@ -323,6 +324,7 @@ export function HomePage({
   const layoutName = getHomeLayoutLabel(activeLayout.name, copy);
   const visibleToolGroups = activeLayout.groups.filter((group) => group.visible);
   const [isEditing, setIsEditing] = useState(false);
+  const [bannerToolId, setBannerToolId] = useState<BannerToolId | null>(null);
   const [toolTarget, setToolTarget] = useState<{
     groupId: string;
     slotIndex: number;
@@ -347,6 +349,13 @@ export function HomePage({
       ),
     [home.toolLabels, toolSearch]
   );
+
+  function handleSearchExecute(item: GlobalSearchItem) {
+    if (!item.opensBanner || !item.toolId) return;
+    if (item.toolId === "adjust" || item.toolId === "effects" || item.toolId === "quickPreset") {
+      setBannerToolId(item.toolId);
+    }
+  }
 
   function startEditing() {
     setIsEditing(true);
@@ -634,33 +643,10 @@ export function HomePage({
 
   return (
     <main className="home-workspace">
-      <label className="global-search">
-        <MagnifyingGlass aria-hidden="true" weight="regular" />
-        <input
-          type="search"
-          placeholder={home.searchPlaceholder}
-          aria-label={home.searchAria}
-          readOnly
-        />
-        <span className="search-key">⌘</span>
-        <span className="search-key">K</span>
-      </label>
+      <GlobalSearchPanel onExecute={handleSearchExecute} />
 
       {generalSettings.homeBannerEnabled ? (
-        <section className="home-banner" aria-label="NYAWORKS">
-          <div className="home-banner__copy">
-            <h1>
-              {home.bannerLead}
-              <span>{home.bannerAccent}</span>
-            </h1>
-            <p>{home.bannerSubtitle}</p>
-            <div className="home-banner__pager" aria-hidden="true">
-              <span />
-              <span />
-            </div>
-          </div>
-          <CaretDown className="home-banner__caret" aria-hidden="true" />
-        </section>
+        <BannerWorkspace toolId={bannerToolId} onToolChange={setBannerToolId} />
       ) : null}
 
       <div className="shortcut-heading">
