@@ -207,6 +207,103 @@
     }
   }
 
+  function decodeSearchPayload(encodedPayload) {
+    return JSON.parse(decodeURIComponent(encodedPayload));
+  }
+
+  function getCurrentEffects() {
+    var effects = [];
+    var seen = {};
+    var matchNames = [
+      "ADBE Gaussian Blur 2",
+      "ADBE Fill",
+      "ADBE Drop Shadow",
+      "ADBE Tint"
+    ];
+    var names = ["Gaussian Blur", "Fill", "Drop Shadow", "Tint"];
+    var index;
+
+    for (index = 0; index < matchNames.length; index += 1) {
+      if (!seen[matchNames[index]]) {
+        seen[matchNames[index]] = true;
+        effects.push({
+          id: "effect:" + matchNames[index],
+          name: names[index],
+          matchName: matchNames[index],
+          aliases: []
+        });
+      }
+    }
+
+    return JSON.stringify({ ok: true, effects: effects });
+  }
+
+  function runSearchScript(encodedPayload) {
+    var payload;
+    try {
+      payload = decodeSearchPayload(encodedPayload);
+      if (!payload || !payload.path) {
+        return JSON.stringify({ ok: false, reason: "invalid-resource" });
+      }
+      var file = new File(payload.path);
+      if (!file.exists) {
+        return JSON.stringify({ ok: false, reason: "invalid-resource" });
+      }
+      $.evalFile(file);
+      return JSON.stringify({ ok: true });
+    } catch (error) {
+      return JSON.stringify({ ok: false, reason: "host-error" });
+    }
+  }
+
+  function selectedLayers() {
+    return app.project && app.project.activeItem && app.project.activeItem.selectedLayers
+      ? app.project.activeItem.selectedLayers
+      : [];
+  }
+
+  function applySearchPreset(encodedPayload) {
+    var payload;
+    var layers;
+    var index;
+    try {
+      payload = decodeSearchPayload(encodedPayload);
+      if (!payload || !payload.path) {
+        return JSON.stringify({ ok: false, reason: "invalid-resource" });
+      }
+      var file = new File(payload.path);
+      layers = selectedLayers();
+      if (!file.exists) return JSON.stringify({ ok: false, reason: "invalid-resource" });
+      if (!layers || layers.length === 0) return JSON.stringify({ ok: false, reason: "no-selected-layer" });
+      app.beginUndoGroup("NYAWORKS Apply Preset");
+      for (index = 0; index < layers.length; index += 1) layers[index].applyPreset(file);
+      app.endUndoGroup();
+      return JSON.stringify({ ok: true });
+    } catch (error) {
+      try { app.endUndoGroup(); } catch (ignore) {}
+      return JSON.stringify({ ok: false, reason: "host-error" });
+    }
+  }
+
+  function addSearchEffect(encodedPayload) {
+    var payload;
+    var layers;
+    var index;
+    try {
+      payload = decodeSearchPayload(encodedPayload);
+      layers = selectedLayers();
+      if (!payload || !payload.matchName) return JSON.stringify({ ok: false, reason: "invalid-resource" });
+      if (!layers || layers.length === 0) return JSON.stringify({ ok: false, reason: "no-selected-layer" });
+      app.beginUndoGroup("NYAWORKS Add Effect");
+      for (index = 0; index < layers.length; index += 1) layers[index].property("ADBE Effect Parade").addProperty(payload.matchName);
+      app.endUndoGroup();
+      return JSON.stringify({ ok: true });
+    } catch (error) {
+      try { app.endUndoGroup(); } catch (ignore) {}
+      return JSON.stringify({ ok: false, reason: "host-error" });
+    }
+  }
+
   $.global.NYAWORKS = {
     version: "0.1.0-alpha.1",
     getHostInfo: getHostInfo,
@@ -214,6 +311,10 @@
     getCurrentResourceSources: getCurrentResourceSources,
     scanResourceSource: scanResourceSource,
     chooseResourceDirectory: chooseResourceDirectory
+    ,getCurrentEffects: getCurrentEffects
+    ,runSearchScript: runSearchScript
+    ,applySearchPreset: applySearchPreset
+    ,addSearchEffect: addSearchEffect
   };
 }());
 
