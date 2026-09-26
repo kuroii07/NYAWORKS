@@ -118,8 +118,8 @@ describe("resource host bridge", () => {
       status: "unavailable",
       isDevelopmentFixture: true
     });
-    expect(sourceSnapshot.hostVersion).toContain("Development");
-    expect(sourceSnapshot.sources[0].path).toContain("fixture");
+    expect(sourceSnapshot.hostVersion).toBe("未连接 After Effects");
+    expect(sourceSnapshot.sources[0].path).toContain("仅用于界面预览");
     expect(scanResult.status).toBe("ready");
     expect(scanResult.resources).toHaveLength(2);
   });

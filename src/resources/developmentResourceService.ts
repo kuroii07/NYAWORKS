@@ -5,10 +5,10 @@ const FIXTURE_SOURCE: ResourceSource = {
   id: "ae-default:fixture-scripts",
   kind: "ae-default",
   resourceType: "script",
-  name: "Development fixture · Scripts",
-  path: "development fixture · no machine directory",
+  name: "示例脚本",
+  path: "仅用于界面预览，尚未连接 After Effects",
   enabled: true,
-  hostVersion: "Development fixture",
+  hostVersion: "未连接 After Effects",
   status: "unavailable",
   lastScannedAt: null,
   lastError: "unavailable"
@@ -19,7 +19,7 @@ export function createDevelopmentResourceService(): ResourceHostBridge {
     async readCurrentAeSources() {
       return {
         status: "unavailable" as const,
-        hostVersion: "Development fixture",
+        hostVersion: "未连接 After Effects",
         sources: [FIXTURE_SOURCE],
         isDevelopmentFixture: true
       };
