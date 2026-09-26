@@ -43,6 +43,7 @@ import {
 import { AboutSettingsPanel } from "./AboutSettingsPanel";
 import { AiSettingsPanel } from "./AiSettingsPanel";
 import { HomeSettingsPanel } from "./HomeSettingsPanel";
+import { ResourceSettingsPanel } from "./ResourceSettingsPanel";
 
 type SettingIcon = ComponentType<IconProps>;
 
@@ -82,11 +83,10 @@ const TAB_ICONS: Record<SettingsTabId, SettingIcon> = {
 };
 
 const PLACEHOLDER_ICONS: Record<
-  Exclude<SettingsTabId, "general" | "home" | "about">,
+  Exclude<SettingsTabId, "general" | "home" | "resources" | "about">,
   SettingIcon
 > = {
-  ai: Sparkle,
-  resources: FolderOpen
+  ai: Sparkle
 };
 
 function SettingsSection({
@@ -429,7 +429,7 @@ function GeneralSettingsPanel({
 function SettingsPlaceholder({
   tabId
 }: {
-  tabId: Exclude<SettingsTabId, "general" | "home" | "about">;
+  tabId: Exclude<SettingsTabId, "general" | "home" | "resources" | "about">;
 }) {
   const { copy } = useLanguage();
   const Icon = PLACEHOLDER_ICONS[tabId];
@@ -524,6 +524,8 @@ export function SettingsPage({
               }
             }}
           />
+        ) : activeTab === "resources" ? (
+          <ResourceSettingsPanel />
         ) : activeTab === "about" ? (
           <AboutSettingsPanel />
         ) : (

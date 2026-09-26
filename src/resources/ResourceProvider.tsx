@@ -52,6 +52,7 @@ export interface ResourceContextValue {
   refreshingSourceIds: string[];
   refreshAllSources(): Promise<void>;
   refreshSource(sourceId: string): Promise<void>;
+  chooseDirectory: ResourceHostBridge["chooseDirectory"];
   addCustomSource(input: CustomResourceSourceInput): ResourceSource;
   updateCustomSource(
     sourceId: string,
@@ -258,6 +259,7 @@ export function ResourceProvider({
       refreshingSourceIds,
       refreshAllSources,
       refreshSource,
+      chooseDirectory: () => bridge.chooseDirectory(),
       addCustomSource: (input) => {
         const source = createCustomResourceSource(input, now());
         setSettings((current) => ({
@@ -282,6 +284,7 @@ export function ResourceProvider({
       hostStatus,
       hostVersion,
       isDevelopmentFixture,
+      bridge,
       now,
       refreshAllSources,
       refreshSource,

@@ -231,6 +231,25 @@ describe("ResourceProvider scan lifecycle", () => {
     ).toBe(true);
   });
 
+  it("exposes the host-only folder chooser through the resource boundary", async () => {
+    const storage = new MemoryStorage();
+    writeStoredResourceSettings(initialSettings(), storage);
+    const resourceContext = await renderProvider(
+      createBridge({
+        chooseDirectory: async () => ({
+          status: "selected",
+          path: "C:/Tools/Animation"
+        })
+      }),
+      storage
+    );
+
+    await expect(resourceContext.chooseDirectory()).resolves.toEqual({
+      status: "selected",
+      path: "C:/Tools/Animation"
+    });
+  });
+
   it("removes only the deleted custom source and its indexed resources", async () => {
     const storage = new MemoryStorage();
     writeStoredResourceSettings(

@@ -177,6 +177,7 @@ export interface UiCopy {
     shapes: string;
     effects: string;
     media: string;
+    resources: string;
   };
   topbar: {
     whatsNewAria: string;
@@ -350,6 +351,38 @@ export interface UiCopy {
       resetConfirm: string;
       resetCancel: string;
       autoSaveNote: string;
+    };
+    resources: {
+      currentAeSources: string;
+      mySources: string;
+      updateIndex: string;
+      updatingIndex: string;
+      hostUnavailable: string;
+      hostError: string;
+      sourceStatus: string;
+      sourceCount: string;
+      sourcePath: string;
+      sourceVersion: string;
+      sourceActions: string;
+      addSource: string;
+      sourceType: string;
+      sourceTypes: Record<"script" | "preset" | "expression", string>;
+      newSourceTitle: string;
+      editSourceTitle: string;
+      sourceName: string;
+      sourceNamePlaceholder: string;
+      sourceNameRequired: string;
+      chooseDirectory: string;
+      directoryNotSelected: string;
+      directoryUnavailable: string;
+      addAction: string;
+      saveAction: string;
+      cancelAction: string;
+      refreshSource: string;
+      enableSource: string;
+      disableSource: string;
+      removeSource: string;
+      status: Record<"ready" | "scanning" | "missing" | "error" | "unavailable", string>;
     };
     ai: AiSettingsCopy;
     about: {
