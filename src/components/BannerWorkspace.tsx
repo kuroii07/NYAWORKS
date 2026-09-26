@@ -121,6 +121,7 @@ export function BannerWorkspace({ toolId, onToolChange }: BannerWorkspaceProps) 
             data-banner-tool-id="default"
             onClick={() => changeTool(null)}
           >
+            <span className="banner-tool-menu__icon" aria-hidden="true" />
             <span>{home.bannerLead}</span>
             {activeToolId === null ? <Check aria-hidden="true" /> : null}
           </button>
