@@ -15,4 +15,10 @@ describe("global search styles", () => {
     expect(css).toContain("var(--nw-bg-elevated)");
     expect(css).toContain("var(--nw-accent)");
   });
+
+  it("keeps search result typography compact in dense layouts", () => {
+    expect(css).toMatch(/\.global-search-result-row\s*\{[^}]*font-size:\s*13px/s);
+    expect(css).toMatch(/\[data-density="medium"\] \.global-search-result-row\s*\{[^}]*font-size:\s*11px/s);
+    expect(css).toMatch(/\[data-density="small"\] \.global-search-result-row\s*\{[^}]*font-size:\s*9px/s);
+  });
 });

@@ -14,4 +14,12 @@ describe("Banner workspace styles", () => {
     expect(css).toContain("var(--nw-bg-elevated)");
     expect(css).toContain("var(--nw-accent)");
   });
+
+  it("keeps the shell and tool panel aligned across density presets", () => {
+    expect(css).toMatch(/\[data-density="medium"\] \.banner-tool-workspace[\s\S]*?min-height:\s*94px/);
+    expect(css).toMatch(/\[data-density="small"\] \.banner-tool-workspace[\s\S]*?min-height:\s*78px/);
+
+    const shellRule = css.match(/\.banner-workspace-shell\s*\{([^}]*)\}/s)?.[1] ?? "";
+    expect(shellRule).not.toMatch(/min-height\s*:/);
+  });
 });

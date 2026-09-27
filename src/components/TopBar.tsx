@@ -1,5 +1,6 @@
-import { GearSix } from "@phosphor-icons/react";
+import { ArrowClockwise, GearSix } from "@phosphor-icons/react";
 import { useLanguage } from "../i18n/LanguageProvider";
+import { isCepDevBuild, reloadCepPanel } from "../dev/cepDevTools";
 import { BrandMark } from "./BrandMark";
 import { LanguageMenu } from "./LanguageMenu";
 import { ThemeMenu } from "./ThemeMenu";
@@ -29,6 +30,18 @@ export function TopBar({ isSettingsActive, onOpenSettings }: TopBarProps) {
         <WhatsNewButton />
         <ThemeMenu />
         <LanguageMenu />
+        {isCepDevBuild && (
+          <button
+            className="icon-button"
+            type="button"
+            aria-label={copy.topbar.devReloadAria}
+            title={copy.topbar.devReloadTitle}
+            data-cep-dev-reload="true"
+            onClick={() => reloadCepPanel()}
+          >
+            <ArrowClockwise aria-hidden="true" weight="regular" />
+          </button>
+        )}
         <button
           className="icon-button"
           type="button"

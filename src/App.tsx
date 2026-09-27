@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PRODUCT_VERSION } from "./about/productInfo";
 import { GlobalTooltip } from "./components/GlobalTooltip";
+import { ToastProvider } from "./notifications/ToastProvider";
 import { AppDialog } from "./components/AppDialog";
 import { Sidebar } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
@@ -63,7 +64,8 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell">
+    <ToastProvider>
+      <div className="app-shell">
       <TopBar
         isSettingsActive={activePage === "settings"}
         onOpenSettings={() => openSettings("general")}
@@ -140,6 +142,7 @@ export default function App() {
           </div>
         </AppDialog>
       ) : null}
-    </div>
+      </div>
+    </ToastProvider>
   );
 }

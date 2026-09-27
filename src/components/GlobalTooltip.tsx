@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLanguage } from "../i18n/LanguageProvider";
 import { useSettings } from "../settings/SettingsProvider";
 import {
@@ -8,6 +8,7 @@ import {
 import { resolveTooltipTitle } from "./tooltipTitle";
 
 interface TooltipState {
+  anchorCenter: number;
   text: string;
   left: number;
   placement: TooltipPlacement;
@@ -26,6 +27,7 @@ export function GlobalTooltip() {
   const { languageId } = useLanguage();
   const { generalSettings } = useSettings();
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
   const activeTarget = useRef<HTMLElement | null>(null);
   const timer = useRef<number | null>(null);
 
@@ -87,9 +89,14 @@ export function GlobalTooltip() {
           rect,
           window.innerWidth,
           window.innerHeight,
-          target.closest(".sidebar") !== null
+          target.closest(".sidebar") !== null,
+          target.closest(".sidebar") !== null ? 192 : 0
         );
-        setTooltip({ text: title, ...position });
+        setTooltip({
+          anchorCenter: rect.left + rect.width / 2,
+          text: title,
+          ...position
+        });
       }, generalSettings.tooltipDelayMs);
     }
 
@@ -154,10 +161,28 @@ export function GlobalTooltip() {
     languageId
   ]);
 
+  useLayoutEffect(() => {
+    if (!tooltip || tooltip.placement !== "bottom" || !tooltipRef.current) {
+      return;
+    }
+
+    const width = tooltipRef.current.getBoundingClientRect().width;
+    const halfWidth = width / 2;
+    const left = Math.min(
+      window.innerWidth - halfWidth - 8,
+      Math.max(halfWidth + 8, tooltip.anchorCenter)
+    );
+
+    if (Math.abs(left - tooltip.left) > 0.5) {
+      setTooltip((current) => (current ? { ...current, left } : current));
+    }
+  }, [tooltip]);
+
   return tooltip ? (
     <div
       className="global-tooltip"
       data-placement={tooltip.placement}
+      ref={tooltipRef}
       role="tooltip"
       style={{ left: tooltip.left, top: tooltip.top }}
     >

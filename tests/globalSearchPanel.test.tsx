@@ -2,7 +2,7 @@
 
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { LanguageProvider } from "../src/i18n/LanguageProvider";
 import { ResourceProvider } from "../src/resources/ResourceProvider";
 import { GlobalSearchProvider } from "../src/search/GlobalSearchProvider";
@@ -56,6 +56,7 @@ describe("GlobalSearchPanel", () => {
     expect(node.querySelector(".global-search-results")).not.toBeNull();
     expect(node.querySelectorAll(".global-search-result-row").length).toBeGreaterThan(0);
     expect(node.querySelector(".global-search-result-row__meta")).toBeNull();
+    expect(node.querySelector(".search-key")?.textContent).toBe("Ctrl");
   });
 
   it("moves selection with arrows, executes on Enter, and closes on Escape", async () => {
@@ -82,5 +83,77 @@ describe("GlobalSearchPanel", () => {
     });
     expect(document.activeElement).toBe(node.querySelector(".global-search input"));
     expect(node.querySelector(".global-search-results")).not.toBeNull();
+  });
+
+  it("closes when clicking outside the search shell", async () => {
+    const node = await renderPanel();
+    const input = node.querySelector<HTMLInputElement>(".global-search input")!;
+    await act(async () => {
+      input.focus();
+      input.dispatchEvent(new Event("focus", { bubbles: true }));
+    });
+    expect(node.querySelector(".global-search-results")).not.toBeNull();
+
+    await act(async () => {
+      document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    });
+    expect(node.querySelector(".global-search-results")).toBeNull();
+  });
+
+  it("closes with Escape even after focus leaves the input", async () => {
+    const node = await renderPanel();
+    const input = node.querySelector<HTMLInputElement>(".global-search input")!;
+    await act(async () => {
+      input.focus();
+      input.dispatchEvent(new Event("focus", { bubbles: true }));
+      document.body.focus();
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    });
+    expect(node.querySelector(".global-search-results")).toBeNull();
+  });
+
+  it("closes after four seconds when opened without search activity", async () => {
+    vi.useFakeTimers();
+    try {
+      const node = await renderPanel();
+      const input = node.querySelector<HTMLInputElement>(".global-search input")!;
+      await act(async () => {
+        input.focus();
+        input.dispatchEvent(new Event("focus", { bubbles: true }));
+      });
+      expect(node.querySelector(".global-search-results")).not.toBeNull();
+
+      await act(async () => {
+        vi.advanceTimersByTime(3999);
+      });
+      expect(node.querySelector(".global-search-results")).not.toBeNull();
+      await act(async () => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(node.querySelector(".global-search-results")).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps the panel open after the user starts searching", async () => {
+    vi.useFakeTimers();
+    try {
+      const node = await renderPanel();
+      const input = node.querySelector<HTMLInputElement>(".global-search input")!;
+      await act(async () => {
+        input.focus();
+        input.dispatchEvent(new Event("focus", { bubbles: true }));
+        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+        setter?.call(input, "脚本");
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await act(async () => {
+        vi.advanceTimersByTime(5000);
+      });
+      expect(node.querySelector(".global-search-results")).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

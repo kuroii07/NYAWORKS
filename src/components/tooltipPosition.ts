@@ -19,7 +19,8 @@ export function getTooltipPosition(
   rect: TooltipTargetRect,
   viewportWidth: number,
   viewportHeight: number,
-  isSidebarItem: boolean
+  isSidebarItem: boolean,
+  tooltipWidth = 192
 ): TooltipPosition {
   if (isSidebarItem) {
     return {
@@ -32,7 +33,15 @@ export function getTooltipPosition(
     };
   }
 
-  const halfWidth = 96;
+  const halfWidth = Math.max(0, tooltipWidth / 2);
+
+  if (tooltipWidth === 0) {
+    return {
+      placement: "bottom",
+      left: rect.left + rect.width / 2,
+      top: Math.min(viewportHeight - 44, rect.bottom + 8)
+    };
+  }
 
   return {
     placement: "bottom",

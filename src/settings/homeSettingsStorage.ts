@@ -295,7 +295,7 @@ export function normalizeHomeSettings(value: unknown): HomeSettings {
     spaceMode:
       rememberPanelModes && isSpaceMode(candidate.spaceMode)
         ? candidate.spaceMode
-        : defaultSpaceMode
+        : defaultSpaceMode,
   };
 }
 

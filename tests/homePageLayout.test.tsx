@@ -72,11 +72,21 @@ describe("HomePage layout settings", () => {
     const markup = renderHomePage(true, { spaceMode: "align" });
 
     expect(markup).toContain('class="anchor-grid anchor-grid--align"');
-    expect(markup).toContain('class="align-grid-icon"');
+    expect(markup).toContain('class="align-grid-icon align-grid-icon--layer"');
     expect(markup).toContain('class="spatial-mode-icon"');
     expect(markup).not.toContain('class="anchor-grid anchor-grid--anchor"');
     expect(markup.match(/data-active-index="0"/g)).toHaveLength(1);
     expect(markup.match(/data-active-index="1"/g)).toHaveLength(1);
+  });
+
+  it("keeps alignment as a fixed nine-cell grid without a target control", () => {
+    const markup = renderHomePage(true, {
+      spaceMode: "align"
+    });
+
+    expect(markup).not.toContain('aria-label="对齐目标"');
+    expect(markup).not.toContain("对齐目标");
+    expect(markup).toContain('class="anchor-grid anchor-grid--align"');
   });
 
   it("exposes staggered motion metadata for the spatial grid", () => {
@@ -96,5 +106,12 @@ describe("HomePage layout settings", () => {
     expect(markup).toContain('class="create-grid__layer create-grid__layer--create"');
     expect(markup).toContain('class="create-grid__layer create-grid__layer--select"');
     expect(markup.match(/--create-motion-index:/g)).toHaveLength(18);
+  });
+
+  it("does not preselect a tool in either nine-grid", () => {
+    const markup = renderHomePage();
+
+    expect(markup).not.toContain('data-emphasized="true"');
+    expect(markup).not.toContain('data-selected="true"');
   });
 });

@@ -10,7 +10,7 @@ import {
 import { useLanguage } from "../i18n/LanguageProvider";
 import { useResources } from "../resources/ResourceProvider";
 import {
-  createGlobalSearchHostBridge,
+  globalSearchHostBridge,
   type GlobalSearchActionResult,
   type GlobalSearchHostAction,
   type GlobalSearchHostBridge
@@ -48,7 +48,7 @@ function actionForResource(resourceType: string): GlobalSearchItem["action"] {
 
 export function GlobalSearchProvider({
   children,
-  bridge = createGlobalSearchHostBridge()
+  bridge = globalSearchHostBridge
 }: GlobalSearchProviderProps) {
   const { copy } = useLanguage();
   const { resources, sources } = useResources();

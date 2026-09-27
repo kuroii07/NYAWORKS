@@ -26,4 +26,12 @@ describe("tooltip positioning", () => {
       top: 368
     });
   });
+
+  it("can start a general tooltip at the target center before measuring its real width", () => {
+    expect(getTooltipPosition(targetRect, 496, 800, false, 0)).toEqual({
+      placement: "bottom",
+      left: 32,
+      top: 368
+    });
+  });
 });

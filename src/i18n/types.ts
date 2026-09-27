@@ -67,6 +67,17 @@ export type ToolGroupId =
   | "textShapes"
   | "effectsPresets";
 
+export type SpatialPositionId =
+  | "top-left"
+  | "top"
+  | "top-right"
+  | "left"
+  | "center"
+  | "right"
+  | "bottom-left"
+  | "bottom"
+  | "bottom-right";
+
 export interface AiSettingsCopy {
   currentDefault: string;
   noDefault: string;
@@ -189,10 +200,14 @@ export interface UiCopy {
     themeAria: string;
     themeTitle: string;
     themeHeading: string;
+    devReloadAria: string;
+    devReloadTitle: string;
   };
   languageMenu: {
     heading: string;
   };
+  toastRegion: string;
+  toastClose: string;
   home: {
     searchPlaceholder: string;
     searchAria: string;
@@ -226,8 +241,28 @@ export interface UiCopy {
     alignGridAria: string;
     anchorLabel: string;
     alignLabel: string;
+    spatialPositionLabels: Record<SpatialPositionId, string>;
+    alignPositionLabels: Record<SpatialPositionId, string>;
     plannedAriaSuffix: string;
     plannedTitleSuffix: string;
+    anchorFeedback: {
+      success: (updatedLayers: number, threeDLayers: number) => string;
+      noSelectedLayer: string;
+      lockedLayer: string;
+      unsupportedLayer: string;
+      expressionConflict: string;
+      unavailable: string;
+      hostError: string;
+    };
+    alignmentFeedback: {
+      noSelectedLayer: string;
+      noTextLayer: string;
+      lockedLayer: string;
+      unsupportedLayer: string;
+      expressionConflict: string;
+      unavailable: string;
+      hostError: string;
+    };
     toolGroupsAria: string;
     groupTitles: Record<ToolGroupId, string>;
     toolLabels: Record<ToolId, string>;

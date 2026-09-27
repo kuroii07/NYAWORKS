@@ -27,9 +27,13 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       settingsTitle: "设置",
       themeAria: "切换主题",
       themeTitle: "左键切换主题 · 右键选择主题",
-      themeHeading: "主题"
+      themeHeading: "主题",
+      devReloadAria: "刷新开发扩展",
+      devReloadTitle: "刷新 NYAWORKS 开发面板"
     },
     languageMenu: { heading: "语言" },
+    toastRegion: "通知",
+    toastClose: "关闭通知",
     home: {
       searchPlaceholder: "搜索工具、功能或用途",
       searchAria: "全局搜索",
@@ -53,12 +57,53 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       createSwitchAria: "新建与选择切换",
       anchorSwitchAria: "锚点与对齐切换",
       selectGridAria: "九宫格图层选择（后续阶段实现）",
-      anchorGridAria: "九宫格锚点（后续阶段实现）",
-      alignGridAria: "九宫格对齐（后续阶段实现）",
+      anchorGridAria: "九宫格锚点",
+      alignGridAria: "九宫格对齐",
       anchorLabel: "锚点",
       alignLabel: "对齐",
+      spatialPositionLabels: {
+        "top-left": "左上",
+        top: "上",
+        "top-right": "右上",
+        left: "左",
+        center: "中心",
+        right: "右",
+        "bottom-left": "左下",
+        bottom: "下",
+        "bottom-right": "右下"
+      },
+      alignPositionLabels: {
+        "top-left": "图层左对齐",
+        top: "图层水平居中",
+        "top-right": "图层右对齐",
+        left: "图层顶部对齐",
+        center: "图层垂直居中",
+        right: "图层底部对齐",
+        "bottom-left": "文字左对齐",
+        bottom: "文字居中对齐",
+        "bottom-right": "文字右对齐"
+      },
       plannedAriaSuffix: "（后续阶段实现）",
       plannedTitleSuffix: " · 后续阶段接入 AE",
+      anchorFeedback: {
+        success: (updatedLayers, threeDLayers) =>
+          `已调整 ${updatedLayers} 个图层${threeDLayers ? `（含 ${threeDLayers} 个三维图层）` : ""}`,
+        noSelectedLayer: "请先在 AE 合成中选择图层",
+        lockedLayer: "选中的图层已锁定，无法调整锚点",
+        unsupportedLayer: "选中的图层不支持锚点调整",
+        expressionConflict: "锚点或位置含表达式/关键帧，暂不能调整",
+        unavailable: "尚未连接到 After Effects",
+        hostError: "锚点调整失败，请确认当前打开的是合成并已选择图层"
+      },
+      alignmentFeedback: {
+        noSelectedLayer: "请先在 AE 合成中选择图层",
+        noTextLayer: "请先选择文字图层",
+        lockedLayer: "选中的图层已锁定，无法对齐",
+        unsupportedLayer: "选中的图层不支持对齐",
+        expressionConflict: "选中的图层含有表达式或关键帧，无法安全对齐",
+        unavailable: "AE 宿主不可用",
+        hostError: "对齐失败，请确认当前打开的是合成并已选择图层"
+      },
       toolGroupsAria: "高频工具分组",
       groupTitles: {
         compositionProject: "合成与项目",
@@ -419,9 +464,13 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       settingsTitle: "設定",
       themeAria: "切換主題",
       themeTitle: "左鍵切換主題 · 右鍵選擇主題",
-      themeHeading: "主題"
+      themeHeading: "主題",
+      devReloadAria: "重新整理開發擴充功能",
+      devReloadTitle: "重新整理 NYAWORKS 開發面板"
     },
     languageMenu: { heading: "語言" },
+    toastRegion: "通知",
+    toastClose: "關閉通知",
     home: {
       searchPlaceholder: "搜尋工具、功能或用途",
       searchAria: "全域搜尋",
@@ -445,12 +494,53 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       createSwitchAria: "新增與選取切換",
       anchorSwitchAria: "錨點與對齊切換",
       selectGridAria: "九宮格圖層選取（後續階段實作）",
-      anchorGridAria: "九宮格錨點（後續階段實作）",
-      alignGridAria: "九宮格對齊（後續階段實作）",
+      anchorGridAria: "九宮格錨點",
+      alignGridAria: "九宮格對齊",
       anchorLabel: "錨點",
       alignLabel: "對齊",
+      spatialPositionLabels: {
+        "top-left": "左上",
+        top: "上",
+        "top-right": "右上",
+        left: "左",
+        center: "中心",
+        right: "右",
+        "bottom-left": "左下",
+        bottom: "下",
+        "bottom-right": "右下"
+      },
+      alignPositionLabels: {
+        "top-left": "圖層左對齊",
+        top: "圖層水平置中",
+        "top-right": "圖層右對齊",
+        left: "圖層頂部對齊",
+        center: "圖層垂直置中",
+        right: "圖層底部對齊",
+        "bottom-left": "文字左對齊",
+        bottom: "文字置中對齊",
+        "bottom-right": "文字右對齊"
+      },
       plannedAriaSuffix: "（後續階段實作）",
       plannedTitleSuffix: " · 後續階段接入 AE",
+      anchorFeedback: {
+        success: (updatedLayers, threeDLayers) =>
+          `已調整 ${updatedLayers} 個圖層${threeDLayers ? `（含 ${threeDLayers} 個三維圖層）` : ""}`,
+        noSelectedLayer: "請先在 AE 合成中選取圖層",
+        lockedLayer: "選取的圖層已鎖定，無法調整錨點",
+        unsupportedLayer: "選取的圖層不支援錨點調整",
+        expressionConflict: "錨點或位置含運算式/關鍵影格，暫時無法調整",
+        unavailable: "尚未連接到 After Effects",
+        hostError: "錨點調整失敗，請確認目前開啟的是合成並已選取圖層"
+      },
+      alignmentFeedback: {
+        noSelectedLayer: "請先在 AE 合成中選取圖層",
+        noTextLayer: "請先選取文字圖層",
+        lockedLayer: "選取的圖層已鎖定，無法對齊",
+        unsupportedLayer: "選取的圖層不支援對齊",
+        expressionConflict: "選取的圖層含有運算式或關鍵影格，無法安全對齊",
+        unavailable: "AE 宿主不可用",
+        hostError: "對齊失敗，請確認目前開啟的是合成並已選取圖層"
+      },
       toolGroupsAria: "高頻工具分組",
       groupTitles: {
         compositionProject: "合成與專案",
@@ -805,9 +895,13 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       settingsTitle: "Settings",
       themeAria: "Switch theme",
       themeTitle: "Left-click to cycle · Right-click to choose",
-      themeHeading: "Theme"
+      themeHeading: "Theme",
+      devReloadAria: "Reload development extension",
+      devReloadTitle: "Reload NYAWORKS development panel"
     },
     languageMenu: { heading: "Language" },
+    toastRegion: "Notifications",
+    toastClose: "Close notification",
     home: {
       searchPlaceholder: "Search tools, features, or tasks",
       searchAria: "Global search",
@@ -831,12 +925,53 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       createSwitchAria: "Switch create and select",
       anchorSwitchAria: "Switch anchor and align",
       selectGridAria: "Nine-item layer selection (coming later)",
-      anchorGridAria: "Nine-point anchor grid (coming later)",
-      alignGridAria: "Nine-point alignment grid (coming later)",
+      anchorGridAria: "Nine-point anchor grid",
+      alignGridAria: "Nine-point alignment grid",
       anchorLabel: "Anchor",
       alignLabel: "Align",
+      spatialPositionLabels: {
+        "top-left": "Top left",
+        top: "Top",
+        "top-right": "Top right",
+        left: "Left",
+        center: "Center",
+        right: "Right",
+        "bottom-left": "Bottom left",
+        bottom: "Bottom",
+        "bottom-right": "Bottom right"
+      },
+      alignPositionLabels: {
+        "top-left": "Layer left align",
+        top: "Layer horizontal center",
+        "top-right": "Layer right align",
+        left: "Layer top align",
+        center: "Layer vertical center",
+        right: "Layer bottom align",
+        "bottom-left": "Text left align",
+        bottom: "Text center align",
+        "bottom-right": "Text right align"
+      },
       plannedAriaSuffix: " (coming later)",
       plannedTitleSuffix: " · AE integration coming later",
+      anchorFeedback: {
+        success: (updatedLayers, threeDLayers) =>
+          `Adjusted ${updatedLayers} layer${updatedLayers === 1 ? "" : "s"}${threeDLayers ? ` (${threeDLayers} 3D)` : ""}`,
+        noSelectedLayer: "Select at least one layer in an AE composition",
+        lockedLayer: "The selected layer is locked",
+        unsupportedLayer: "The selected layer does not support anchor adjustment",
+        expressionConflict: "Anchor Point or Position has an expression/keyframes",
+        unavailable: "After Effects is not connected",
+        hostError: "Anchor adjustment failed; select a layer in an active composition"
+      },
+      alignmentFeedback: {
+        noSelectedLayer: "Select at least one layer in an AE composition",
+        noTextLayer: "Select at least one text layer",
+        lockedLayer: "The selected layer is locked and cannot be aligned",
+        unsupportedLayer: "The selected layer does not support alignment",
+        expressionConflict: "Expressions or keyframes prevent safe alignment",
+        unavailable: "The AE host is unavailable",
+        hostError: "Alignment failed; select layers in an active composition"
+      },
       toolGroupsAria: "Frequent tool groups",
       groupTitles: {
         compositionProject: "Comp & Project",
@@ -1192,9 +1327,13 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       settingsTitle: "設定",
       themeAria: "テーマを切り替え",
       themeTitle: "左クリックで切替 · 右クリックで選択",
-      themeHeading: "テーマ"
+      themeHeading: "テーマ",
+      devReloadAria: "開発拡張機能を再読み込み",
+      devReloadTitle: "NYAWORKS 開発パネルを再読み込み"
     },
     languageMenu: { heading: "言語" },
+    toastRegion: "通知",
+    toastClose: "通知を閉じる",
     home: {
       searchPlaceholder: "ツール・機能・用途を検索",
       searchAria: "グローバル検索",
@@ -1218,12 +1357,53 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       createSwitchAria: "作成と選択を切り替え",
       anchorSwitchAria: "アンカーと整列を切り替え",
       selectGridAria: "9 項目のレイヤー選択（今後実装）",
-      anchorGridAria: "9 点アンカー（今後実装）",
-      alignGridAria: "9 点整列（今後実装）",
+      anchorGridAria: "9 点アンカー",
+      alignGridAria: "9 点整列",
       anchorLabel: "アンカー",
       alignLabel: "整列",
+      spatialPositionLabels: {
+        "top-left": "左上",
+        top: "上",
+        "top-right": "右上",
+        left: "左",
+        center: "中央",
+        right: "右",
+        "bottom-left": "左下",
+        bottom: "下",
+        "bottom-right": "右下"
+      },
+      alignPositionLabels: {
+        "top-left": "レイヤー左揃え",
+        top: "レイヤー水平中央揃え",
+        "top-right": "レイヤー右揃え",
+        left: "レイヤー上揃え",
+        center: "レイヤー垂直中央揃え",
+        right: "レイヤー下揃え",
+        "bottom-left": "文字左揃え",
+        bottom: "文字中央揃え",
+        "bottom-right": "文字右揃え"
+      },
       plannedAriaSuffix: "（今後実装）",
       plannedTitleSuffix: " · AE 連携は今後実装",
+      anchorFeedback: {
+        success: (updatedLayers, threeDLayers) =>
+          `${updatedLayers} 個のレイヤーを調整${threeDLayers ? `（3D ${threeDLayers} 個）` : ""}`,
+        noSelectedLayer: "AE のコンポジションでレイヤーを選択してください",
+        lockedLayer: "選択したレイヤーはロックされています",
+        unsupportedLayer: "選択したレイヤーはアンカー調整に対応していません",
+        expressionConflict: "アンカーポイントまたは位置にエクスプレッション/キーフレームがあります",
+        unavailable: "After Effects に接続されていません",
+        hostError: "アンカー調整に失敗しました。アクティブなコンポジションでレイヤーを選択してください"
+      },
+      alignmentFeedback: {
+        noSelectedLayer: "AE コンポジションでレイヤーを選択してください",
+        noTextLayer: "テキストレイヤーを選択してください",
+        lockedLayer: "選択したレイヤーはロックされているため整列できません",
+        unsupportedLayer: "選択したレイヤーは整列に対応していません",
+        expressionConflict: "エクスプレッションまたはキーフレームがあるため安全に整列できません",
+        unavailable: "AE ホストを利用できません",
+        hostError: "整列に失敗しました。アクティブなコンポジションでレイヤーを選択してください"
+      },
       toolGroupsAria: "よく使うツール",
       groupTitles: {
         compositionProject: "コンポ・プロジェクト",
@@ -1578,9 +1758,13 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       settingsTitle: "설정",
       themeAria: "테마 전환",
       themeTitle: "왼쪽 클릭으로 전환 · 오른쪽 클릭으로 선택",
-      themeHeading: "테마"
+      themeHeading: "테마",
+      devReloadAria: "개발 확장 새로고침",
+      devReloadTitle: "NYAWORKS 개발 패널 새로고침"
     },
     languageMenu: { heading: "언어" },
+    toastRegion: "알림",
+    toastClose: "알림 닫기",
     home: {
       searchPlaceholder: "도구, 기능 또는 용도 검색",
       searchAria: "전체 검색",
@@ -1604,12 +1788,53 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       createSwitchAria: "생성과 선택 전환",
       anchorSwitchAria: "앵커와 정렬 전환",
       selectGridAria: "9칸 레이어 선택(추후 구현)",
-      anchorGridAria: "9점 앵커(추후 구현)",
-      alignGridAria: "9점 정렬(추후 구현)",
+      anchorGridAria: "9점 앵커",
+      alignGridAria: "9점 정렬",
       anchorLabel: "앵커",
       alignLabel: "정렬",
+      spatialPositionLabels: {
+        "top-left": "왼쪽 위",
+        top: "위",
+        "top-right": "오른쪽 위",
+        left: "왼쪽",
+        center: "가운데",
+        right: "오른쪽",
+        "bottom-left": "왼쪽 아래",
+        bottom: "아래",
+        "bottom-right": "오른쪽 아래"
+      },
+      alignPositionLabels: {
+        "top-left": "레이어 왼쪽 정렬",
+        top: "레이어 가로 중앙 정렬",
+        "top-right": "레이어 오른쪽 정렬",
+        left: "레이어 위쪽 정렬",
+        center: "레이어 세로 중앙 정렬",
+        right: "레이어 아래쪽 정렬",
+        "bottom-left": "텍스트 왼쪽 정렬",
+        bottom: "텍스트 가운데 정렬",
+        "bottom-right": "텍스트 오른쪽 정렬"
+      },
       plannedAriaSuffix: "(추후 구현)",
       plannedTitleSuffix: " · AE 연동 추후 구현",
+      anchorFeedback: {
+        success: (updatedLayers, threeDLayers) =>
+          `${updatedLayers}개 레이어 조정 완료${threeDLayers ? ` (3D ${threeDLayers}개)` : ""}`,
+        noSelectedLayer: "AE 컴포지션에서 레이어를 먼저 선택하세요",
+        lockedLayer: "선택한 레이어가 잠겨 있습니다",
+        unsupportedLayer: "선택한 레이어는 앵커 조정을 지원하지 않습니다",
+        expressionConflict: "앵커 포인트 또는 위치에 표현식/키프레임이 있습니다",
+        unavailable: "After Effects에 연결되지 않았습니다",
+        hostError: "앵커 조정에 실패했습니다. 활성 컴포지션에서 레이어를 선택하세요"
+      },
+      alignmentFeedback: {
+        noSelectedLayer: "AE 컴포지션에서 레이어를 먼저 선택하세요",
+        noTextLayer: "텍스트 레이어를 선택하세요",
+        lockedLayer: "선택한 레이어가 잠겨 있어 정렬할 수 없습니다",
+        unsupportedLayer: "선택한 레이어는 정렬을 지원하지 않습니다",
+        expressionConflict: "표현식 또는 키프레임이 있어 안전하게 정렬할 수 없습니다",
+        unavailable: "AE 호스트를 사용할 수 없습니다",
+        hostError: "정렬에 실패했습니다. 활성 컴포지션에서 레이어를 선택하세요"
+      },
       toolGroupsAria: "자주 쓰는 도구 그룹",
       groupTitles: {
         compositionProject: "컴프와 프로젝트",

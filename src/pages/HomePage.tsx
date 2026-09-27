@@ -31,6 +31,7 @@ import {
 import { AppDialog } from "../components/AppDialog";
 import { BannerWorkspace, type BannerToolId } from "../components/BannerWorkspace";
 import { GlobalSearchPanel } from "../components/GlobalSearchPanel";
+import { useToast } from "../notifications/ToastProvider";
 import {
   CompactActionMenu,
   type CompactActionMenuItem
@@ -48,11 +49,17 @@ import {
 } from "../interactions/pointerReorder";
 import { useSettings } from "../settings/SettingsProvider";
 import { getActiveHomeLayout } from "../settings/homeSettingsStorage";
+import { anchorHostBridge, type AnchorPosition } from "../host/anchorBridge";
+import {
+  alignmentHostBridge,
+  type AlignmentAction,
+  type AlignmentTarget
+} from "../host/alignmentBridge";
 import type {
   HomeCreateMode,
   HomeSpaceMode
 } from "../settings/types";
-import type { ToolId, UiCopy } from "../i18n/types";
+import type { SpatialPositionId, ToolId, UiCopy } from "../i18n/types";
 import type { GlobalSearchItem } from "../search/types";
 
 interface HomeToolDrag {
@@ -113,7 +120,7 @@ const SPATIAL_POSITIONS = [
   "bottom-right"
 ] as const;
 
-type SpatialPosition = (typeof SPATIAL_POSITIONS)[number];
+type SpatialPosition = SpatialPositionId;
 
 const SPATIAL_ICON_COORDINATES: Record<
   SpatialPosition,
@@ -161,14 +168,99 @@ function AnchorGridIcon({ position }: { position: SpatialPosition }) {
   );
 }
 
-function AlignGridIcon({ position }: { position: SpatialPosition }) {
-  const { guideX, guideY, objectX, objectY } = SPATIAL_ICON_COORDINATES[position];
+type LayerAlignDirection = "left" | "center-x" | "right" | "top" | "center-y" | "bottom";
+type ParagraphAlignDirection = "left" | "center" | "right";
+
+const ALIGNMENT_ACTIONS: readonly {
+  position: SpatialPosition;
+  kind: "layer" | "paragraph";
+  direction: LayerAlignDirection | ParagraphAlignDirection;
+  action: AlignmentAction;
+}[] = [
+  { position: "top-left", kind: "layer", direction: "left", action: "left" },
+  { position: "top", kind: "layer", direction: "center-x", action: "center-x" },
+  { position: "top-right", kind: "layer", direction: "right", action: "right" },
+  { position: "left", kind: "layer", direction: "top", action: "top" },
+  { position: "center", kind: "layer", direction: "center-y", action: "center-y" },
+  { position: "right", kind: "layer", direction: "bottom", action: "bottom" },
+  { position: "bottom-left", kind: "paragraph", direction: "left", action: "paragraph-left" },
+  { position: "bottom", kind: "paragraph", direction: "center", action: "paragraph-center" },
+  { position: "bottom-right", kind: "paragraph", direction: "right", action: "paragraph-right" }
+] as const;
+
+function LayerAlignIcon({ direction }: { direction: LayerAlignDirection }) {
+  const guide = {
+    left: "M7 5v22",
+    "center-x": "M16 5v22",
+    right: "M25 5v22",
+    top: "M5 7h22",
+    "center-y": "M5 16h22",
+    bottom: "M5 25h22"
+  }[direction];
+  const object = {
+    left: { x: 8, y: 11, width: 13, height: 10 },
+    "center-x": { x: 9.5, y: 11, width: 13, height: 10 },
+    right: { x: 11, y: 11, width: 13, height: 10 },
+    top: { x: 11, y: 8, width: 10, height: 13 },
+    "center-y": { x: 11, y: 9.5, width: 10, height: 13 },
+    bottom: { x: 11, y: 11, width: 10, height: 13 }
+  }[direction];
 
   return (
-    <svg className="align-grid-icon" viewBox="0 0 32 32" aria-hidden="true">
-      <path className="spatial-svg__guide" d={`M${guideX} 4v24M4 ${guideY}h24`} />
-      <rect className="spatial-svg__object" x={objectX} y={objectY} width="8" height="6" rx="1" />
+    <svg className="align-grid-icon align-grid-icon--layer" viewBox="0 0 32 32" aria-hidden="true">
+      <path className="spatial-svg__guide" d={guide} />
+      <rect
+        className="spatial-svg__align-object"
+        x={object.x}
+        y={object.y}
+        width={object.width}
+        height={object.height}
+        rx="1.3"
+      />
     </svg>
+  );
+}
+
+function ParagraphAlignIcon({ direction }: { direction: ParagraphAlignDirection }) {
+  const lines = {
+    left: [
+      [7, 23],
+      [7, 19],
+      [7, 26],
+      [7, 16]
+    ],
+    center: [
+      [9, 23],
+      [11, 21],
+      [7, 25],
+      [10, 22]
+    ],
+    right: [
+      [9, 25],
+      [13, 25],
+      [7, 25],
+      [15, 25]
+    ]
+  }[direction];
+
+  return (
+    <svg className="align-grid-icon align-grid-icon--paragraph" viewBox="0 0 32 32" aria-hidden="true">
+      {lines.map(([x1, x2], index) => (
+        <path
+          className="spatial-svg__paragraph-line"
+          d={`M${x1} ${8 + index * 5.25}H${x2}`}
+          key={`${x1}-${x2}`}
+        />
+      ))}
+    </svg>
+  );
+}
+
+function AlignGridIcon({ action }: { action: (typeof ALIGNMENT_ACTIONS)[number] }) {
+  return action.kind === "layer" ? (
+    <LayerAlignIcon direction={action.direction as LayerAlignDirection} />
+  ) : (
+    <ParagraphAlignIcon direction={action.direction as ParagraphAlignDirection} />
   );
 }
 
@@ -177,7 +269,6 @@ function PlannedToolButton({
   label,
   ariaSuffix,
   titleSuffix,
-  emphasized = false,
   planned = true,
   ...buttonProps
 }: {
@@ -185,13 +276,11 @@ function PlannedToolButton({
   label: string;
   ariaSuffix: string;
   titleSuffix: string;
-  emphasized?: boolean;
   planned?: boolean;
 } & ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       className="tool-button"
-      data-emphasized={emphasized || undefined}
       type="button"
       {...buttonProps}
       aria-label={`${label}${ariaSuffix}`}
@@ -234,7 +323,6 @@ function CreateToolGrid({
                 label={copy.toolLabels[tool.id]}
                 ariaSuffix={copy.plannedAriaSuffix}
                 titleSuffix={copy.plannedTitleSuffix}
-                emphasized={index === 0}
                 tabIndex={active ? undefined : -1}
                 style={
                   {
@@ -252,10 +340,14 @@ function CreateToolGrid({
 
 function SpatialGrid({
   copy,
-  mode
+  mode,
+  onAnchorPosition,
+  onAlignment
 }: {
   copy: UiCopy["home"];
   mode: HomeSpaceMode;
+  onAnchorPosition?: (position: AnchorPosition) => void;
+  onAlignment?: (action: AlignmentAction, target: AlignmentTarget) => void;
 }) {
   const layers = ["anchor", "align"] as const;
 
@@ -269,7 +361,6 @@ function SpatialGrid({
     >
       {layers.map((layer) => {
         const active = layer === mode;
-        const label = layer === "anchor" ? copy.anchorLabel : copy.alignLabel;
 
         return (
           <div
@@ -278,33 +369,51 @@ function SpatialGrid({
             data-active={active || undefined}
             key={layer}
           >
-            {SPATIAL_POSITIONS.map((position, index) => (
-              <button
-                className="anchor-button"
-                data-position={position}
-                data-selected={position === "center" || undefined}
-                data-motion-index={index}
-                key={position}
-                style={
-                  {
-                    "--spatial-motion-index": index
-                  } as CSSProperties
-                }
-                tabIndex={active ? undefined : -1}
-                type="button"
-                aria-label={`${position} ${label}${copy.plannedAriaSuffix}`}
-                aria-disabled="true"
-                title={`${label}${copy.plannedTitleSuffix}`}
-              >
-                <span className="spatial-icon" aria-hidden="true">
-                  {layer === "anchor" ? (
-                    <AnchorGridIcon position={position} />
-                  ) : (
-                    <AlignGridIcon position={position} />
-                  )}
-                </span>
-              </button>
-            ))}
+            {SPATIAL_POSITIONS.map((position, index) => {
+              const alignmentAction = ALIGNMENT_ACTIONS[index];
+              const tooltip =
+                layer === "anchor"
+                  ? copy.spatialPositionLabels[position]
+                  : copy.alignPositionLabels[position];
+
+              return (
+                <button
+                  className="anchor-button"
+                  data-position={position}
+                  data-motion-index={index}
+                  key={position}
+                  style={
+                    {
+                      "--spatial-motion-index": index
+                    } as CSSProperties
+                  }
+                  tabIndex={active ? undefined : -1}
+                  type="button"
+                  aria-label={tooltip}
+                  title={tooltip}
+                  onClick={
+                    layer === "anchor"
+                      ? () => onAnchorPosition?.(position)
+                      : (event) =>
+                          onAlignment?.(
+                            alignmentAction.action,
+                            // Match AE/玄如意 semantics: a normal click aligns
+                            // to the current layer selection; Alt/Shift opts
+                            // into aligning to the full composition.
+                            event.altKey || event.shiftKey ? "composition" : "selection"
+                          )
+                  }
+                >
+                  <span className="spatial-icon" aria-hidden="true">
+                    {layer === "anchor" ? (
+                      <AnchorGridIcon position={position} />
+                    ) : (
+                      <AlignGridIcon action={alignmentAction} />
+                    )}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         );
       })}
@@ -319,6 +428,7 @@ export function HomePage({
 }) {
   const { copy } = useLanguage();
   const { generalSettings, homeSettings, updateHomeSettings } = useSettings();
+  const { toast } = useToast();
   const home = copy.home;
   const activeLayout = getActiveHomeLayout(homeSettings);
   const layoutName = getHomeLayoutLabel(activeLayout.name, copy);
@@ -339,6 +449,52 @@ export function HomePage({
   const flipRectsRef = useRef<Map<string, DOMRect> | null>(null);
 
   toolDragRef.current = toolDrag;
+
+  async function handleAnchorPosition(position: AnchorPosition) {
+    const result = await anchorHostBridge.setAnchorPoint(position);
+    if (result.ok) {
+      return;
+    }
+
+    const failureMessage =
+      result.reason === "no-selected-layer"
+        ? home.anchorFeedback.noSelectedLayer
+        : result.reason === "locked-layer"
+          ? home.anchorFeedback.lockedLayer
+          : result.reason === "unsupported-layer"
+            ? home.anchorFeedback.unsupportedLayer
+            : result.reason === "expression-conflict"
+              ? home.anchorFeedback.expressionConflict
+              : result.reason === "unavailable"
+                ? home.anchorFeedback.unavailable
+                : home.anchorFeedback.hostError;
+    toast.error(result.detail ? `${failureMessage}（${result.detail}）` : failureMessage);
+    console.warn("NYAWORKS anchor action failed", result.reason, result.detail);
+  }
+
+  async function handleAlignment(action: AlignmentAction, target: AlignmentTarget) {
+    const result = await alignmentHostBridge.applyAlignment(action, target);
+    if (result.ok) {
+      return;
+    }
+
+    const failureMessage =
+      result.reason === "no-selected-layer"
+        ? home.alignmentFeedback.noSelectedLayer
+        : result.reason === "no-text-layer"
+          ? home.alignmentFeedback.noTextLayer
+          : result.reason === "locked-layer"
+            ? home.alignmentFeedback.lockedLayer
+            : result.reason === "unsupported-layer"
+              ? home.alignmentFeedback.unsupportedLayer
+              : result.reason === "expression-conflict"
+                ? home.alignmentFeedback.expressionConflict
+                : result.reason === "unavailable"
+                  ? home.alignmentFeedback.unavailable
+                  : home.alignmentFeedback.hostError;
+    toast.error(result.detail ? `${failureMessage}（${result.detail}）` : failureMessage);
+    console.warn("NYAWORKS alignment action failed", result.reason, result.detail);
+  }
 
   const visibleTools = useMemo(
     () =>
@@ -739,7 +895,12 @@ export function HomePage({
               <AlignModeIcon />
             </button>
           </div>
-          <SpatialGrid copy={home} mode={homeSettings.spaceMode} />
+           <SpatialGrid
+             copy={home}
+             mode={homeSettings.spaceMode}
+             onAnchorPosition={handleAnchorPosition}
+             onAlignment={handleAlignment}
+           />
           </article>
         </section>
       ) : null}

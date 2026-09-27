@@ -13,6 +13,8 @@ import { groupGlobalSearchItems } from "../search/searchOperations";
 import { useOptionalGlobalSearch } from "../search/GlobalSearchProvider";
 import type { GlobalSearchItem } from "../search/types";
 
+const SEARCH_IDLE_CLOSE_MS = 4000;
+
 function SearchItemIcon({ item }: { item: GlobalSearchItem }) {
   const ToolIcon = item.toolId ? HOME_TOOL_CATALOG[item.toolId]?.icon : undefined;
   if (ToolIcon) return <ToolIcon aria-hidden="true" weight="regular" />;
@@ -27,18 +29,44 @@ export function GlobalSearchPanel({ onExecute }: { onExecute?: (item: GlobalSear
   const { copy } = useLanguage();
   const globalSearch = useOptionalGlobalSearch();
   const inputRef = useRef<HTMLInputElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
   const executionRef = useRef(false);
+  const autoCloseTimerRef = useRef<number | null>(null);
+  const searchInteractedRef = useRef(false);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const home = copy.home;
+  const modifierKey =
+    typeof navigator !== "undefined" && /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent)
+      ? "⌘"
+      : "Ctrl";
   const results = useMemo(() => globalSearch?.search(query) ?? [], [globalSearch, query]);
   const groups = useMemo(() => groupGlobalSearchItems(results), [results]);
+
+  function clearAutoCloseTimer() {
+    if (autoCloseTimerRef.current !== null) {
+      window.clearTimeout(autoCloseTimerRef.current);
+      autoCloseTimerRef.current = null;
+    }
+  }
+
+  function closeSearch() {
+    clearAutoCloseTimer();
+    searchInteractedRef.current = false;
+    setOpen(false);
+  }
+
+  function markSearchInteraction() {
+    searchInteractedRef.current = true;
+    clearAutoCloseTimer();
+  }
 
   useEffect(() => {
     function handleGlobalShortcut(event: KeyboardEvent) {
       if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === "k") {
         event.preventDefault();
+        searchInteractedRef.current = Boolean(query.trim());
         setOpen(true);
         inputRef.current?.focus();
         requestAnimationFrame(() => inputRef.current?.focus());
@@ -46,6 +74,39 @@ export function GlobalSearchPanel({ onExecute }: { onExecute?: (item: GlobalSear
     }
     document.addEventListener("keydown", handleGlobalShortcut);
     return () => document.removeEventListener("keydown", handleGlobalShortcut);
+  }, [query]);
+
+  useEffect(() => {
+    clearAutoCloseTimer();
+    if (!open || searchInteractedRef.current) return;
+
+    autoCloseTimerRef.current = window.setTimeout(() => {
+      autoCloseTimerRef.current = null;
+      setOpen(false);
+    }, SEARCH_IDLE_CLOSE_MS);
+
+    return clearAutoCloseTimer;
+  }, [open]);
+
+  useEffect(() => {
+    function handleDocumentMouseDown(event: MouseEvent) {
+      if (!shellRef.current?.contains(event.target as Node)) {
+        closeSearch();
+      }
+    }
+
+    function handleDocumentKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        closeSearch();
+      }
+    }
+
+    document.addEventListener("mousedown", handleDocumentMouseDown);
+    document.addEventListener("keydown", handleDocumentKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleDocumentMouseDown);
+      document.removeEventListener("keydown", handleDocumentKeyDown);
+    };
   }, []);
 
   useEffect(() => {
@@ -58,7 +119,7 @@ export function GlobalSearchPanel({ onExecute }: { onExecute?: (item: GlobalSear
     try {
       if (globalSearch) await globalSearch.executeItem(item);
       onExecute?.(item);
-      setOpen(false);
+      closeSearch();
     } finally {
       window.setTimeout(() => { executionRef.current = false; }, 120);
     }
@@ -67,22 +128,25 @@ export function GlobalSearchPanel({ onExecute }: { onExecute?: (item: GlobalSear
   function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Escape") {
       event.preventDefault();
-      setOpen(false);
+      closeSearch();
     } else if (event.key === "ArrowDown") {
       event.preventDefault();
+      markSearchInteraction();
       setOpen(true);
       setSelectedIndex((current) => Math.min(current + 1, Math.max(0, results.length - 1)));
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
+      markSearchInteraction();
       setSelectedIndex((current) => Math.max(0, current - 1));
     } else if (event.key === "Enter") {
       event.preventDefault();
+      markSearchInteraction();
       void execute(results[selectedIndex]);
     }
   }
 
   return (
-    <div className="global-search-shell">
+    <div className="global-search-shell" ref={shellRef}>
       <label className="global-search">
         <MagnifyingGlass aria-hidden="true" weight="regular" />
         <input
@@ -91,15 +155,19 @@ export function GlobalSearchPanel({ onExecute }: { onExecute?: (item: GlobalSear
           value={query}
           placeholder={home.searchPlaceholder}
           aria-label={home.searchAria}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            if (!open) searchInteractedRef.current = Boolean(query.trim());
+            setOpen(true);
+          }}
           onChange={(event) => {
+            markSearchInteraction();
             setQuery(event.target.value);
             setOpen(true);
             setSelectedIndex(0);
           }}
           onKeyDown={handleKeyDown}
         />
-        <span className="search-key">⌘</span>
+        <span className="search-key search-key--modifier">{modifierKey}</span>
         <span className="search-key">K</span>
       </label>
       {open ? (
@@ -120,7 +188,10 @@ export function GlobalSearchPanel({ onExecute }: { onExecute?: (item: GlobalSear
                       type="button"
                       role="option"
                       aria-selected={index === selectedIndex}
-                      onClick={() => setSelectedIndex(index)}
+                      onClick={() => {
+                        markSearchInteraction();
+                        setSelectedIndex(index);
+                      }}
                       onDoubleClick={() => void execute(item)}
                     >
                       <span className="global-search-result-row__icon"><SearchItemIcon item={item} /></span>
