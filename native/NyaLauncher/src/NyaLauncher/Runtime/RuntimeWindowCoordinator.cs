@@ -8,13 +8,14 @@ public sealed class RuntimeWindowCoordinator(
     RuntimeWindowStyler styler) : IRuntimeWindowCoordinator
 {
     private static readonly ScreenSize RuntimeSize = new(220, 220);
-    private readonly HashSet<nint> _positionedWindows = [];
+    private readonly Dictionary<nint, long> _lastPositionedSequence = [];
 
     public bool TryPosition(LaunchSession session)
     {
         if (
             session.RuntimeWindow == nint.Zero ||
-            _positionedWindows.Contains(session.RuntimeWindow) ||
+            _lastPositionedSequence.GetValueOrDefault(session.RuntimeWindow) ==
+                session.Sequence ||
             !native.TryGetMonitorWorkArea(session.Cursor, out var workArea) ||
             !styler.TryApply(session.RuntimeWindow))
         {
@@ -38,7 +39,7 @@ public sealed class RuntimeWindowCoordinator(
 
         if (positioned)
         {
-            _positionedWindows.Add(session.RuntimeWindow);
+            _lastPositionedSequence[session.RuntimeWindow] = session.Sequence;
         }
 
         return positioned;

@@ -83,6 +83,26 @@ public sealed class LauncherApplicationContextTests
     }
 
     [Fact]
+    public void KeyUpBeforeDetectionCancelsTheWatchSoTheNextPressCanArm()
+    {
+        var fixture = new ApplicationFixture();
+        using var context = fixture.CreateContext();
+        fixture.Keyboard.Emit(KeyDown(timestamp: 100));
+        fixture.Keyboard.Emit(new KeyboardSample(
+            NativeConstants.VkSpace,
+            IsKeyDown: false,
+            IsKeyUp: true,
+            AltDown: true,
+            TimestampTicks: 110));
+
+        fixture.Keyboard.Emit(KeyDown(timestamp: 120));
+
+        Assert.Equal([1L], fixture.Watcher.CancelledSequences);
+        Assert.Equal(2, fixture.Watcher.Arms.Count);
+        Assert.Equal(2, fixture.Watcher.Arms[1].Sequence);
+    }
+
+    [Fact]
     public void TimeoutReturnsTheStateMachineToIdle()
     {
         var fixture = new ApplicationFixture();
@@ -179,6 +199,7 @@ public sealed class LauncherApplicationContextTests
         public event Action<RuntimeWindowObservation>? RuntimeShown;
         public event Action<long>? TimedOut;
         public List<(int AePid, long Sequence, TimeSpan Timeout)> Arms { get; } = [];
+        public List<long> CancelledSequences { get; } = [];
         public bool IsArmed { get; private set; }
         public bool Arm(int aeProcessId, long sequence, TimeSpan timeout)
         {
@@ -189,6 +210,17 @@ public sealed class LauncherApplicationContextTests
 
             Arms.Add((aeProcessId, sequence, timeout));
             IsArmed = true;
+            return true;
+        }
+        public bool Cancel(long sequence)
+        {
+            if (!IsArmed)
+            {
+                return false;
+            }
+
+            CancelledSequences.Add(sequence);
+            IsArmed = false;
             return true;
         }
         public void EmitShown(RuntimeWindowObservation observation)

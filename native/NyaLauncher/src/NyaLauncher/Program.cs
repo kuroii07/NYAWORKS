@@ -42,8 +42,9 @@ internal static class Program
 
             return 0;
         }
-        catch
+        catch (Exception error)
         {
+            LauncherFailureReporter.TryWrite(error);
             return 1;
         }
     }

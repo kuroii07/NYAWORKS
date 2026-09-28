@@ -70,9 +70,30 @@ public sealed class RuntimeWindowCoordinatorTests
         Assert.Equal(2, native.PositionCalls.Count);
     }
 
-    private static LaunchSession CreateSession(nint hwnd, ScreenPoint cursor) =>
+    [Fact]
+    public void AllowsAReusedRuntimeHandleInANewLaunchSequence()
+    {
+        var native = new WindowMutationNativeApi
+        {
+            WorkArea = new ScreenRect(0, 0, 1920, 1040)
+        };
+        var coordinator = new RuntimeWindowCoordinator(
+            native,
+            new RuntimeWindowStyler(native));
+
+        Assert.True(coordinator.TryPosition(
+            CreateSession((nint)50, new ScreenPoint(960, 520), sequence: 1)));
+        Assert.True(coordinator.TryPosition(
+            CreateSession((nint)50, new ScreenPoint(700, 400), sequence: 2)));
+        Assert.Equal(4, native.PositionCalls.Count);
+    }
+
+    private static LaunchSession CreateSession(
+        nint hwnd,
+        ScreenPoint cursor,
+        long sequence = 1) =>
         new(
-            Sequence: 1,
+            Sequence: sequence,
             AeProcessId: 42,
             Cursor: cursor,
             KeyDownTicks: 100,

@@ -95,6 +95,20 @@ public sealed class RuntimeWindowWatcherTests
         Assert.True(time.AllTimersDisposed);
     }
 
+    [Fact]
+    public void CancelStopsTheCurrentWatchAndAllowsTheNextSequence()
+    {
+        var native = new HookWatcherNativeApi();
+        var time = new ManualTimeProvider();
+        using var watcher = CreateWatcher(native, time);
+        Assert.True(watcher.Arm(100, 1, TimeSpan.FromMilliseconds(1500)));
+
+        Assert.True(watcher.Cancel(sequence: 1));
+        Assert.False(watcher.IsArmed);
+        Assert.True(watcher.Arm(100, 2, TimeSpan.FromMilliseconds(1500)));
+        Assert.Equal(2, time.CreatedTimerCount);
+    }
+
     private static RuntimeWindowWatcher CreateWatcher(
         HookWatcherNativeApi native,
         ManualTimeProvider time,

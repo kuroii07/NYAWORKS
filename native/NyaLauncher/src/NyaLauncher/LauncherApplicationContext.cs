@@ -118,6 +118,7 @@ public sealed class LauncherApplicationContext : ApplicationContext
 
         if (_state.Current is { } session)
         {
+            _watcher.Cancel(session.Sequence);
             WriteTrace(LaunchEvent.Released, session);
         }
     }

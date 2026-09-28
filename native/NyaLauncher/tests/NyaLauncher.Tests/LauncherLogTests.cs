@@ -66,4 +66,35 @@ public sealed class LauncherLogTests
             }
         }
     }
+
+    [Fact]
+    public void StartupFailureReportOmitsTheExceptionMessage()
+    {
+        var directory = Path.Combine(
+            Path.GetTempPath(),
+            $"nyaworks-launcher-failure-{Guid.NewGuid():N}");
+
+        try
+        {
+            var log = new LauncherLog(directory);
+            LauncherFailureReporter.TryWrite(
+                log,
+                new InvalidOperationException(
+                    @"C:\secret-project apiKey=do-not-log action=payload"));
+
+            var content = File.ReadAllText(log.FilePath);
+
+            Assert.Contains("\"event\":\"StartupFailed\"", content);
+            Assert.DoesNotContain("secret-project", content);
+            Assert.DoesNotContain("apiKey", content, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("payload", content);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
 }

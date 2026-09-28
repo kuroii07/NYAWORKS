@@ -92,6 +92,22 @@ public sealed class RuntimeWindowWatcher : IRuntimeWindowWatcher
         }
     }
 
+    public bool Cancel(long sequence)
+    {
+        lock (_sync)
+        {
+            if (_watch is not { } watch || watch.Sequence != sequence)
+            {
+                return false;
+            }
+
+            _watch = null;
+            _pollTimer?.Dispose();
+            _pollTimer = null;
+            return true;
+        }
+    }
+
     public void Dispose()
     {
         nint hook;
