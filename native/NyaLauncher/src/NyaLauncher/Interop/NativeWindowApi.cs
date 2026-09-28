@@ -58,8 +58,11 @@ public sealed class NativeWindowApi : INativeWindowApi
     public nint GetWindowStyle(nint hwnd, int index) =>
         NativeMethods.GetWindowLongPtr(hwnd, index);
 
-    public nint SetWindowStyle(nint hwnd, int index, nint value) =>
-        NativeMethods.SetWindowLongPtr(hwnd, index, value);
+    public nint SetWindowStyle(nint hwnd, int index, nint value)
+    {
+        Marshal.SetLastPInvokeError(0);
+        return NativeMethods.SetWindowLongPtr(hwnd, index, value);
+    }
 
     public bool SetWindowPosition(
         nint hwnd,
