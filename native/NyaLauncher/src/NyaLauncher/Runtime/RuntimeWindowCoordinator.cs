@@ -5,7 +5,7 @@ namespace Nyaworks.NyaLauncher.Runtime;
 
 public sealed class RuntimeWindowCoordinator(
     INativeWindowApi native,
-    RuntimeWindowStyler styler)
+    RuntimeWindowStyler styler) : IRuntimeWindowCoordinator
 {
     private static readonly ScreenSize RuntimeSize = new(220, 220);
     private readonly HashSet<nint> _positionedWindows = [];
