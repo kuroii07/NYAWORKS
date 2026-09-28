@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   NYA_PIE_P0_EXTENSION_ID,
+  NYA_PIE_P1_RUNTIME_TITLE,
   createCepNyaPieLauncher
 } from "../src/nyaPie/p0/cepLauncher";
 
@@ -49,6 +50,21 @@ describe("createCepNyaPieLauncher", () => {
     );
   });
 
+  it("sets the exact P1 runtime title through CEP", () => {
+    const invokeSync = vi.fn();
+    const launcher = createCepNyaPieLauncher({
+      __adobe_cep__: {
+        invokeSync
+      }
+    });
+
+    expect(launcher.setWindowTitle(NYA_PIE_P1_RUNTIME_TITLE)).toBe(true);
+    expect(invokeSync).toHaveBeenCalledWith(
+      "setWindowTitle",
+      NYA_PIE_P1_RUNTIME_TITLE
+    );
+  });
+
   it("reports unsupported CEP-only capabilities honestly", () => {
     const launcher = createCepNyaPieLauncher({});
 
@@ -62,5 +78,6 @@ describe("createCepNyaPieLauncher", () => {
     });
     expect(launcher.openRuntime()).toBe(false);
     expect(launcher.closeRuntime()).toBe(false);
+    expect(launcher.setWindowTitle(NYA_PIE_P1_RUNTIME_TITLE)).toBe(false);
   });
 });

@@ -41,6 +41,7 @@ ReactDOM.createRoot(document.getElementById("nya-pie-root")!).render(
       closeRuntime={() => {
         launcher.closeRuntime();
       }}
+      setWindowTitle={(title) => launcher.setWindowTitle(title)}
       registerFocusedKeyInterest={(keys) =>
         launcher.registerFocusedKeyInterest(keys)
       }

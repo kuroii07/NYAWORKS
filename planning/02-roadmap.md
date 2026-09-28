@@ -117,3 +117,17 @@
 - [x] 根据实测决定进入 NyaLauncher 设计：CEP 保留 Runtime UI 与 Action，C# 仅补 Launcher 能力
 
 验收：只有 AE 任意目标 Panel Focus 下能够完成 Hotkey → Cursor → Runtime → Direction → KeyUp → Host Action → Close → Focus Restore，才判定 P0 成功。浏览器和自动化结果不能替代真实 AE 验收。
+
+## NyaLauncher P1：Windows Runtime 辅助进程
+
+- [x] 建立仓库本地 .NET 10 工具链、WinForms 消息循环工程和单文件发布脚本
+- [x] 建立 `Alt + Space` 透传 Hook、重复 KeyDown 状态保护和 KeyUp 记录
+- [x] 建立 AE 前台进程判断、鼠标屏幕坐标和进程树校验
+- [x] 建立唯一 CEP Runtime 标题、窗口发现、无边框样式和 220 × 220 显示器定位
+- [x] 建立 WinEvent + 25ms 轮询兜底、1500ms 超时、单实例和本地脱敏日志
+- [x] 完成纯逻辑测试、真实 Windows 测试窗口集成和 self-contained `win-x64` 构建
+- [ ] 在 Composition / Timeline / Project / Effect Controls / NYAWORKS Panel 中完成真实 AE 验收
+- [ ] 完成 100%–200% DPI、双显示器、混合 DPI、负坐标副屏和屏幕边缘验收
+- [ ] 完成连续呼出、AE 最小化、AE 非前台、焦点恢复、标题栏闪烁和延迟验收
+
+边界：NyaLauncher 仅补 Windows Runtime 能力，不包含 Action Registry、Action Runner、AE 工具逻辑、Pie UI、Profile、设置、输入模拟、本地网络服务或 DLL 注入。完整步骤见 `docs/testing/nya-launcher-p1-ae-test.md`。

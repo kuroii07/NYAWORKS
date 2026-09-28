@@ -9,6 +9,13 @@ for (const file of REQUIRED_DIST_FILES) {
   await access(file, constants.R_OK);
 }
 
+for (const entry of ["dist/index.html", "dist/nya-pie-runtime.html"]) {
+  const html = await readFile(entry, "utf8");
+  if (!html.includes('<script type="module"')) {
+    throw new Error(`Built CEP entry is missing its module script: ${entry}`);
+  }
+}
+
 const builtAssets = await readdir("dist/assets");
 
 if (!builtAssets.some((file) => /^nyaworks-home-banner-.*\.png$/.test(file))) {

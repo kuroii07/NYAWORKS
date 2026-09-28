@@ -10,7 +10,7 @@
 
 版本：`0.1.0-alpha.1`
 
-NYAWORKS 已完成第一阶段 CEP 工程壳层、五套暗色主题、五语言切换、首页视觉骨架和设置中心基础。主题、语言与常规设置均可即时生效并保留用户选择；常规设置现已包含界面亮度、安全重置、新功能提示和 GitHub Release 更新检查。首页全局搜索与 Banner 工具工作区已完成浏览器 fixture 实现，锚点和对齐九宫格已接入真实 AE Host 调用；全局搜索、资源动作和空间工具仍需分别进行真实 AE 宿主验收。Nya Pie 已进入 P0 技术验证阶段，当前只包含统一 Action Registry 基础和第二 Modeless CEP Runtime 探针，不代表正式饼菜单功能已经完成。Windows CEP 开发模式已支持固定扩展目录、自动 watch 构建和面板内刷新。
+NYAWORKS 已完成第一阶段 CEP 工程壳层、五套暗色主题、五语言切换、首页视觉骨架和设置中心基础。主题、语言与常规设置均可即时生效并保留用户选择；常规设置现已包含界面亮度、安全重置、新功能提示和 GitHub Release 更新检查。首页全局搜索与 Banner 工具工作区已完成浏览器 fixture 实现，锚点和对齐九宫格已接入真实 AE Host 调用；全局搜索、资源动作和空间工具仍需分别进行真实 AE 宿主验收。Nya Pie 已完成 CEP P0 调用链验证，并生成 Windows `NyaLauncher` P1 候选版，用于补齐 AE 前台判断、鼠标坐标、无边框窗口和显示器定位；正式 Pie UI 与 Pie Editor 尚未开始。Windows CEP 开发模式已支持固定扩展目录、自动 watch 构建和面板内刷新。
 
 ## 主题
 
@@ -39,6 +39,7 @@ NYAWORKS 已完成第一阶段 CEP 工程壳层、五套暗色主题、五语言
 - [x] M3.1：CEP 开发模式（固定扩展目录、junction、watch 构建和开发面板刷新）
 - [ ] M4：功能页和 AE 宿主能力（锚点、对齐 Host 调用已完成，需在 AE 中验收；其他宿主动作待实现）
 - [ ] P0：Nya Pie Runtime 调用链（第二 Modeless Extension、AE 快捷键直接呼出、KeyUp 执行、关闭和焦点返回已验证；鼠标位置、无边框窗口定位与环境矩阵待后续验证）
+- [ ] P1：NyaLauncher Windows 候选版（原生自动测试、测试窗口集成和构建已完成；真实 AE 五面板、DPI、双屏、边缘、焦点和延迟验收待执行）
 
 ## 本地 CEP 开发模式
 
@@ -92,6 +93,8 @@ npm run dev:cep
 - AI 设置页已检查五套主题、五种语言、中/小密度、最小宽度、长连接名和长模型名；页面允许纵向滚动，不产生横向溢出。
 - Nya Pie P0 新增第二 CEP Modeless Extension `com.kuroii.nyaworks.nyapie.p0`，只显示 A/B/C/D 四向探针，并通过共享 Action Runner 调用 Host 测试动作。它用于验证快捷键、KeyUp、鼠标坐标、浮窗定位和焦点恢复，不是正式 Nya Pie UI。
 - P0 自动化只能验证 Action Registry、方向判断、Runtime 状态机、manifest、多入口构建和 Host Bridge。真实 AE 验收步骤见 [`docs/testing/nya-pie-p0-ae-test.md`](docs/testing/nya-pie-p0-ae-test.md)。
+- NyaLauncher P1 使用隐藏的 Windows C# 进程观察 `Alt + Space`，只负责 AE 前台判断、鼠标坐标、CEP Runtime HWND 校验、去边框、定位和诊断日志；不承载 Pie UI、Action Registry 或 AE 工具逻辑。
+- P1 候选程序通过 `scripts/build-nya-launcher.ps1` 生成到被 Git 忽略的 `outputs/nya-launcher-p1/NyaLauncher.exe`。自动测试与真实 AE 验收边界见 [`docs/testing/nya-launcher-p1-ae-test.md`](docs/testing/nya-launcher-p1-ae-test.md)。
 
 ## 更新与新功能提示
 

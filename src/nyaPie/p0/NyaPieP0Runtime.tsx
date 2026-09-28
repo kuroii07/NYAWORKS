@@ -1,11 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ActionResult } from "../../actions/types";
 import {
   createNyaPieP0Controller,
   type NyaPieP0State
 } from "./runtimeController";
 import type { FourWayDirection } from "./direction";
-import type { CepKeyInterest } from "./cepLauncher";
+import {
+  NYA_PIE_P1_RUNTIME_TITLE,
+  type CepKeyInterest
+} from "./cepLauncher";
 
 const ACTION_IDS: Record<FourWayDirection, string> = {
   top: "p0.direction.top",
@@ -32,15 +35,18 @@ const INITIAL_STATE: NyaPieP0State = {
 interface NyaPieP0RuntimeProps {
   runAction(actionId: string): Promise<ActionResult>;
   closeRuntime(): void;
+  setWindowTitle(title: string): boolean;
   registerFocusedKeyInterest(keys: readonly CepKeyInterest[]): boolean;
 }
 
 export function NyaPieP0Runtime({
   runAction,
   closeRuntime,
+  setWindowTitle,
   registerFocusedKeyInterest
 }: NyaPieP0RuntimeProps) {
   const [state, setState] = useState<NyaPieP0State>(INITIAL_STATE);
+  const titleApplied = useRef(false);
   const controller = useMemo(
     () =>
       createNyaPieP0Controller({
@@ -54,6 +60,10 @@ export function NyaPieP0Runtime({
   );
 
   useEffect(() => {
+    if (!titleApplied.current) {
+      titleApplied.current = true;
+      setWindowTitle(NYA_PIE_P1_RUNTIME_TITLE);
+    }
     registerFocusedKeyInterest([
       { keyCode: 27 },
       { keyCode: 123 },
@@ -98,7 +108,7 @@ export function NyaPieP0Runtime({
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [controller, registerFocusedKeyInterest]);
+  }, [controller, registerFocusedKeyInterest, setWindowTitle]);
 
   return (
     <main

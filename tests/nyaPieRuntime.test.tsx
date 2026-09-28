@@ -3,6 +3,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { NYA_PIE_P1_RUNTIME_TITLE } from "../src/nyaPie/p0/cepLauncher";
 import { NyaPieP0Runtime } from "../src/nyaPie/p0/NyaPieP0Runtime";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -17,6 +18,7 @@ async function renderRuntime() {
   }));
   const closeRuntime = vi.fn();
   const registerFocusedKeyInterest = vi.fn();
+  const setWindowTitle = vi.fn();
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -25,6 +27,7 @@ async function renderRuntime() {
       <NyaPieP0Runtime
         runAction={runAction}
         closeRuntime={closeRuntime}
+        setWindowTitle={setWindowTitle}
         registerFocusedKeyInterest={registerFocusedKeyInterest}
       />
     );
@@ -33,6 +36,7 @@ async function renderRuntime() {
     node: container,
     runAction,
     closeRuntime,
+    setWindowTitle,
     registerFocusedKeyInterest
   };
 }
@@ -45,6 +49,13 @@ afterEach(() => {
 });
 
 describe("NyaPieP0Runtime", () => {
+  it("applies the exact P1 runtime marker once on startup", async () => {
+    const { setWindowTitle } = await renderRuntime();
+
+    expect(setWindowTitle).toHaveBeenCalledTimes(1);
+    expect(setWindowTitle).toHaveBeenCalledWith(NYA_PIE_P1_RUNTIME_TITLE);
+  });
+
   it("registers plain F12 because the P0 shortcut releases plain F12", async () => {
     const { registerFocusedKeyInterest } = await renderRuntime();
 

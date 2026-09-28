@@ -1,4 +1,5 @@
 export const NYA_PIE_P0_EXTENSION_ID = "com.kuroii.nyaworks.nyapie.p0";
+export const NYA_PIE_P1_RUNTIME_TITLE = "NYAWORKS_NYA_PIE_RUNTIME_P1";
 
 export interface CepKeyInterest {
   keyCode: number;
@@ -12,6 +13,7 @@ interface CepRuntime {
   requestOpenExtension?(extensionId: string, params: string): void;
   closeExtension?(): void;
   registerKeyEventsInterest?(interest: string): boolean;
+  invokeSync?(command: string, ...args: string[]): unknown;
 }
 
 export interface NyaPieCepEnvironment {
@@ -31,6 +33,7 @@ export interface NyaPieCepLauncher {
   capabilities: NyaPieLauncherCapabilities;
   openRuntime(): boolean;
   closeRuntime(): boolean;
+  setWindowTitle(title: string): boolean;
   registerFocusedKeyInterest(keys: readonly CepKeyInterest[]): boolean;
 }
 
@@ -66,6 +69,11 @@ export function createCepNyaPieLauncher(
     closeRuntime() {
       if (!runtime?.closeExtension) return false;
       runtime.closeExtension();
+      return true;
+    },
+    setWindowTitle(title) {
+      if (!runtime?.invokeSync) return false;
+      runtime.invokeSync("setWindowTitle", title);
       return true;
     },
     registerFocusedKeyInterest(keys) {
