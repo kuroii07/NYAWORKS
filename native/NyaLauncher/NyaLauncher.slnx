@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/NyaLauncher/NyaLauncher.csproj" />
+  <Project Path="tests/NyaLauncher.Tests/NyaLauncher.Tests.csproj" />
+</Solution>

@@ -15,3 +15,8 @@ outputs/*
 work/*
 !work/.gitkeep
 .worktrees/
+.dotnet/
+.nuget/
+native/NyaLauncher/**/bin/
+native/NyaLauncher/**/obj/
+outputs/nya-launcher-p1/
