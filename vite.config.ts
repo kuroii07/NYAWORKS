@@ -25,6 +25,9 @@ export default defineConfig({
     outDir: cepDevOutput || "dist",
     assetsDir: "assets",
     emptyOutDir: true,
-    sourcemap: false
+    sourcemap: false,
+    rollupOptions: {
+      input: ["index.html", "nya-pie-runtime.html"]
+    }
   }
 });

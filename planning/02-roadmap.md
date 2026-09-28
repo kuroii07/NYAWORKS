@@ -101,3 +101,19 @@
 - [ ] 锚点真实 AE 验收：2D、普通 3D、父级、旋转/缩放、关键帧、表达式和锁定图层场景
 - [x] 对齐九宫格 Host Bridge：默认合成对齐，Alt/Option 或 Shift 点击切换选区对齐，包含 6 个图层对齐和 3 个文字段落对齐
 - [ ] 对齐九宫格真实 AE 验收：2D/3D、父级、旋转/缩放、锁定、关键帧、表达式与文字框场景
+
+## Nya Pie P0：Runtime 技术验证
+
+- [x] 编写 Nya Pie P0 Technical Spec
+- [x] 建立渐进式 Action Registry、Context Engine 与 Action Runner
+- [x] 建立四方向 Runtime 状态机与 Host 测试 Action
+- [x] 在同一 CEP Bundle 中声明第二个 Modeless Extension
+- [x] 建立多入口 Vite 构建与 dist Smoke 合约
+- [x] 建立真实 AE 五面板焦点与 Windows 环境测试记录
+- [x] 真实 AE：Composition / Timeline / Project / Effect Controls / NYAWORKS Panel 均可通过 AE 快捷键直接呼出
+- [x] 真实 AE：`Alt + Space` KeyUp、Host Action、Runtime 关闭与 AE 焦点返回
+- [ ] 真实 AE：全局鼠标位置、鼠标附近显示、无边框窗口定位
+- [ ] Windows：100% / 高 DPI、双显示器、屏幕边缘、快速连续呼出、AE 非前台
+- [x] 根据实测决定进入 NyaLauncher 设计：CEP 保留 Runtime UI 与 Action，C# 仅补 Launcher 能力
+
+验收：只有 AE 任意目标 Panel Focus 下能够完成 Hotkey → Cursor → Runtime → Direction → KeyUp → Host Action → Close → Focus Restore，才判定 P0 成功。浏览器和自动化结果不能替代真实 AE 验收。

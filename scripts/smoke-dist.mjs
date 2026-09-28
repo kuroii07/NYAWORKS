@@ -1,14 +1,11 @@
 import { access, readFile, readdir } from "node:fs/promises";
 import { constants } from "node:fs";
+import {
+  REQUIRED_DIST_FILES,
+  REQUIRED_EXTENSION_IDS
+} from "./dist-contract.mjs";
 
-const requiredFiles = [
-  "dist/index.html",
-  "dist/CSXS/manifest.xml",
-  "dist/host/index.jsx",
-  "dist/assets/brand/nyaworks-cat.png"
-];
-
-for (const file of requiredFiles) {
+for (const file of REQUIRED_DIST_FILES) {
   await access(file, constants.R_OK);
 }
 
@@ -20,8 +17,10 @@ if (!builtAssets.some((file) => /^nyaworks-home-banner-.*\.png$/.test(file))) {
 
 const manifest = await readFile("dist/CSXS/manifest.xml", "utf8");
 
-if (!manifest.includes("com.kuroii.nyaworks.panel")) {
-  throw new Error("CEP manifest is missing the NYAWORKS panel id.");
+for (const extensionId of REQUIRED_EXTENSION_IDS) {
+  if (!manifest.includes(extensionId)) {
+    throw new Error(`CEP manifest is missing extension id: ${extensionId}`);
+  }
 }
 
 if (
@@ -32,5 +31,5 @@ if (
 }
 
 console.log(
-  `Smoke check passed (${requiredFiles.length + 1} required files/assets).`
+  `Smoke check passed (${REQUIRED_DIST_FILES.length + 1} required files/assets).`
 );

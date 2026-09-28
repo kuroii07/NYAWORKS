@@ -1333,6 +1333,45 @@
     }
   }
 
+  function runP0TestAction(encodedPayload) {
+    var payload;
+    var activeItem;
+    var projectName = null;
+
+    try {
+      payload = JSON.parse(decodeURIComponent(encodedPayload || ""));
+      if (!payload || typeof payload.actionId !== "string") {
+        return JSON.stringify({
+          ok: false,
+          reason: "invalid-payload",
+          detail: "Missing actionId"
+        });
+      }
+
+      activeItem = app.project ? app.project.activeItem : null;
+      if (app.project && app.project.file) {
+        projectName = app.project.file.name;
+      }
+
+      return JSON.stringify({
+        ok: true,
+        message: "P0 action received",
+        data: {
+          actionId: payload.actionId,
+          aeVersion: app.version,
+          projectName: projectName,
+          activeItemName: activeItem && activeItem.name ? activeItem.name : null
+        }
+      });
+    } catch (error) {
+      return JSON.stringify({
+        ok: false,
+        reason: "host-error",
+        detail: error && error.toString ? error.toString() : "unknown"
+      });
+    }
+  }
+
   $.global.NYAWORKS = {
     version: "0.1.0-alpha.1-alignment-debug-1",
     getHostInfo: getHostInfo,
@@ -1347,5 +1386,6 @@
     ,addSearchEffect: addSearchEffect
     ,setAnchorPoint: setAnchorPoint
     ,setAlignment: setAlignment
+    ,runP0TestAction: runP0TestAction
   };
 }());
