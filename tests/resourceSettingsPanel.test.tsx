@@ -121,13 +121,11 @@ describe("resource settings panel", () => {
     expect(markup).toContain('aria-label="资源类型"');
   });
 
-  it("shows source type, status, and indexed item count in each source summary", () => {
+  it("keeps source summaries focused on the source name", () => {
     const markup = renderPopulatedPanel();
 
     expect(markup).toContain("常用脚本");
-    expect(markup).toContain("脚本");
-    expect(markup).toContain("可用");
-    expect(markup).toContain("资源数量 1");
+    expect(markup).not.toContain("resource-source-row__meta");
   });
 
   it("shows clear empty states instead of blank source sections", () => {

@@ -133,14 +133,17 @@ describe("resource settings source contents", () => {
       sourceButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    const resourceButton = container.querySelector<HTMLButtonElement>(
+    const resourceRow = container.querySelector<HTMLElement>(
       `[data-resource-id="${resource.id}"]`
     );
-    expect(resourceButton?.textContent).toContain("Loop");
-    expect(resourceButton?.textContent).toContain("Animation/Loop.jsx");
+    expect(resourceRow?.tagName).toBe("DIV");
+    expect(resourceRow?.getAttribute("title")).toBeNull();
+    expect(resourceRow?.textContent).toContain("Loop");
+    expect(resourceRow?.textContent).not.toContain("Animation/Loop.jsx");
+    expect(container.querySelector(".resource-source-row__details")).toBeNull();
 
     await act(async () => {
-      resourceButton?.dispatchEvent(
+      resourceRow?.dispatchEvent(
         new MouseEvent("dblclick", { bubbles: true })
       );
     });

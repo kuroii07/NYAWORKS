@@ -302,7 +302,6 @@ export interface UiCopy {
     revealSource: string;
     refreshSource: string;
     hostActionUnavailable: string;
-    doubleClickToUse: string;
     useSuccess: string;
     useFailed: string;
     noSelectedLayer: string;

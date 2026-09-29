@@ -23,7 +23,6 @@ import {
 } from "../components/SettingSelect";
 import { TextInputDialog } from "../components/TextInputDialog";
 import { useLanguage } from "../i18n/LanguageProvider";
-import type { LanguageId } from "../i18n/languages";
 import { useToast } from "../notifications/ToastProvider";
 import { useResources } from "../resources/ResourceProvider";
 import type {
@@ -38,23 +37,6 @@ type SourceDialog =
   | { mode: "edit"; source: ResourceSource }
   | null;
 
-function formatLastScannedAt(
-  value: string | null,
-  languageId: LanguageId,
-  fallback: string
-): string {
-  if (!value) {
-    return fallback;
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return fallback;
-  }
-
-  return date.toLocaleString(languageId);
-}
-
 function ResourceTypeIcon({ type }: { type: ResourceType }) {
   if (type === "preset") {
     return <SlidersHorizontal aria-hidden="true" weight="regular" />;
@@ -68,7 +50,7 @@ function ResourceTypeIcon({ type }: { type: ResourceType }) {
 }
 
 export function ResourceSettingsPanel() {
-  const { copy, languageId } = useLanguage();
+  const { copy } = useLanguage();
   const { toast } = useToast();
   const labels = copy.settings.resources;
   const {
@@ -272,11 +254,6 @@ export function ResourceSettingsPanel() {
   function renderSource(source: ResourceSource) {
     const expanded = expandedSourceIds.includes(source.id);
     const sourceResources = resourcesBySource.get(source.id) ?? [];
-    const itemCount = sourceResources.length;
-    const statusLabel = source.enabled
-      ? labels.status[source.status]
-      : labels.sourceDisabled;
-    const typeLabel = copy.resources.typeLabels[source.resourceType];
 
     return (
       <article
@@ -297,21 +274,7 @@ export function ResourceSettingsPanel() {
           ) : (
             <CaretRight aria-hidden="true" weight="bold" />
           )}
-          <span className="resource-source-row__summary-copy">
-            <span className="resource-source-row__name">{source.name}</span>
-            <span className="resource-source-row__meta">
-              <span>{typeLabel}</span>
-              <span
-                className="resource-source-row__status"
-                data-status={source.enabled ? source.status : "disabled"}
-              >
-                {statusLabel}
-              </span>
-              <span aria-label={`${labels.sourceCount}: ${itemCount}`}>
-                {labels.sourceCount} {itemCount}
-              </span>
-            </span>
-          </span>
+          <span className="resource-source-row__name">{source.name}</span>
         </button>
         <div className="resource-source-row__actions">
           <button
@@ -336,7 +299,7 @@ export function ResourceSettingsPanel() {
           <div className="resource-source-row__expanded">
             <div
               className="resource-source-row__resources"
-              aria-label={`${source.name} · ${labels.sourceCount} ${itemCount}`}
+              aria-label={source.name}
             >
               {sourceResources.length > 0 ? (
                 sourceResources.map((resource) => {
@@ -345,32 +308,31 @@ export function ResourceSettingsPanel() {
                     hostStatus !== "connected" || !source.enabled || isUsing;
 
                   return (
-                    <button
+                    <div
                       className="resource-source-item"
                       data-resource-id={resource.id}
                       data-resource-type={resource.resourceType}
                       key={resource.id}
-                      type="button"
-                      disabled={disabled}
-                      title={
-                        hostStatus === "connected"
-                          ? copy.resources.doubleClickToUse
-                          : copy.resources.hostActionUnavailable
-                      }
-                      onDoubleClick={() => void useIndexedResource(resource)}
+                      role="button"
+                      tabIndex={disabled ? -1 : 0}
+                      aria-disabled={disabled}
+                      onDoubleClick={() => {
+                        if (!disabled) {
+                          void useIndexedResource(resource);
+                        }
+                      }}
                       onKeyDown={(event) => {
-                        if (event.key === "Enter") {
+                        if (!disabled && event.key === "Enter") {
                           event.preventDefault();
                           void useIndexedResource(resource);
                         }
                       }}
                     >
                       <ResourceTypeIcon type={resource.resourceType} />
-                      <span className="resource-source-item__copy">
-                        <strong>{resource.name}</strong>
-                        <span>{resource.relativePath}</span>
-                      </span>
-                    </button>
+                      <strong className="resource-source-item__name">
+                        {resource.name}
+                      </strong>
+                    </div>
                   );
                 })
               ) : (
@@ -379,37 +341,6 @@ export function ResourceSettingsPanel() {
                 </p>
               )}
             </div>
-            <dl className="resource-source-row__details">
-              <div>
-                <dt>{labels.sourceStatus}</dt>
-                <dd
-                  className="resource-source-row__status"
-                  data-status={source.status}
-                >
-                  {statusLabel}
-                </dd>
-              </div>
-              <div>
-                <dt>{labels.lastScanned}</dt>
-                <dd>
-                  {formatLastScannedAt(
-                    source.lastScannedAt,
-                    languageId,
-                    labels.neverScanned
-                  )}
-                </dd>
-              </div>
-              {source.hostVersion ? (
-                <div>
-                  <dt>{labels.sourceVersion}</dt>
-                  <dd>{source.hostVersion}</dd>
-                </div>
-              ) : null}
-              <div className="resource-source-row__details-path">
-                <dt>{labels.sourcePath}</dt>
-                <dd title={source.path}>{source.path}</dd>
-              </div>
-            </dl>
           </div>
         ) : null}
       </article>
