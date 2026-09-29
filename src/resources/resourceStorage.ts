@@ -10,6 +10,8 @@ import {
   type ResourceSource,
   type ResourceSourceState
 } from "./types";
+import { decodeResourceLabel } from "./resourceOperations";
+import { displayResourceName } from "./resourceOperations";
 
 export const RESOURCE_SETTINGS_STORAGE_KEY = "nyaworks.resources.v1";
 
@@ -91,11 +93,13 @@ function normalizeIndexedResource(value: unknown): IndexedResource | null {
 
   const id = readString(value.id);
   const sourceId = readString(value.sourceId);
-  const name = readString(value.name);
   const relativePath =
     typeof value.relativePath === "string"
       ? normalizeResourcePath(value.relativePath.trim())
       : "";
+  const name = typeof value.name === "string"
+    ? decodeResourceLabel(value.name.trim())
+    : null;
 
   if (!id || !sourceId || !name || !relativePath || !isResourceType(value.resourceType)) {
     return null;
@@ -105,7 +109,9 @@ function normalizeIndexedResource(value: unknown): IndexedResource | null {
     id,
     sourceId,
     resourceType: value.resourceType,
-    name,
+    name: name === displayResourceName(relativePath)
+      ? name
+      : displayResourceName(relativePath),
     relativePath,
     modifiedAt: readDate(value.modifiedAt),
     favorite: value.favorite === true,

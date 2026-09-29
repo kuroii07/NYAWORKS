@@ -55,7 +55,7 @@ function renderPage(): string {
             id: "custom:tools:animation/loop.jsx",
             sourceId: "custom:tools",
             resourceType: "script",
-            name: "loop",
+            name: "Loop.jsx",
             relativePath: "Animation/Loop.jsx",
             modifiedAt: null,
             favorite: false,
@@ -66,7 +66,7 @@ function renderPage(): string {
             id: "custom:presets:shapes/bounce.ffx",
             sourceId: "custom:presets",
             resourceType: "preset",
-            name: "bounce",
+            name: "Bounce.ffx",
             relativePath: "Shapes/Bounce.ffx",
             modifiedAt: null,
             favorite: false,
@@ -105,18 +105,34 @@ describe("local resources page", () => {
     expect(markup).toContain('type="search"');
     expect(markup).toContain("全部类型");
     expect(markup).toContain("资源来源");
-    expect(markup).toContain("资源索引");
+    expect(markup).toContain("资源总数");
     expect(markup).toContain("Animation");
   });
 
-  it("keeps scripts as rows, uses cards only for preview-capable resources, and disables host actions", () => {
+  it("renders compact resource rows without path or legacy actions", () => {
     const markup = renderPage();
 
     expect(markup).toContain('class="resource-list-row"');
-    expect(markup).toContain('class="resource-preview-card"');
-    expect(markup).toContain('src="fixture://bounce-cover.png"');
-    expect(markup).not.toContain("<video");
-    expect(markup).toContain("disabled");
-    expect(markup).toContain("需在 After Effects 中使用");
+    expect(markup).not.toContain('class="resource-preview-card"');
+    expect(markup).not.toContain("Animation / Loop.jsx");
+    expect(markup).not.toContain("复制路径");
+    expect(markup).not.toContain("在文件夹中显示");
+    expect(markup).not.toContain("刷新来源");
+    expect(markup).toContain("Loop.jsx");
+    expect(markup).toContain("Bounce.ffx");
+    expect(markup).toContain("收藏");
   });
+
+  it("offers favorites as a shared source filter", () => {
+    const markup = renderPage();
+    expect(markup).toContain("收藏");
+    expect(markup).toContain("resource-favorites-toggle");
+  });
+
+  it("keeps the title count and each resource favorite control in their row layout", () => {
+    const markup = renderPage();
+    expect(markup).toContain('class="resources-page__count"');
+    expect(markup).toContain('class="resource-list-row__actions"');
+  });
+
 });

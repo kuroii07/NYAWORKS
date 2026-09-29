@@ -12,6 +12,7 @@ import { useActionService } from "../actions/ActionServiceProvider";
 import { coreActionRegistry } from "../actions/registry";
 import { buildActionSearchItems } from "./actionSearchAdapter";
 import { useResources } from "../resources/ResourceProvider";
+import { displayResourcePath } from "../resources/resourceOperations";
 import {
   globalSearchHostBridge,
   type GlobalSearchActionResult,
@@ -87,8 +88,8 @@ export function GlobalSearchProvider({
             ? "expression"
             : "script",
         name: resource.name,
-        aliases: [resource.relativePath],
-        searchableText: `${resource.name} ${resource.relativePath}`,
+        aliases: [resource.relativePath, displayResourcePath(resource.relativePath)],
+        searchableText: `${resource.name} ${displayResourcePath(resource.relativePath)}`,
         iconKey: iconKeyForResource(resource.resourceType),
         action: actionForResource(resource.resourceType),
         sourceId: resource.sourceId,
@@ -127,7 +128,11 @@ export function GlobalSearchProvider({
       const resource = resources.find((candidate) => candidate.id === item.resourceId);
       if (!resource) return { ok: false, reason: "invalid-resource" };
       const source = sources.find((candidate) => candidate.id === resource.sourceId);
-      return bridge.executeGlobalSearchAction({ action: "run-script", path: `${source?.path ?? resource.sourceId}/${resource.relativePath}` });
+      return bridge.executeGlobalSearchAction({
+        action: "run-script",
+        path: `${source?.path ?? resource.sourceId}/${resource.relativePath}`,
+        ...(resource.resourceType === "panel" ? { resourceType: "panel" as const } : {})
+      });
     }
     if (item.action === "apply-preset") {
       const resource = resources.find((candidate) => candidate.id === item.resourceId);

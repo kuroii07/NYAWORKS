@@ -39,10 +39,30 @@ function extensionOf(relativePath: string): string | null {
   return match ? match[1].toLowerCase() : null;
 }
 
-function displayNameOf(relativePath: string): string {
-  const segments = relativePath.split("/");
-  const filename = segments[segments.length - 1] ?? relativePath;
-  return filename.replace(/\.[^.]+$/, "");
+function decodeUriSegment(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    // A literal '%' or a malformed escape is still a valid filename. Keep it
+    // readable instead of allowing one bad entry to break the resource index.
+    return value;
+  }
+}
+
+export function decodeResourceLabel(value: string): string {
+  return decodeUriSegment(value);
+}
+
+export function displayResourcePath(relativePath: string): string {
+  return normalizeResourcePath(relativePath)
+    .split("/")
+    .map(decodeUriSegment)
+    .join("/");
+}
+
+export function displayResourceName(relativePath: string): string {
+  const segments = displayResourcePath(relativePath).split("/");
+  return segments[segments.length - 1] ?? relativePath;
 }
 
 function scanErrorFor(status: ResourceSourceStatus): ResourceSource["lastError"] {
@@ -89,7 +109,7 @@ export function createCustomResourceSource(
 export function updateCustomResourceSource(
   settings: ResourceSettings,
   sourceId: string,
-  patch: Partial<Pick<ResourceSource, "name" | "path" | "enabled">>
+  patch: Partial<Pick<ResourceSource, "name" | "path" | "resourceType" | "enabled">>
 ): ResourceSettings {
   return {
     ...settings,
@@ -105,6 +125,10 @@ export function updateCustomResourceSource(
           patch.path === undefined
             ? source.path
             : normalizeResourcePath(patch.path.trim()) || source.path,
+        resourceType:
+          patch.resourceType === undefined || !isCustomResourceType(patch.resourceType)
+            ? source.resourceType
+            : patch.resourceType,
         enabled: patch.enabled ?? source.enabled
       };
     })
@@ -160,7 +184,7 @@ export function normalizeResourceScanResult(
       id,
       sourceId: source.id,
       resourceType: source.resourceType,
-      name: displayNameOf(relativePath),
+      name: displayResourceName(relativePath),
       relativePath,
       modifiedAt: entry.modifiedAt,
       favorite: false,
@@ -267,6 +291,9 @@ export function filterIndexedResources(
     const matchesQuery =
       !normalizedQuery ||
       resource.name.toLocaleLowerCase().includes(normalizedQuery) ||
+      displayResourcePath(resource.relativePath)
+        .toLocaleLowerCase()
+        .includes(normalizedQuery) ||
       resource.relativePath.toLocaleLowerCase().includes(normalizedQuery);
 
     return (
@@ -283,7 +310,7 @@ export function buildResourceFolderTree(
   const roots: ResourceFolderNode[] = [];
 
   for (const resource of resources) {
-    const folders = resource.relativePath.split("/").slice(0, -1);
+    const folders = normalizeResourcePath(resource.relativePath).split("/").slice(0, -1);
     let nodes = roots;
     let currentPath = "";
 
@@ -293,7 +320,12 @@ export function buildResourceFolderTree(
       let node = nodes.find((candidate) => candidate.path === key);
 
       if (!node) {
-        node = { name: folder, path: key, children: [], resourceIds: [] };
+        node = {
+          name: decodeUriSegment(folder),
+          path: key,
+          children: [],
+          resourceIds: []
+        };
         nodes.push(node);
       }
 

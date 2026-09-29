@@ -72,4 +72,36 @@ describe("resource host actions", () => {
       "end"
     ]);
   });
+
+  it("loads expression JSON files using either supported field", async () => {
+    const property = { canSetExpression: true, expression: "" };
+    const app = {
+      project: { activeItem: { selectedProperties: [property] } },
+      beginUndoGroup() {},
+      endUndoGroup() {}
+    };
+    const contents = {
+      "C:/Expressions/Opacity.json": JSON.stringify({ expression: "value / 100" }),
+      "C:/Expressions/Scale.json": JSON.stringify({ code: "value * 2" })
+    };
+    const File = function File(path) {
+      this.path = path;
+      this.name = path.split("/").pop();
+      this.exists = true;
+      this.opened = false;
+      this.open = () => { this.opened = true; return true; };
+      this.read = () => contents[path];
+      this.close = () => { this.opened = false; };
+    };
+    const applyResourceExpression = await loadApplyResourceExpression({ app, File });
+
+    for (const [path, expected] of Object.entries({
+      "C:/Expressions/Opacity.json": "value / 100",
+      "C:/Expressions/Scale.json": "value * 2"
+    })) {
+      const payload = encodeURIComponent(JSON.stringify({ path }));
+      expect(JSON.parse(applyResourceExpression(payload)).ok).toBe(true);
+      expect(property.expression).toBe(expected);
+    }
+  });
 });

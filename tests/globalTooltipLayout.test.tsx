@@ -19,7 +19,7 @@ class MemoryStorage {
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 
-async function renderTooltipTarget(className: string) {
+async function renderTooltipTarget(className: string, singleLine = false) {
   Object.defineProperty(window, "localStorage", {
     configurable: true,
     value: new MemoryStorage()
@@ -32,7 +32,11 @@ async function renderTooltipTarget(className: string) {
     root?.render(
       <LanguageProvider>
         <SettingsProvider>
-          <button className={className} title="图层底部对齐">
+          <button
+            className={className}
+            title="来源操作"
+            data-tooltip-single-line={singleLine ? "true" : undefined}
+          >
             target
           </button>
           <GlobalTooltip />
@@ -79,6 +83,14 @@ describe("global tooltip layout", () => {
     vi.useFakeTimers();
 
     const tooltip = await renderTooltipTarget("anchor-button");
+
+    expect(tooltip?.dataset.singleLine).toBe("true");
+  });
+
+  it("allows compact action buttons to opt into horizontal tooltips", async () => {
+    vi.useFakeTimers();
+
+    const tooltip = await renderTooltipTarget("resource-source-row__menu-button", true);
 
     expect(tooltip?.dataset.singleLine).toBe("true");
   });

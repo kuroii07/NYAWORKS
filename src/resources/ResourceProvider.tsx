@@ -54,10 +54,13 @@ export interface ResourceContextValue {
   refreshAllSources(): Promise<void>;
   refreshSource(sourceId: string): Promise<void>;
   chooseDirectory: ResourceHostBridge["chooseDirectory"];
+  openSourceDirectory: (
+    sourceId: string
+  ) => ReturnType<ResourceHostBridge["openSourceDirectory"]>;
   addCustomSource(input: CustomResourceSourceInput): Promise<ResourceSource>;
   updateCustomSource(
     sourceId: string,
-    patch: Partial<Pick<ResourceSource, "name" | "path" | "enabled">>
+    patch: Partial<Pick<ResourceSource, "name" | "path" | "resourceType" | "enabled">>
   ): Promise<void>;
   useResource(resourceId: string): Promise<ResourceUseResult>;
   removeCustomSource(sourceId: string): void;
@@ -307,6 +310,19 @@ export function ResourceProvider({
       refreshAllSources,
       refreshSource,
       chooseDirectory: () => bridge.chooseDirectory(),
+      openSourceDirectory: async (sourceId) => {
+        const source = sourceList.find((candidate) => candidate.id === sourceId);
+
+        if (!source) {
+          return { ok: false, reason: "invalid-resource" as const };
+        }
+
+        try {
+          return await bridge.openSourceDirectory(source);
+        } catch {
+          return { ok: false, reason: "host-error" as const };
+        }
+      },
       addCustomSource: async (input) => {
         const source = createCustomResourceSource(input, now());
         updateSettings((current) => ({
@@ -335,7 +351,8 @@ export function ResourceProvider({
         if (
           nextSource &&
           nextSource.enabled &&
-          nextSource.path !== previousSource.path
+          (nextSource.path !== previousSource.path ||
+            nextSource.resourceType !== previousSource.resourceType)
         ) {
           await scanSourceDefinition(nextSource);
         }
@@ -397,6 +414,7 @@ export function ResourceProvider({
       now,
       refreshAllSources,
       refreshSource,
+      sourceList,
       refreshingSourceIds,
       scanSourceDefinition,
       settings,

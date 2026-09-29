@@ -14,7 +14,7 @@ export interface CurrentAeEffectsResult {
 }
 
 export type GlobalSearchHostAction =
-  | { action: "run-script"; path: string }
+  | { action: "run-script"; path: string; resourceType?: "script" | "panel" }
   | { action: "apply-preset"; path: string }
   | { action: "add-effect"; matchName: string };
 
@@ -97,7 +97,10 @@ export function createGlobalSearchHostBridge(environment?: CepEnvironment): Glob
     async executeGlobalSearchAction(action) {
       let script: string;
       if (action.action === "run-script") {
-        script = `NYAWORKS.runSearchScript("${encodedPayload({ path: action.path })}")`;
+        script = `NYAWORKS.runSearchScript("${encodedPayload({
+          path: action.path,
+          ...(action.resourceType ? { resourceType: action.resourceType } : {})
+        })}")`;
       } else if (action.action === "apply-preset") {
         script = `NYAWORKS.applySearchPreset("${encodedPayload({ path: action.path })}")`;
       } else {

@@ -103,6 +103,30 @@
     return value < 10 ? "0" + value : String(value);
   }
 
+  function resourceEntryName(entry) {
+    var value;
+
+    if (typeof entry === "string") {
+      value = entry;
+    } else if (entry && typeof entry.name === "string") {
+      value = entry.name;
+    } else if (entry && entry.fsName) {
+      value = String(entry.fsName);
+    } else {
+      return "";
+    }
+
+    value = value.replace(/\\/g, "/");
+    return value.substring(value.lastIndexOf("/") + 1);
+  }
+
+  function isResourceFolderEntry(entry) {
+    return !!entry && (
+      entry instanceof Folder ||
+      typeof entry.getFiles === "function"
+    );
+  }
+
   function toIsoDate(value) {
     if (!(value instanceof Date)) {
       return null;
@@ -128,20 +152,25 @@
     var children;
     var index;
     var child;
+    var childName;
     var childRelativePath;
 
     if (depth > 24 || items.length >= 5000) {
       return;
     }
 
-    children = folder.getFiles();
+    children = folder.getFiles() || [];
     for (index = 0; index < children.length && items.length < 5000; index += 1) {
       child = children[index];
+      childName = resourceEntryName(child);
+      if (!childName) {
+        continue;
+      }
       childRelativePath = relativePath
-        ? relativePath + "/" + child.name
-        : child.name;
+        ? relativePath + "/" + childName
+        : childName;
 
-      if (child instanceof Folder) {
+      if (isResourceFolderEntry(child)) {
         collectResourceFiles(
           child,
           resourceType,
@@ -149,7 +178,10 @@
           items,
           depth + 1
         );
-      } else if (child instanceof File && hasAllowedExtension(child.name, resourceType)) {
+      } else if (
+        (child instanceof File || typeof child === "string" || (child && typeof child.name === "string")) &&
+        hasAllowedExtension(childName, resourceType)
+      ) {
         items.push({
           relativePath: childRelativePath,
           modifiedAt: toIsoDate(child.modified)
@@ -211,6 +243,49 @@
     }
   }
 
+  function openResourceDirectory(encodedPayload) {
+    var payload;
+    var folder;
+    var systemPath;
+    var osName;
+
+    try {
+      payload = decodeResourcePayload(encodedPayload);
+      if (!payload || !payload.path) {
+        return JSON.stringify({ ok: false, reason: "invalid-resource" });
+      }
+
+      folder = new Folder(payload.path);
+      if (!folder.exists) {
+        return JSON.stringify({ ok: false, reason: "invalid-resource" });
+      }
+
+      systemPath = String(folder.fsName).replace(/"/g, "\\\"");
+      osName = $.os ? String($.os) : "";
+      if (typeof system !== "undefined" && typeof system.callSystem === "function") {
+        if (/Windows/i.test(osName)) {
+          system.callSystem("explorer.exe \"" + systemPath + "\"");
+        } else if (/Macintosh|Mac OS/i.test(osName)) {
+          system.callSystem("open \"" + systemPath + "\"");
+        } else {
+          system.callSystem("xdg-open \"" + systemPath + "\"");
+        }
+      } else if (typeof folder.execute === "function") {
+        folder.execute();
+      } else {
+        return JSON.stringify({ ok: false, reason: "host-error", detail: "No folder opener available" });
+      }
+
+      return JSON.stringify({ ok: true, path: folder.fsName });
+    } catch (error) {
+      return JSON.stringify({
+        ok: false,
+        reason: "host-error",
+        detail: error && error.toString ? error.toString() : "unknown"
+      });
+    }
+  }
+
   function reloadHostScript() {
     try {
       $.evalFile(hostScriptFile);
@@ -222,6 +297,22 @@
 
   function decodeSearchPayload(encodedPayload) {
     return JSON.parse(decodeURIComponent(encodedPayload));
+  }
+
+  function decodeResourceFilePath(path) {
+    var value = path == null ? "" : String(path);
+    var segments = value.split("/");
+    var index;
+
+    for (index = 0; index < segments.length; index += 1) {
+      try {
+        segments[index] = decodeURIComponent(segments[index]);
+      } catch (error) {
+        // Keep only the malformed segment intact and decode the rest of the path.
+      }
+    }
+
+    return segments.join("/");
   }
 
   function getCurrentEffects() {
@@ -258,10 +349,25 @@
       if (!payload || !payload.path) {
         return JSON.stringify({ ok: false, reason: "invalid-resource" });
       }
-      var file = new File(payload.path);
+      var file = new File(decodeResourceFilePath(payload.path));
       if (!file.exists) {
         return JSON.stringify({ ok: false, reason: "invalid-resource" });
       }
+
+      if (
+        payload.resourceType === "panel" &&
+        app &&
+        typeof app.findMenuCommandId === "function" &&
+        typeof app.executeCommand === "function"
+      ) {
+        var scriptName = decodeResourceFilePath(file.name).replace(/\.[^.]+$/, "");
+        var commandId = app.findMenuCommandId(scriptName);
+        if (commandId > 0) {
+          app.executeCommand(commandId);
+          return JSON.stringify({ ok: true });
+        }
+      }
+
       $.evalFile(file);
       return JSON.stringify({ ok: true });
     } catch (error) {
@@ -284,7 +390,7 @@
       if (!payload || !payload.path) {
         return JSON.stringify({ ok: false, reason: "invalid-resource" });
       }
-      var file = new File(payload.path);
+      var file = new File(decodeResourceFilePath(payload.path));
       layers = selectedLayers();
       if (!file.exists) return JSON.stringify({ ok: false, reason: "invalid-resource" });
       if (!layers || layers.length === 0) return JSON.stringify({ ok: false, reason: "no-selected-layer" });
@@ -316,7 +422,7 @@
         return JSON.stringify({ ok: false, reason: "invalid-resource" });
       }
 
-      file = new File(payload.path);
+      file = new File(decodeResourceFilePath(payload.path));
       if (!file.exists) {
         return JSON.stringify({ ok: false, reason: "invalid-resource" });
       }
@@ -1635,6 +1741,7 @@
     getCurrentResourceSources: getCurrentResourceSources,
     scanResourceSource: scanResourceSource,
     chooseResourceDirectory: chooseResourceDirectory
+    ,openResourceDirectory: openResourceDirectory
     ,reloadHostScript: reloadHostScript
     ,getCurrentEffects: getCurrentEffects
     ,runSearchScript: runSearchScript

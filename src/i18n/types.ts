@@ -458,6 +458,8 @@ export interface UiCopy {
       saveAction: string;
       cancelAction: string;
       refreshSource: string;
+      openDirectory: string;
+      directoryOpenFailed: string;
       enableSource: string;
       disableSource: string;
       removeSource: string;

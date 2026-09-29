@@ -6,13 +6,14 @@ import {
   DotsThree,
   FileCode,
   FolderOpen,
+  FolderSimple,
   PencilSimple,
   Plus,
   Power,
   SlidersHorizontal,
   Trash
 } from "@phosphor-icons/react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   CompactActionMenu,
   type CompactActionMenuItem
@@ -25,9 +26,11 @@ import { TextInputDialog } from "../components/TextInputDialog";
 import { useLanguage } from "../i18n/LanguageProvider";
 import { useToast } from "../notifications/ToastProvider";
 import { useResources } from "../resources/ResourceProvider";
+import { buildResourceFolderTree } from "../resources/resourceOperations";
 import type {
   CustomResourceType,
   IndexedResource,
+  ResourceFolderNode,
   ResourceSource,
   ResourceType
 } from "../resources/types";
@@ -36,6 +39,8 @@ type SourceDialog =
   | { mode: "add" }
   | { mode: "edit"; source: ResourceSource }
   | null;
+
+type SourceFilterType = "all" | CustomResourceType;
 
 function ResourceTypeIcon({ type }: { type: ResourceType }) {
   if (type === "preset") {
@@ -61,13 +66,16 @@ export function ResourceSettingsPanel() {
     refreshAllSources,
     refreshSource,
     chooseDirectory,
+    openSourceDirectory,
     addCustomSource,
     updateCustomSource,
     useResource,
     removeCustomSource
   } = useResources();
   const [sourceType, setSourceType] = useState<CustomResourceType>("script");
+  const [sourceFilter, setSourceFilter] = useState<SourceFilterType>("all");
   const [expandedSourceIds, setExpandedSourceIds] = useState<string[]>([]);
+  const [expandedFolderPaths, setExpandedFolderPaths] = useState<string[]>([]);
   const [menuSourceId, setMenuSourceId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<SourceDialog>(null);
   const [draftName, setDraftName] = useState("");
@@ -84,8 +92,19 @@ export function ResourceSettingsPanel() {
     ],
     [labels.sourceTypes]
   );
+  const sourceFilterOptions: readonly SettingSelectOption<SourceFilterType>[] = useMemo(
+    () => [
+      { value: "all", label: copy.resources.allTypes },
+      ...typeOptions
+    ],
+    [copy.resources.allTypes, typeOptions]
+  );
   const currentAeSources = sources.filter((source) => source.kind === "ae-default");
-  const customSources = sources.filter((source) => source.kind === "custom");
+  const customSources = sources.filter(
+    (source) =>
+      source.kind === "custom" &&
+      (sourceFilter === "all" || source.resourceType === sourceFilter)
+  );
   const isRefreshing = refreshingSourceIds.length > 0;
   const resourcesBySource = useMemo(() => {
     const grouped = new Map<string, IndexedResource[]>();
@@ -156,6 +175,13 @@ export function ResourceSettingsPanel() {
   }
 
   function openEditDialog(source: ResourceSource) {
+    setSourceType(
+      source.resourceType === "script" ||
+        source.resourceType === "preset" ||
+        source.resourceType === "expression"
+        ? source.resourceType
+        : "script"
+    );
     setDraftName(source.name);
     setDraftPath(source.path);
     setDraftError(null);
@@ -201,7 +227,8 @@ export function ResourceSettingsPanel() {
     } else {
       void updateCustomSource(dialog.source.id, {
         name: draftName,
-        path: draftPath
+        path: draftPath,
+        resourceType: sourceType
       });
     }
 
@@ -219,6 +246,22 @@ export function ResourceSettingsPanel() {
           hostStatus !== "connected" ||
           !source.enabled,
         onSelect: () => void refreshSource(source.id)
+      },
+      {
+        id: "open-directory",
+        label: labels.openDirectory,
+        icon: FolderOpen,
+        onSelect: () => {
+          void openSourceDirectory(source.id).then((result) => {
+            if (!result.ok) {
+              toast.error(
+                result.detail
+                  ? `${labels.directoryOpenFailed}: ${result.detail}`
+                  : labels.directoryOpenFailed
+              );
+            }
+          });
+        }
       }
     ];
 
@@ -254,6 +297,99 @@ export function ResourceSettingsPanel() {
   function renderSource(source: ResourceSource) {
     const expanded = expandedSourceIds.includes(source.id);
     const sourceResources = resourcesBySource.get(source.id) ?? [];
+    const sourceResourceById = new Map(
+      sourceResources.map((resource) => [resource.id, resource])
+    );
+    const folderTree = buildResourceFolderTree(sourceResources);
+
+    function renderResource(resource: IndexedResource, depth: number) {
+      const isUsing = usingResourceIds.includes(resource.id);
+      const disabled =
+        hostStatus !== "connected" || !source.enabled || isUsing;
+
+      return (
+        <div
+          className="resource-source-item"
+          data-resource-id={resource.id}
+          data-resource-type={resource.resourceType}
+          data-depth={depth}
+          key={resource.id}
+          role="button"
+          tabIndex={disabled ? -1 : 0}
+          aria-disabled={disabled}
+          onDoubleClick={() => {
+            if (!disabled) {
+              void useIndexedResource(resource);
+            }
+          }}
+          onKeyDown={(event) => {
+            if (!disabled && event.key === "Enter") {
+              event.preventDefault();
+              void useIndexedResource(resource);
+            }
+          }}
+        >
+          <ResourceTypeIcon type={resource.resourceType} />
+          <strong className="resource-source-item__name">
+            {resource.name}
+          </strong>
+        </div>
+      );
+    }
+
+    function renderFolder(node: ResourceFolderNode, depth: number): ReactNode {
+      const folderExpanded = expandedFolderPaths.includes(`${source.id}:${node.path}`);
+      const folderKey = `${source.id}:${node.path}`;
+      return (
+        <div className="resource-source-folder" data-depth={depth} key={node.path}>
+          <div
+            className="resource-source-folder__label"
+            style={{ paddingLeft: `${8 + depth * 14}px` }}
+            role="button"
+            tabIndex={0}
+            aria-expanded={folderExpanded}
+            onClick={() =>
+              setExpandedFolderPaths((current) =>
+                current.includes(folderKey)
+                  ? current.filter((candidate) => candidate !== folderKey)
+                  : [...current, folderKey]
+              )
+            }
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                setExpandedFolderPaths((current) =>
+                  current.includes(folderKey)
+                    ? current.filter((candidate) => candidate !== folderKey)
+                    : [...current, folderKey]
+                );
+              }
+            }}
+          >
+            {folderExpanded ? (
+              <CaretDown aria-hidden="true" weight="bold" />
+            ) : (
+              <CaretRight aria-hidden="true" weight="bold" />
+            )}
+            <FolderSimple aria-hidden="true" weight="regular" />
+            <span>{node.name}</span>
+          </div>
+          {folderExpanded ? (
+            <>
+              {node.resourceIds.map((resourceId) => {
+                const resource = sourceResourceById.get(resourceId);
+                return resource ? renderResource(resource, depth + 1) : null;
+              })}
+              {node.children.map((child) => renderFolder(child, depth + 1))}
+            </>
+          ) : null}
+        </div>
+      );
+    }
+
+    const rootResources = sourceResources.filter(
+      (resource) => !resource.relativePath.includes("/")
+    );
 
     return (
       <article
@@ -275,6 +411,9 @@ export function ResourceSettingsPanel() {
             <CaretRight aria-hidden="true" weight="bold" />
           )}
           <span className="resource-source-row__name">{source.name}</span>
+          <span className="resource-source-row__type">
+            {copy.resources.typeLabels[source.resourceType]}
+          </span>
         </button>
         <div className="resource-source-row__actions">
           <button
@@ -282,6 +421,7 @@ export function ResourceSettingsPanel() {
             type="button"
             aria-label={labels.sourceActions}
             title={labels.sourceActions}
+            data-tooltip-single-line="true"
             onClick={() =>
               setMenuSourceId((current) => (current === source.id ? null : source.id))
             }
@@ -302,39 +442,10 @@ export function ResourceSettingsPanel() {
               aria-label={source.name}
             >
               {sourceResources.length > 0 ? (
-                sourceResources.map((resource) => {
-                  const isUsing = usingResourceIds.includes(resource.id);
-                  const disabled =
-                    hostStatus !== "connected" || !source.enabled || isUsing;
-
-                  return (
-                    <div
-                      className="resource-source-item"
-                      data-resource-id={resource.id}
-                      data-resource-type={resource.resourceType}
-                      key={resource.id}
-                      role="button"
-                      tabIndex={disabled ? -1 : 0}
-                      aria-disabled={disabled}
-                      onDoubleClick={() => {
-                        if (!disabled) {
-                          void useIndexedResource(resource);
-                        }
-                      }}
-                      onKeyDown={(event) => {
-                        if (!disabled && event.key === "Enter") {
-                          event.preventDefault();
-                          void useIndexedResource(resource);
-                        }
-                      }}
-                    >
-                      <ResourceTypeIcon type={resource.resourceType} />
-                      <strong className="resource-source-item__name">
-                        {resource.name}
-                      </strong>
-                    </div>
-                  );
-                })
+                <>
+                  {rootResources.map((resource) => renderResource(resource, 0))}
+                  {folderTree.map((node) => renderFolder(node, 0))}
+                </>
               ) : (
                 <p className="resource-source-row__empty">
                   {copy.resources.noIndexedResources}
@@ -396,9 +507,9 @@ export function ResourceSettingsPanel() {
           <div className="resource-settings__add-controls">
             <SettingSelect
               ariaLabel={labels.sourceType}
-              value={sourceType}
-              options={typeOptions}
-              onChange={setSourceType}
+              value={sourceFilter}
+              options={sourceFilterOptions}
+              onChange={setSourceFilter}
             />
             <button type="button" onClick={openAddDialog}>
               <Plus aria-hidden="true" weight="bold" />
@@ -431,6 +542,14 @@ export function ResourceSettingsPanel() {
           onConfirm={saveSource}
           onCancel={() => setDialog(null)}
         >
+          {dialog.mode === "edit" ? (
+            <SettingSelect
+              ariaLabel={labels.sourceType}
+              value={sourceType}
+              options={typeOptions}
+              onChange={setSourceType}
+            />
+          ) : null}
           <div className="resource-directory-picker">
             <span>{draftPath || labels.directoryNotSelected}</span>
             <button type="button" onClick={() => void requestDirectory()}>

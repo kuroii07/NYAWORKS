@@ -88,6 +88,7 @@ function createBridge(
       resources: []
     }),
     chooseDirectory: async () => ({ status: "cancelled", path: null }),
+    openSourceDirectory: async () => ({ ok: false, reason: "unavailable" }),
     useResource: async () => ({ ok: true }),
     ...overrides
   };
@@ -321,6 +322,27 @@ describe("ResourceProvider scan lifecycle", () => {
     });
   });
 
+  it("opens a source folder by source id through the host bridge", async () => {
+    const storage = new MemoryStorage();
+    const openedPaths: string[] = [];
+    writeStoredResourceSettings(initialSettings(), storage);
+    const resourceContext = await renderProvider(
+      createBridge({
+        openSourceDirectory: async (source) => {
+          openedPaths.push(source.path);
+          return { ok: true, path: source.path };
+        }
+      }),
+      storage
+    );
+
+    await expect(resourceContext.openSourceDirectory("custom:tools")).resolves.toEqual({
+      ok: true,
+      path: "C:/Tools"
+    });
+    expect(openedPaths).toEqual(["C:/Tools"]);
+  });
+
   it("indexes a newly added custom source immediately", async () => {
     const storage = new MemoryStorage();
     const scannedPaths: string[] = [];
@@ -347,7 +369,7 @@ describe("ResourceProvider scan lifecycle", () => {
     });
 
     expect(scannedPaths).toEqual(["C:/Tools/Animation"]);
-    expect(context?.resources.map((resource) => resource.name)).toContain("Loop");
+    expect(context?.resources.map((resource) => resource.name)).toContain("Loop.jsx");
   });
 
   it("rescans the new directory when a custom source path changes", async () => {
@@ -376,7 +398,7 @@ describe("ResourceProvider scan lifecycle", () => {
 
     expect(scannedPaths).toEqual(["D:/Updated Tools"]);
     expect(context?.resources.map((resource) => resource.name)).toEqual([
-      "Updated"
+      "Updated.jsx"
     ]);
   });
 
@@ -414,6 +436,30 @@ describe("ResourceProvider scan lifecycle", () => {
       name: "动画工具",
       enabled: false
     });
+  });
+
+  it("rescans when a custom source changes from script to preset", async () => {
+    const storage = new MemoryStorage();
+    const scannedTypes: string[] = [];
+    writeStoredResourceSettings(initialSettings(), storage);
+    const resourceContext = await renderProvider(
+      createBridge({
+        scanSource: async (source) => {
+          scannedTypes.push(source.resourceType);
+          return { sourceId: source.id, status: "ready", resources: [] };
+        }
+      }),
+      storage
+    );
+
+    await act(async () => {
+      await resourceContext.updateCustomSource("custom:tools", {
+        resourceType: "preset"
+      });
+    });
+
+    expect(scannedTypes).toEqual(["preset"]);
+    expect(context?.sources.find((source) => source.id === "custom:tools")?.resourceType).toBe("preset");
   });
 
   it("uses an indexed resource through its owning source", async () => {

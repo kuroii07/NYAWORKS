@@ -1,13 +1,15 @@
 import {
   Archive,
-  ArrowClockwise,
+  BracketsCurly,
   CaretDown,
   CaretRight,
-  Copy,
-  File,
+  FileCode,
+  FileText,
   FolderSimple,
   Heart,
-  MagnifyingGlass
+  MagnifyingGlass,
+  Lightning,
+  SlidersHorizontal
 } from "@phosphor-icons/react";
 import { useMemo, useState } from "react";
 import {
@@ -17,12 +19,15 @@ import {
 import { useLanguage } from "../i18n/LanguageProvider";
 import {
   buildResourceFolderTree,
+  displayResourcePath,
   filterIndexedResources
 } from "../resources/resourceOperations";
 import { useResources } from "../resources/ResourceProvider";
+import { useToast } from "../notifications/ToastProvider";
 import type { IndexedResource, ResourceFolderNode, ResourceType } from "../resources/types";
 
 type ResourceFilterType = "all" | ResourceType;
+type SourceFilter = "all" | "favorites" | string;
 
 function SourceTree({
   nodes,
@@ -89,25 +94,23 @@ function SourceTree({
   );
 }
 
-function ResourceRow({
-  resource,
-  isRefreshing,
-  labels,
-  onFavorite,
-  onRefresh
-}: {
+function ResourceTypeIcon({ type }: { type: ResourceType }) {
+  const Icon = type === "script" ? FileCode : type === "preset" ? SlidersHorizontal : type === "expression" ? BracketsCurly : type === "startup" ? Lightning : FileText;
+  return <Icon aria-hidden="true" weight="regular" />;
+}
+
+function ResourceRow({ resource, labels, executing, onUse, onFavorite }: {
   resource: IndexedResource;
-  isRefreshing: boolean;
   labels: ReturnType<typeof useLanguage>["copy"]["resources"];
+  executing: boolean;
+  onUse: () => void;
   onFavorite: () => void;
-  onRefresh: () => void;
 }) {
   return (
-    <article className="resource-list-row" data-resource-type={resource.resourceType}>
-      <File aria-hidden="true" weight="regular" />
+    <article className="resource-list-row" data-resource-type={resource.resourceType} role="button" tabIndex={0} aria-label={resource.name} aria-busy={executing || undefined} onDoubleClick={onUse} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); onUse(); } }}>
+      <ResourceTypeIcon type={resource.resourceType} />
       <div className="resource-list-row__copy">
         <strong>{resource.name}</strong>
-        <span>{resource.relativePath}</span>
       </div>
       <div className="resource-list-row__actions">
         <button
@@ -115,26 +118,11 @@ function ResourceRow({
           aria-label={labels.favorite}
           title={labels.favorite}
           data-active={resource.favorite || undefined}
-          onClick={onFavorite}
+          onClick={(event) => { event.stopPropagation(); onFavorite(); }}
         >
           <Heart aria-hidden="true" weight={resource.favorite ? "fill" : "regular"} />
         </button>
-        <button type="button" disabled title={labels.hostActionUnavailable}>
-          <Copy aria-hidden="true" weight="regular" />
-          {labels.copyPath}
-        </button>
-        <button type="button" disabled title={labels.hostActionUnavailable}>
-          <FolderSimple aria-hidden="true" weight="regular" />
-          {labels.revealSource}
-        </button>
-        <button
-          type="button"
-          disabled={isRefreshing}
-          title={labels.refreshSource}
-          onClick={onRefresh}
-        >
-          <ArrowClockwise aria-hidden="true" weight="regular" />
-        </button>
+        {executing ? <span className="resource-list-row__loading" aria-label={labels.useSuccess}>…</span> : null}
       </div>
     </article>
   );
@@ -147,18 +135,20 @@ export function ResourcesPage() {
     hostStatus,
     sources,
     resources,
-    refreshingSourceIds,
-    refreshSource,
+    useResource,
     toggleFavorite
   } = useResources();
+  const { toast } = useToast();
   const [query, setQuery] = useState("");
   const [resourceType, setResourceType] = useState<ResourceFilterType>("all");
-  const [sourceId, setSourceId] = useState("all");
+  const [sourceId, setSourceId] = useState<SourceFilter>("all");
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
+  const [executingId, setExecutingId] = useState<string | null>(null);
   const sourceOptions = useMemo<readonly SettingSelectOption<string>[]>(
     () => [
       { value: "all", label: labels.allSources },
+      { value: "favorites", label: labels.favorite },
       ...sources.map((source) => ({ value: source.id, label: source.name }))
     ],
     [labels.allSources, sources]
@@ -172,25 +162,33 @@ export function ResourcesPage() {
       },
       query,
       resourceType,
-      sourceId === "all" ? undefined : sourceId
+      sourceId === "all" || sourceId === "favorites" ? undefined : sourceId
     );
 
+    const next = indexed.filter((resource) => sourceId !== "favorites" || resource.favorite);
     return selectedFolder
-      ? indexed.filter((resource) =>
+      ? next.filter((resource) =>
           resource.relativePath.toLocaleLowerCase().startsWith(`${selectedFolder}/`)
         )
-      : indexed;
+      : next;
   }, [query, resourceType, resources, selectedFolder, sourceId]);
   const folderTree = useMemo(
     () => buildResourceFolderTree(filteredResources),
     [filteredResources]
   );
-  const previewResources = filteredResources.filter(
-    (resource) => resource.preview.coverUri
-  );
-  const listResources = filteredResources.filter(
-    (resource) => !resource.preview.coverUri
-  );
+  const listResources = filteredResources;
+
+  async function handleUse(resource: IndexedResource) {
+    if (executingId) return;
+    setExecutingId(resource.id);
+    try {
+      const result = await useResource(resource.id);
+      if (result.ok) toast.success(`${labels.useSuccess}: ${resource.name}`);
+      else toast.error(result.reason === "no-selected-layer" ? labels.noSelectedLayer : result.reason === "no-selected-property" ? labels.noSelectedProperty : result.reason === "empty-expression" ? labels.emptyExpression : result.reason === "invalid-resource" ? labels.invalidResource : result.reason === "unavailable" ? labels.hostActionUnavailable : labels.useFailed);
+    } finally {
+      setExecutingId(null);
+    }
+  }
 
   function toggleFolder(path: string) {
     setExpandedFolders((current) =>
@@ -205,13 +203,9 @@ export function ResourcesPage() {
       <header className="resources-page__header">
         <div>
           <Archive aria-hidden="true" weight="regular" />
-          <div>
-            <h1>{labels.title}</h1>
-            <p>
-              {labels.indexStatus} · {resources.length}
-            </p>
-          </div>
+          <h1>{labels.title}</h1>
         </div>
+        <strong className="resources-page__count">{labels.indexStatus}: {resources.length}</strong>
         {hostStatus !== "connected" ? <span>{labels.cachedIndex}</span> : null}
       </header>
 
@@ -219,15 +213,18 @@ export function ResourcesPage() {
         <aside className="resource-browser__navigation" aria-label={labels.categories}>
           <div className="resource-browser__source-control">
             <span>{labels.sources}</span>
-            <SettingSelect
-              ariaLabel={labels.sourceFilterAria}
-              value={sourceId}
-              options={sourceOptions}
-              onChange={(nextSourceId) => {
+            <div className="resource-source-filter">
+              <SettingSelect
+                ariaLabel={labels.sourceFilterAria}
+                value={sourceId}
+                options={sourceOptions}
+                onChange={(nextSourceId) => {
                 setSourceId(nextSourceId);
                 setSelectedFolder(null);
               }}
-            />
+              />
+              <button className="resource-favorites-toggle" type="button" aria-label={labels.favorite} aria-pressed={sourceId === "favorites"} data-active={sourceId === "favorites" || undefined} onClick={() => setSourceId((current) => current === "favorites" ? "all" : "favorites")}><Heart aria-hidden="true" weight={sourceId === "favorites" ? "fill" : "regular"} /></button>
+            </div>
           </div>
           <div className="resource-browser__categories">
             <span>{labels.categories}</span>
@@ -276,7 +273,7 @@ export function ResourcesPage() {
               type="button"
               onClick={() => setSelectedFolder(null)}
             >
-              {labels.categories} / {selectedFolder}
+              {labels.categories} / {displayResourcePath(selectedFolder)}
             </button>
           ) : null}
 
@@ -284,17 +281,6 @@ export function ResourcesPage() {
             <p className="resource-browser__empty">{labels.noResults}</p>
           ) : (
             <>
-              {previewResources.length > 0 ? (
-                <div className="resource-preview-grid">
-                  {previewResources.map((resource) => (
-                    <article className="resource-preview-card" key={resource.id}>
-                      <img src={resource.preview.coverUri ?? undefined} alt="" />
-                      <strong>{resource.name}</strong>
-                      <span>{resource.relativePath}</span>
-                    </article>
-                  ))}
-                </div>
-              ) : null}
               {listResources.length > 0 ? (
                 <div className="resource-list">
                   {listResources.map((resource) => (
@@ -302,9 +288,9 @@ export function ResourcesPage() {
                       key={resource.id}
                       resource={resource}
                       labels={labels}
-                      isRefreshing={refreshingSourceIds.includes(resource.sourceId)}
+                      executing={executingId === resource.id}
+                      onUse={() => void handleUse(resource)}
                       onFavorite={() => toggleFavorite(resource.id)}
-                      onRefresh={() => void refreshSource(resource.sourceId)}
                     />
                   ))}
                 </div>

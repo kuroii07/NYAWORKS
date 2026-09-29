@@ -96,4 +96,30 @@ describe("resource settings storage", () => {
       }).customSources
     ).toEqual([]);
   });
+
+  it("decodes cached resource labels without changing executable paths", () => {
+    const normalized = normalizeResourceSettings({
+      schemaVersion: RESOURCE_SETTINGS_SCHEMA_VERSION,
+      customSources: [],
+      index: {
+        resources: [{
+          id: "custom:tools:%E7%AE%80%E4%BD%93.jsx",
+          sourceId: "custom:tools",
+          resourceType: "script",
+          name: "%E7%AE%80%E4%BD%93%E5%B7%A5%E5%85%B7",
+          relativePath: "%E7%AE%80%E4%BD%93.jsx",
+          modifiedAt: null,
+          favorite: false,
+          lastUsedAt: null,
+          preview: { coverUri: null, loopUri: null, cacheKey: null, status: "none" }
+        }],
+        sourceStates: []
+      }
+    });
+
+    expect(normalized.index.resources[0]).toMatchObject({
+      name: "简体工具",
+      relativePath: "%E7%AE%80%E4%BD%93.jsx"
+    });
+  });
 });

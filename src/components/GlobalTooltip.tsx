@@ -95,7 +95,9 @@ export function GlobalTooltip() {
         );
         setTooltip({
           anchorCenter: rect.left + rect.width / 2,
-          singleLine: target.closest(".anchor-button") !== null,
+          singleLine:
+            target.closest(".anchor-button") !== null ||
+            target.getAttribute("data-tooltip-single-line") === "true",
           text: title,
           ...position
         });

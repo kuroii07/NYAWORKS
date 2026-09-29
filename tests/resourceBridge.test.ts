@@ -109,6 +109,30 @@ describe("resource host bridge", () => {
     });
   });
 
+  it("opens the selected source folder through the AE host bridge", async () => {
+    const scripts: string[] = [];
+    const bridge = createCepResourceBridge({
+      __adobe_cep__: {
+        evalScript: (script, callback) => {
+          scripts.push(script);
+          callback(JSON.stringify({ ok: true, path: customSource.path }));
+        }
+      }
+    });
+
+    await expect(bridge.openSourceDirectory(customSource)).resolves.toEqual({
+      ok: true,
+      path: customSource.path
+    });
+    const payload = scripts[0]?.match(/^NYAWORKS\.openResourceDirectory\("(.+)"\)$/)?.[1];
+    expect(JSON.parse(decodeURIComponent(payload ?? ""))).toEqual({
+      id: customSource.id,
+      kind: "custom",
+      resourceType: "script",
+      path: customSource.path
+    });
+  });
+
   it("routes indexed resources to their matching AE host action", async () => {
     const scripts: string[] = [];
     const bridge = createCepResourceBridge({
@@ -175,6 +199,45 @@ describe("resource host bridge", () => {
       { path: "C:/Presets/Motion/Bounce.ffx" },
       { path: "C:/Expressions/Loop.txt" }
     ]);
+  });
+
+  it("marks ScriptUI panel resources so the host can use AE's native context", async () => {
+    const scripts: string[] = [];
+    const bridge = createCepResourceBridge({
+      __adobe_cep__: {
+        evalScript: (script, callback) => {
+          scripts.push(script);
+          callback(JSON.stringify({ ok: true }));
+        }
+      }
+    });
+
+    await bridge.useResource(
+      {
+        ...customSource,
+        id: "ae-default:scriptui-panels",
+        kind: "ae-default",
+        resourceType: "panel",
+        path: "C:/Adobe/Scripts/ScriptUI Panels"
+      },
+      {
+        id: "ae-default:scriptui-panels:keyfast.jsxbin",
+        sourceId: "ae-default:scriptui-panels",
+        resourceType: "panel",
+        name: "KeyFast中文版",
+        relativePath: "KeyFast%E4%B8%AD%E6%96%87%E7%89%88.jsxbin",
+        modifiedAt: null,
+        favorite: false,
+        lastUsedAt: null,
+        preview: { coverUri: null, loopUri: null, cacheKey: null, status: "none" }
+      }
+    );
+
+    const payload = scripts[0].match(/\("(.+)"\)$/)?.[1] ?? "";
+    expect(JSON.parse(decodeURIComponent(payload))).toEqual({
+      path: "C:/Adobe/Scripts/ScriptUI Panels/KeyFast%E4%B8%AD%E6%96%87%E7%89%88.jsxbin",
+      resourceType: "panel"
+    });
   });
 
   it("uses clearly marked fixture data without claiming a machine directory was read", async () => {

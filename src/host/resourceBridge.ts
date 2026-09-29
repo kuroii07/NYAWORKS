@@ -8,7 +8,8 @@ import {
   normalizeResourcePath,
   type IndexedResource,
   type ResourceScanResult,
-  type ResourceSource
+  type ResourceSource,
+  type ResourceType
 } from "../resources/types";
 
 export interface CurrentAeResourceSourcesResult {
@@ -23,10 +24,19 @@ export interface ResourceDirectoryChoiceResult {
   path: string | null;
 }
 
+export type ResourceDirectoryOpenResult =
+  | { ok: true; path: string }
+  | {
+      ok: false;
+      reason: "unavailable" | "invalid-resource" | "host-error";
+      detail?: string;
+    };
+
 export interface ResourceHostBridge {
   readCurrentAeSources(): Promise<CurrentAeResourceSourcesResult>;
   scanSource(source: ResourceSource): Promise<ResourceScanResult>;
   chooseDirectory(): Promise<ResourceDirectoryChoiceResult>;
+  openSourceDirectory(source: ResourceSource): Promise<ResourceDirectoryOpenResult>;
   useResource(
     source: ResourceSource,
     resource: IndexedResource
@@ -226,6 +236,31 @@ function parseResourceUseResult(value: string | null): ResourceUseResult {
   };
 }
 
+function parseResourceDirectoryOpenResult(
+  value: string | null
+): ResourceDirectoryOpenResult {
+  if (value === null) {
+    return { ok: false, reason: "unavailable" };
+  }
+
+  const parsed = parseJson(value);
+  if (isRecord(parsed) && parsed.ok === true && typeof parsed.path === "string") {
+    return { ok: true, path: parsed.path };
+  }
+
+  return {
+    ok: false,
+    reason:
+      isRecord(parsed) &&
+      (parsed.reason === "invalid-resource" || parsed.reason === "host-error")
+        ? parsed.reason
+        : "host-error",
+    ...(isRecord(parsed) && typeof parsed.detail === "string"
+      ? { detail: parsed.detail }
+      : {})
+  };
+}
+
 export function createCepResourceBridge(
   environment?: CepEnvironment
 ): ResourceHostBridge {
@@ -290,9 +325,21 @@ export function createCepResourceBridge(
         ? { status: "cancelled", path: null }
         : { status: "error", path: null };
     },
+    async openSourceDirectory(source) {
+      return parseResourceDirectoryOpenResult(
+        await evaluateHostScript(
+          `NYAWORKS.openResourceDirectory("${encodeSourcePayload(source)}")`,
+          environment
+        )
+      );
+    },
     async useResource(source, resource) {
       const path = resourcePath(source, resource);
-      const payload = encodeURIComponent(JSON.stringify({ path }));
+      const resourcePayload: { path: string; resourceType?: ResourceType } = { path };
+      if (resource.resourceType === "panel") {
+        resourcePayload.resourceType = "panel";
+      }
+      const payload = encodeURIComponent(JSON.stringify(resourcePayload));
       const functionName =
         resource.resourceType === "preset"
           ? "applySearchPreset"
