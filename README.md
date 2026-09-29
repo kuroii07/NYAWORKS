@@ -10,7 +10,7 @@
 
 版本：`0.1.0-alpha.1`
 
-NYAWORKS 已完成第一阶段 CEP 工程壳层、五套暗色主题、五语言切换、首页视觉骨架和设置中心基础。主题、语言与常规设置均可即时生效并保留用户选择；常规设置现已包含界面亮度、安全重置、新功能提示和 GitHub Release 更新检查。锚点与对齐两套九宫格已迁移到共享 Action 架构，首页与全局搜索统一经过 Registry、实时 AE Context、Runner、固定命令 Executor 和 Host Bridge 执行。锚点基础场景已完成真实 AE 验收，关键帧与表达式高级支持留待后续；对齐智能目标仍需真实 AE 验收。Nya Pie 已完成 CEP P0 调用链验证，并生成 Windows `NyaLauncher` P1 候选版，用于补齐 AE 前台判断、鼠标坐标、无边框窗口和显示器定位；正式 Pie UI 与 Pie Editor 尚未开始。Windows CEP 开发模式已支持固定扩展目录、自动 watch 构建和面板内刷新。
+NYAWORKS 已完成第一阶段 CEP 工程壳层、五套暗色主题、五语言切换、首页视觉骨架和设置中心基础。主题、语言与常规设置均可即时生效并保留用户选择；常规设置现已包含界面亮度、安全重置、新功能提示和 GitHub Release 更新检查。锚点与对齐两套九宫格已迁移到共享 Action 架构，首页与全局搜索统一经过 Registry、实时 AE Context、Runner、固定命令 Executor 和 Host Bridge 执行。锚点基础场景已完成真实 AE 验收，关键帧与表达式高级支持留待后续；图层对齐的 2D、父级与 3D 场景已完成真实 AE 2025 验收，下排三个段落对齐动作待真实 AE 验收。Nya Pie 已完成 CEP P0 调用链验证，并生成 Windows `NyaLauncher` P1 候选版，用于补齐 AE 前台判断、鼠标坐标、无边框窗口和显示器定位；正式 Pie UI 与 Pie Editor 尚未开始。Windows CEP 开发模式已支持固定扩展目录、自动 watch 构建和面板内刷新。
 
 ## 主题
 
@@ -37,7 +37,7 @@ NYAWORKS 已完成第一阶段 CEP 工程壳层、五套暗色主题、五语言
 - [x] M2：简体中文、繁体中文、英文、日文、韩文
 - [x] M3：首页布局与快捷工具框架（布局编辑与预设流程已完成，AE 功能待实现）
 - [x] M3.1：CEP 开发模式（固定扩展目录、junction、watch 构建和开发面板刷新）
-- [ ] M4：功能页和 AE 宿主能力（锚点、对齐 Host 调用已完成，需在 AE 中验收；其他宿主动作待实现）
+- [ ] M4：功能页和 AE 宿主能力（锚点与图层对齐已完成 AE 验收；段落对齐待验收；其他宿主动作待实现）
 - [ ] P0：Nya Pie Runtime 调用链（第二 Modeless Extension、AE 快捷键直接呼出、KeyUp 执行、关闭和焦点返回已验证；鼠标位置、无边框窗口定位与环境矩阵待后续验证）
 - [ ] P1：NyaLauncher Windows 候选版（原生自动测试、测试窗口集成和构建已完成；真实 AE 五面板、DPI、双屏、边缘、焦点和延迟验收待执行）
 

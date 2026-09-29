@@ -1360,6 +1360,19 @@
     return { updatedLayers: updatedLayers, reason: firstFailure, detail: failureDetail };
   }
 
+  function paragraphJustificationForAction(action) {
+    if (action === "paragraph-left") {
+      return ParagraphJustification.LEFT_JUSTIFY;
+    }
+    if (action === "paragraph-center") {
+      return ParagraphJustification.CENTER_JUSTIFY;
+    }
+    if (action === "paragraph-right") {
+      return ParagraphJustification.RIGHT_JUSTIFY;
+    }
+    return null;
+  }
+
   function applyParagraphAlignment(layers, action) {
     var justification;
     var index;
@@ -1375,13 +1388,7 @@
     var firstFailure = null;
     var failureDetail = null;
 
-    justification = action === "paragraph-left"
-      ? ParagraphJustification.LEFT_JUSTIFY
-      : action === "paragraph-center"
-        ? ParagraphJustification.CENTER_JUSTIFY
-        : action === "paragraph-right"
-          ? ParagraphJustification.RIGHT_JUSTIFY
-          : null;
+    justification = paragraphJustificationForAction(action);
     if (justification === null) return { updatedLayers: 0, reason: "host-error" };
     for (index = 0; index < layers.length; index += 1) {
       layer = layers[index];

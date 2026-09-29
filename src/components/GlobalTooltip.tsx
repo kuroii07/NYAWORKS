@@ -9,6 +9,7 @@ import { resolveTooltipTitle } from "./tooltipTitle";
 
 interface TooltipState {
   anchorCenter: number;
+  singleLine: boolean;
   text: string;
   left: number;
   placement: TooltipPlacement;
@@ -94,6 +95,7 @@ export function GlobalTooltip() {
         );
         setTooltip({
           anchorCenter: rect.left + rect.width / 2,
+          singleLine: target.closest(".anchor-button") !== null,
           text: title,
           ...position
         });
@@ -182,6 +184,7 @@ export function GlobalTooltip() {
     <div
       className="global-tooltip"
       data-placement={tooltip.placement}
+      data-single-line={tooltip.singleLine || undefined}
       ref={tooltipRef}
       role="tooltip"
       style={{ left: tooltip.left, top: tooltip.top }}

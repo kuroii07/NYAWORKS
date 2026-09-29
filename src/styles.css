@@ -4074,6 +4074,7 @@ html[data-reordering="true"] * {
 .global-tooltip {
   position: fixed;
   z-index: 1000;
+  box-sizing: border-box;
   max-width: 192px;
   padding: 6px 9px;
   border: 1px solid var(--nw-border-strong);
@@ -4086,6 +4087,10 @@ html[data-reordering="true"] * {
   text-align: center;
   pointer-events: none;
   transform: translateX(-50%);
+}
+
+.global-tooltip[data-single-line="true"] {
+  white-space: nowrap;
 }
 
 .global-tooltip[data-placement="right"] {
