@@ -88,6 +88,7 @@ function createBridge(
       resources: []
     }),
     chooseDirectory: async () => ({ status: "cancelled", path: null }),
+    useResource: async () => ({ ok: true }),
     ...overrides
   };
 }
@@ -194,6 +195,76 @@ describe("ResourceProvider scan lifecycle", () => {
     );
   });
 
+  it("removes cached built-in resources that are no longer exposed by the connected AE host", async () => {
+    const storage = new MemoryStorage();
+    writeStoredResourceSettings(
+      initialSettings([], [
+        {
+          id: "ae-default:scripts:utility.jsx",
+          sourceId: "ae-default:scripts",
+          resourceType: "script",
+          name: "utility",
+          relativePath: "Utility.jsx",
+          modifiedAt: null,
+          favorite: false,
+          lastUsedAt: null,
+          preview: {
+            coverUri: null,
+            loopUri: null,
+            cacheKey: null,
+            status: "none"
+          }
+        },
+        {
+          id: "ae-default:presets:bounce.ffx",
+          sourceId: "ae-default:presets",
+          resourceType: "preset",
+          name: "bounce",
+          relativePath: "Bounce.ffx",
+          modifiedAt: null,
+          favorite: false,
+          lastUsedAt: null,
+          preview: {
+            coverUri: null,
+            loopUri: null,
+            cacheKey: null,
+            status: "none"
+          }
+        }
+      ]),
+      storage
+    );
+
+    await renderProvider(
+      createBridge({
+        readCurrentAeSources: async () => ({
+          status: "connected",
+          hostVersion: "25.6",
+          sources: [
+            {
+              id: "ae-default:scripts",
+              kind: "ae-default",
+              resourceType: "script",
+              name: "AE Scripts",
+              path: "C:/Adobe/Scripts",
+              enabled: true,
+              hostVersion: "25.6",
+              status: "ready",
+              lastScannedAt: null,
+              lastError: null
+            }
+          ],
+          isDevelopmentFixture: false
+        })
+      }),
+      storage
+    );
+
+    expect(context?.resources.map((resource) => resource.id)).toEqual([
+      "ae-default:scripts:utility.jsx"
+    ]);
+  });
+
   it("replaces only the successful source index", async () => {
     const storage = new MemoryStorage();
     writeStoredResourceSettings(initialSettings(), storage);
@@ -248,6 +319,121 @@ describe("ResourceProvider scan lifecycle", () => {
       status: "selected",
       path: "C:/Tools/Animation"
     });
+  });
+
+  it("indexes a newly added custom source immediately", async () => {
+    const storage = new MemoryStorage();
+    const scannedPaths: string[] = [];
+    const resourceContext = await renderProvider(
+      createBridge({
+        scanSource: async (source) => {
+          scannedPaths.push(source.path);
+          return {
+            sourceId: source.id,
+            status: "ready",
+            resources: [{ relativePath: "Animation/Loop.jsx", modifiedAt: null }]
+          };
+        }
+      }),
+      storage
+    );
+
+    await act(async () => {
+      await resourceContext.addCustomSource({
+        name: "动画脚本",
+        resourceType: "script",
+        path: "C:/Tools/Animation"
+      });
+    });
+
+    expect(scannedPaths).toEqual(["C:/Tools/Animation"]);
+    expect(context?.resources.map((resource) => resource.name)).toContain("Loop");
+  });
+
+  it("rescans the new directory when a custom source path changes", async () => {
+    const storage = new MemoryStorage();
+    writeStoredResourceSettings(initialSettings(), storage);
+    const scannedPaths: string[] = [];
+    const resourceContext = await renderProvider(
+      createBridge({
+        scanSource: async (source) => {
+          scannedPaths.push(source.path);
+          return {
+            sourceId: source.id,
+            status: "ready",
+            resources: [{ relativePath: "Updated.jsx", modifiedAt: null }]
+          };
+        }
+      }),
+      storage
+    );
+
+    await act(async () => {
+      await resourceContext.updateCustomSource("custom:tools", {
+        path: "D:/Updated Tools"
+      });
+    });
+
+    expect(scannedPaths).toEqual(["D:/Updated Tools"]);
+    expect(context?.resources.map((resource) => resource.name)).toEqual([
+      "Updated"
+    ]);
+  });
+
+  it("does not rescan when only the source name or enabled state changes", async () => {
+    const storage = new MemoryStorage();
+    writeStoredResourceSettings(initialSettings(), storage);
+    const scannedPaths: string[] = [];
+    const resourceContext = await renderProvider(
+      createBridge({
+        scanSource: async (source) => {
+          scannedPaths.push(source.path);
+          return {
+            sourceId: source.id,
+            status: "ready",
+            resources: []
+          };
+        }
+      }),
+      storage
+    );
+
+    await act(async () => {
+      await resourceContext.updateCustomSource("custom:tools", {
+        name: "动画工具"
+      });
+      await resourceContext.updateCustomSource("custom:tools", {
+        enabled: false
+      });
+    });
+
+    expect(scannedPaths).toEqual([]);
+    expect(
+      context?.sources.find((source) => source.id === "custom:tools")
+    ).toMatchObject({
+      name: "动画工具",
+      enabled: false
+    });
+  });
+
+  it("uses an indexed resource through its owning source", async () => {
+    const storage = new MemoryStorage();
+    writeStoredResourceSettings(initialSettings(), storage);
+    const usedResources: string[] = [];
+    const resourceContext = await renderProvider(
+      createBridge({
+        useResource: async (source, resource) => {
+          usedResources.push(`${source.path}/${resource.relativePath}`);
+          return { ok: true };
+        }
+      }),
+      storage
+    );
+
+    await expect(
+      resourceContext.useResource("custom:tools:legacy.jsx")
+    ).resolves.toEqual({ ok: true });
+    expect(usedResources).toEqual(["C:/Tools/Legacy.jsx"]);
   });
 
   it("removes only the deleted custom source and its indexed resources", async () => {

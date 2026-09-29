@@ -37,6 +37,9 @@ export function createDevelopmentResourceService(): ResourceHostBridge {
     },
     async chooseDirectory() {
       return { status: "unavailable" as const, path: null };
+    },
+    async useResource() {
+      return { ok: false as const, reason: "unavailable" as const };
     }
   };
 }

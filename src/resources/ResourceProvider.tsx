@@ -11,7 +11,8 @@ import {
 } from "react";
 import {
   cepResourceBridge,
-  type ResourceHostBridge
+  type ResourceHostBridge,
+  type ResourceUseResult
 } from "../host/resourceBridge";
 import {
   createCustomResourceSource,
@@ -53,11 +54,12 @@ export interface ResourceContextValue {
   refreshAllSources(): Promise<void>;
   refreshSource(sourceId: string): Promise<void>;
   chooseDirectory: ResourceHostBridge["chooseDirectory"];
-  addCustomSource(input: CustomResourceSourceInput): ResourceSource;
+  addCustomSource(input: CustomResourceSourceInput): Promise<ResourceSource>;
   updateCustomSource(
     sourceId: string,
     patch: Partial<Pick<ResourceSource, "name" | "path" | "enabled">>
-  ): void;
+  ): Promise<void>;
+  useResource(resourceId: string): Promise<ResourceUseResult>;
   removeCustomSource(sourceId: string): void;
   toggleFavorite(resourceId: string): void;
 }
@@ -135,8 +137,21 @@ export function ResourceProvider({
   const [hostVersion, setHostVersion] = useState<string | null>(null);
   const [isDevelopmentFixture, setIsDevelopmentFixture] = useState(false);
   const [refreshingSourceIds, setRefreshingSourceIds] = useState<string[]>([]);
+  const settingsRef = useRef(settings);
   const mountedRef = useRef(true);
   const scanVersionRef = useRef(new Map<string, number>());
+
+  settingsRef.current = settings;
+
+  const updateSettings = useCallback(
+    (updater: (current: ResourceSettings) => ResourceSettings) => {
+      const next = updater(settingsRef.current);
+      settingsRef.current = next;
+      setSettings(next);
+      return next;
+    },
+    []
+  );
 
   useEffect(() => {
     mountedRef.current = true;
@@ -165,6 +180,27 @@ export function ResourceProvider({
         setHostVersion(snapshot.hostVersion);
         setIsDevelopmentFixture(snapshot.isDevelopmentFixture);
         setCurrentAeSources(snapshot.sources);
+
+        if (snapshot.status === "connected") {
+          const activeCurrentSourceIds = new Set(
+            snapshot.sources.map((source) => source.id)
+          );
+          updateSettings((current) => ({
+            ...current,
+            index: {
+              resources: current.index.resources.filter(
+                (resource) =>
+                  !resource.sourceId.startsWith("ae-default:") ||
+                  activeCurrentSourceIds.has(resource.sourceId)
+              ),
+              sourceStates: current.index.sourceStates.filter(
+                (sourceState) =>
+                  !sourceState.sourceId.startsWith("ae-default:") ||
+                  activeCurrentSourceIds.has(sourceState.sourceId)
+              )
+            }
+          }));
+        }
       })
       .catch(() => {
         if (!cancelled && mountedRef.current) {
@@ -178,7 +214,7 @@ export function ResourceProvider({
     return () => {
       cancelled = true;
     };
-  }, [bridge]);
+  }, [bridge, updateSettings]);
 
   const sourceList = useMemo(
     () => [...currentAeSources, ...settings.customSources],
@@ -196,18 +232,16 @@ export function ResourceProvider({
     [refreshingSet, settings, sourceList]
   );
 
-  const refreshSource = useCallback(
-    async (sourceId: string) => {
-      const source = sourceList.find((candidate) => candidate.id === sourceId);
-
-      if (!source || !source.enabled) {
+  const scanSourceDefinition = useCallback(
+    async (source: ResourceSource) => {
+      if (!source.enabled) {
         return;
       }
 
-      const scanVersion = (scanVersionRef.current.get(sourceId) ?? 0) + 1;
-      scanVersionRef.current.set(sourceId, scanVersion);
+      const scanVersion = (scanVersionRef.current.get(source.id) ?? 0) + 1;
+      scanVersionRef.current.set(source.id, scanVersion);
       setRefreshingSourceIds((current) =>
-        current.includes(sourceId) ? current : [...current, sourceId]
+        current.includes(source.id) ? current : [...current, source.id]
       );
 
       let result: ResourceScanResult;
@@ -216,7 +250,7 @@ export function ResourceProvider({
         result = await bridge.scanSource(source);
       } catch {
         result = {
-          sourceId,
+          sourceId: source.id,
           status: "error",
           resources: [],
           errorCode: "scan-failed"
@@ -225,20 +259,33 @@ export function ResourceProvider({
 
       if (
         !mountedRef.current ||
-        scanVersionRef.current.get(sourceId) !== scanVersion
+        scanVersionRef.current.get(source.id) !== scanVersion
       ) {
         return;
       }
 
       const scannedAt = now().toISOString();
-      setSettings((current) =>
+      updateSettings((current) =>
         mergeSourceScanResult(current, source, result, scannedAt)
       );
       setRefreshingSourceIds((current) =>
-        current.filter((candidate) => candidate !== sourceId)
+        current.filter((candidate) => candidate !== source.id)
       );
     },
-    [bridge, now, sourceList]
+    [bridge, now, updateSettings]
+  );
+
+  const refreshSource = useCallback(
+    async (sourceId: string) => {
+      const source = sourceList.find((candidate) => candidate.id === sourceId);
+
+      if (!source) {
+        return;
+      }
+
+      await scanSourceDefinition(source);
+    },
+    [scanSourceDefinition, sourceList]
   );
 
   const refreshAllSources = useCallback(async () => {
@@ -260,24 +307,85 @@ export function ResourceProvider({
       refreshAllSources,
       refreshSource,
       chooseDirectory: () => bridge.chooseDirectory(),
-      addCustomSource: (input) => {
+      addCustomSource: async (input) => {
         const source = createCustomResourceSource(input, now());
-        setSettings((current) => ({
+        updateSettings((current) => ({
           ...current,
           customSources: [...current.customSources, source]
         }));
+        await scanSourceDefinition(source);
         return source;
       },
-      updateCustomSource: (sourceId, patch) => {
-        setSettings((current) =>
+      updateCustomSource: async (sourceId, patch) => {
+        const previousSource = settingsRef.current.customSources.find(
+          (source) => source.id === sourceId
+        );
+
+        if (!previousSource) {
+          return;
+        }
+
+        const nextSettings = updateSettings((current) =>
           updateCustomResourceSource(current, sourceId, patch)
         );
+        const nextSource = nextSettings.customSources.find(
+          (source) => source.id === sourceId
+        );
+
+        if (
+          nextSource &&
+          nextSource.enabled &&
+          nextSource.path !== previousSource.path
+        ) {
+          await scanSourceDefinition(nextSource);
+        }
+      },
+      useResource: async (resourceId) => {
+        const resource = settingsRef.current.index.resources.find(
+          (candidate) => candidate.id === resourceId
+        );
+        const source = [
+          ...currentAeSources,
+          ...settingsRef.current.customSources
+        ].find((candidate) => candidate.id === resource?.sourceId);
+
+        if (!resource || !source || !source.enabled) {
+          return { ok: false, reason: "invalid-resource" };
+        }
+
+        let result: ResourceUseResult;
+        try {
+          result = await bridge.useResource(source, resource);
+        } catch {
+          result = { ok: false, reason: "host-error" };
+        }
+
+        if (result.ok && mountedRef.current) {
+          const usedAt = now().toISOString();
+          updateSettings((current) => ({
+            ...current,
+            index: {
+              ...current.index,
+              resources: current.index.resources.map((candidate) =>
+                candidate.id === resourceId
+                  ? { ...candidate, lastUsedAt: usedAt }
+                  : candidate
+              )
+            }
+          }));
+        }
+
+        return result;
       },
       removeCustomSource: (sourceId) => {
-        setSettings((current) => removeCustomResourceSource(current, sourceId));
+        updateSettings((current) =>
+          removeCustomResourceSource(current, sourceId)
+        );
       },
       toggleFavorite: (resourceId) => {
-        setSettings((current) => toggleResourceFavorite(current, resourceId));
+        updateSettings((current) =>
+          toggleResourceFavorite(current, resourceId)
+        );
       }
     }),
     [
@@ -285,12 +393,15 @@ export function ResourceProvider({
       hostVersion,
       isDevelopmentFixture,
       bridge,
+      currentAeSources,
       now,
       refreshAllSources,
       refreshSource,
       refreshingSourceIds,
+      scanSourceDefinition,
       settings,
-      sources
+      sources,
+      updateSettings
     ]
   );
 

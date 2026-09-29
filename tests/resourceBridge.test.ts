@@ -109,6 +109,74 @@ describe("resource host bridge", () => {
     });
   });
 
+  it("routes indexed resources to their matching AE host action", async () => {
+    const scripts: string[] = [];
+    const bridge = createCepResourceBridge({
+      __adobe_cep__: {
+        evalScript: (script, callback) => {
+          scripts.push(script);
+          callback(JSON.stringify({ ok: true }));
+        }
+      }
+    });
+    const resource = {
+      id: "custom:tools:animation/loop.jsx",
+      sourceId: customSource.id,
+      resourceType: "script" as const,
+      name: "Loop",
+      relativePath: "Animation/Loop.jsx",
+      modifiedAt: null,
+      favorite: false,
+      lastUsedAt: null,
+      preview: {
+        coverUri: null,
+        loopUri: null,
+        cacheKey: null,
+        status: "none" as const
+      }
+    };
+
+    await expect(bridge.useResource(customSource, resource)).resolves.toEqual({
+      ok: true
+    });
+    await expect(
+      bridge.useResource(
+        { ...customSource, resourceType: "preset", path: "C:/Presets" },
+        {
+          ...resource,
+          resourceType: "preset",
+          relativePath: "Motion/Bounce.ffx"
+        }
+      )
+    ).resolves.toEqual({ ok: true });
+    await expect(
+      bridge.useResource(
+        { ...customSource, resourceType: "expression", path: "C:/Expressions" },
+        {
+          ...resource,
+          resourceType: "expression",
+          relativePath: "Loop.txt"
+        }
+      )
+    ).resolves.toEqual({ ok: true });
+
+    expect(scripts.map((script) => script.split("(")[0])).toEqual([
+      "NYAWORKS.runSearchScript",
+      "NYAWORKS.applySearchPreset",
+      "NYAWORKS.applyResourceExpression"
+    ]);
+    expect(
+      scripts.map((script) => {
+        const payload = script.match(/\("(.+)"\)$/)?.[1] ?? "";
+        return JSON.parse(decodeURIComponent(payload));
+      })
+    ).toEqual([
+      { path: "C:/Tools/我的 脚本/Animation/Loop.jsx" },
+      { path: "C:/Presets/Motion/Bounce.ffx" },
+      { path: "C:/Expressions/Loop.txt" }
+    ]);
+  });
+
   it("uses clearly marked fixture data without claiming a machine directory was read", async () => {
     const fixture = createDevelopmentResourceService();
     const sourceSnapshot = await fixture.readCurrentAeSources();

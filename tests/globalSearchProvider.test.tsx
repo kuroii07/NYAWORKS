@@ -66,7 +66,8 @@ function createResourceBridge(): ResourceHostBridge {
       isDevelopmentFixture: false
     }),
     scanSource: async (candidate) => ({ sourceId: candidate.id, status: "ready", resources: [] }),
-    chooseDirectory: async () => ({ status: "cancelled", path: null })
+    chooseDirectory: async () => ({ status: "cancelled", path: null }),
+    useResource: async () => ({ ok: true })
   };
 }
 

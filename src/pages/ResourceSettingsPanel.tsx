@@ -1,12 +1,15 @@
 import {
   ArrowsClockwise,
+  BracketsCurly,
   CaretDown,
   CaretRight,
   DotsThree,
+  FileCode,
   FolderOpen,
   PencilSimple,
   Plus,
   Power,
+  SlidersHorizontal,
   Trash
 } from "@phosphor-icons/react";
 import { useMemo, useState } from "react";
@@ -20,26 +23,65 @@ import {
 } from "../components/SettingSelect";
 import { TextInputDialog } from "../components/TextInputDialog";
 import { useLanguage } from "../i18n/LanguageProvider";
+import type { LanguageId } from "../i18n/languages";
+import { useToast } from "../notifications/ToastProvider";
 import { useResources } from "../resources/ResourceProvider";
-import type { CustomResourceType, ResourceSource } from "../resources/types";
+import type {
+  CustomResourceType,
+  IndexedResource,
+  ResourceSource,
+  ResourceType
+} from "../resources/types";
 
 type SourceDialog =
   | { mode: "add" }
   | { mode: "edit"; source: ResourceSource }
   | null;
 
+function formatLastScannedAt(
+  value: string | null,
+  languageId: LanguageId,
+  fallback: string
+): string {
+  if (!value) {
+    return fallback;
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return fallback;
+  }
+
+  return date.toLocaleString(languageId);
+}
+
+function ResourceTypeIcon({ type }: { type: ResourceType }) {
+  if (type === "preset") {
+    return <SlidersHorizontal aria-hidden="true" weight="regular" />;
+  }
+
+  if (type === "expression") {
+    return <BracketsCurly aria-hidden="true" weight="regular" />;
+  }
+
+  return <FileCode aria-hidden="true" weight="regular" />;
+}
+
 export function ResourceSettingsPanel() {
-  const { copy } = useLanguage();
+  const { copy, languageId } = useLanguage();
+  const { toast } = useToast();
   const labels = copy.settings.resources;
   const {
     hostStatus,
     sources,
+    resources,
     refreshingSourceIds,
     refreshAllSources,
     refreshSource,
     chooseDirectory,
     addCustomSource,
     updateCustomSource,
+    useResource,
     removeCustomSource
   } = useResources();
   const [sourceType, setSourceType] = useState<CustomResourceType>("script");
@@ -50,6 +92,7 @@ export function ResourceSettingsPanel() {
   const [draftPath, setDraftPath] = useState("");
   const [draftError, setDraftError] = useState<string | null>(null);
   const [directoryMessage, setDirectoryMessage] = useState<string | null>(null);
+  const [usingResourceIds, setUsingResourceIds] = useState<string[]>([]);
 
   const typeOptions: readonly SettingSelectOption<CustomResourceType>[] = useMemo(
     () => [
@@ -62,6 +105,57 @@ export function ResourceSettingsPanel() {
   const currentAeSources = sources.filter((source) => source.kind === "ae-default");
   const customSources = sources.filter((source) => source.kind === "custom");
   const isRefreshing = refreshingSourceIds.length > 0;
+  const resourcesBySource = useMemo(() => {
+    const grouped = new Map<string, IndexedResource[]>();
+
+    for (const resource of resources) {
+      const sourceResources = grouped.get(resource.sourceId) ?? [];
+      sourceResources.push(resource);
+      grouped.set(resource.sourceId, sourceResources);
+    }
+
+    for (const sourceResources of grouped.values()) {
+      sourceResources.sort((left, right) =>
+        left.relativePath.localeCompare(right.relativePath)
+      );
+    }
+
+    return grouped;
+  }, [resources]);
+
+  async function useIndexedResource(resource: IndexedResource) {
+    if (usingResourceIds.includes(resource.id)) {
+      return;
+    }
+
+    setUsingResourceIds((current) => [...current, resource.id]);
+    try {
+      const result = await useResource(resource.id);
+
+      if (result.ok) {
+        toast.success(`${copy.resources.useSuccess}: ${resource.name}`);
+        return;
+      }
+
+      const message =
+        result.reason === "no-selected-layer"
+          ? copy.resources.noSelectedLayer
+          : result.reason === "no-selected-property"
+            ? copy.resources.noSelectedProperty
+            : result.reason === "empty-expression"
+              ? copy.resources.emptyExpression
+              : result.reason === "invalid-resource"
+                ? copy.resources.invalidResource
+                : result.reason === "unavailable"
+                  ? copy.resources.hostActionUnavailable
+                  : copy.resources.useFailed;
+      toast.error(message);
+    } finally {
+      setUsingResourceIds((current) =>
+        current.filter((candidate) => candidate !== resource.id)
+      );
+    }
+  }
 
   function toggleSourceExpansion(sourceId: string) {
     setExpandedSourceIds((current) =>
@@ -117,9 +211,16 @@ export function ResourceSettingsPanel() {
     }
 
     if (dialog.mode === "add") {
-      addCustomSource({ name: draftName, path: draftPath, resourceType: sourceType });
+      void addCustomSource({
+        name: draftName,
+        path: draftPath,
+        resourceType: sourceType
+      });
     } else {
-      updateCustomSource(dialog.source.id, { name: draftName, path: draftPath });
+      void updateCustomSource(dialog.source.id, {
+        name: draftName,
+        path: draftPath
+      });
     }
 
     setDialog(null);
@@ -131,7 +232,10 @@ export function ResourceSettingsPanel() {
         id: "refresh",
         label: labels.refreshSource,
         icon: ArrowsClockwise,
-        disabled: refreshingSourceIds.includes(source.id),
+        disabled:
+          refreshingSourceIds.includes(source.id) ||
+          hostStatus !== "connected" ||
+          !source.enabled,
         onSelect: () => void refreshSource(source.id)
       }
     ];
@@ -152,7 +256,8 @@ export function ResourceSettingsPanel() {
         id: "enabled",
         label: source.enabled ? labels.disableSource : labels.enableSource,
         icon: Power,
-        onSelect: () => updateCustomSource(source.id, { enabled: !source.enabled })
+        onSelect: () =>
+          void updateCustomSource(source.id, { enabled: !source.enabled })
       },
       {
         id: "remove",
@@ -166,10 +271,17 @@ export function ResourceSettingsPanel() {
 
   function renderSource(source: ResourceSource) {
     const expanded = expandedSourceIds.includes(source.id);
+    const sourceResources = resourcesBySource.get(source.id) ?? [];
+    const itemCount = sourceResources.length;
+    const statusLabel = source.enabled
+      ? labels.status[source.status]
+      : labels.sourceDisabled;
+    const typeLabel = copy.resources.typeLabels[source.resourceType];
 
     return (
       <article
         className="resource-source-row"
+        data-enabled={source.enabled ? "true" : "false"}
         data-status={source.status}
         data-source-kind={source.kind}
         key={source.id}
@@ -185,7 +297,21 @@ export function ResourceSettingsPanel() {
           ) : (
             <CaretRight aria-hidden="true" weight="bold" />
           )}
-          <span className="resource-source-row__name">{source.name}</span>
+          <span className="resource-source-row__summary-copy">
+            <span className="resource-source-row__name">{source.name}</span>
+            <span className="resource-source-row__meta">
+              <span>{typeLabel}</span>
+              <span
+                className="resource-source-row__status"
+                data-status={source.enabled ? source.status : "disabled"}
+              >
+                {statusLabel}
+              </span>
+              <span aria-label={`${labels.sourceCount}: ${itemCount}`}>
+                {labels.sourceCount} {itemCount}
+              </span>
+            </span>
+          </span>
         </button>
         <div className="resource-source-row__actions">
           <button
@@ -207,12 +333,84 @@ export function ResourceSettingsPanel() {
           />
         </div>
         {expanded ? (
-          <dl className="resource-source-row__details">
-            <div>
-              <dt>{labels.sourcePath}</dt>
-              <dd title={source.path}>{source.path}</dd>
+          <div className="resource-source-row__expanded">
+            <div
+              className="resource-source-row__resources"
+              aria-label={`${source.name} · ${labels.sourceCount} ${itemCount}`}
+            >
+              {sourceResources.length > 0 ? (
+                sourceResources.map((resource) => {
+                  const isUsing = usingResourceIds.includes(resource.id);
+                  const disabled =
+                    hostStatus !== "connected" || !source.enabled || isUsing;
+
+                  return (
+                    <button
+                      className="resource-source-item"
+                      data-resource-id={resource.id}
+                      data-resource-type={resource.resourceType}
+                      key={resource.id}
+                      type="button"
+                      disabled={disabled}
+                      title={
+                        hostStatus === "connected"
+                          ? copy.resources.doubleClickToUse
+                          : copy.resources.hostActionUnavailable
+                      }
+                      onDoubleClick={() => void useIndexedResource(resource)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          void useIndexedResource(resource);
+                        }
+                      }}
+                    >
+                      <ResourceTypeIcon type={resource.resourceType} />
+                      <span className="resource-source-item__copy">
+                        <strong>{resource.name}</strong>
+                        <span>{resource.relativePath}</span>
+                      </span>
+                    </button>
+                  );
+                })
+              ) : (
+                <p className="resource-source-row__empty">
+                  {copy.resources.noIndexedResources}
+                </p>
+              )}
             </div>
-          </dl>
+            <dl className="resource-source-row__details">
+              <div>
+                <dt>{labels.sourceStatus}</dt>
+                <dd
+                  className="resource-source-row__status"
+                  data-status={source.status}
+                >
+                  {statusLabel}
+                </dd>
+              </div>
+              <div>
+                <dt>{labels.lastScanned}</dt>
+                <dd>
+                  {formatLastScannedAt(
+                    source.lastScannedAt,
+                    languageId,
+                    labels.neverScanned
+                  )}
+                </dd>
+              </div>
+              {source.hostVersion ? (
+                <div>
+                  <dt>{labels.sourceVersion}</dt>
+                  <dd>{source.hostVersion}</dd>
+                </div>
+              ) : null}
+              <div className="resource-source-row__details-path">
+                <dt>{labels.sourcePath}</dt>
+                <dd title={source.path}>{source.path}</dd>
+              </div>
+            </dl>
+          </div>
         ) : null}
       </article>
     );
@@ -232,7 +430,11 @@ export function ResourceSettingsPanel() {
         <button
           className="resource-settings__refresh-button"
           type="button"
-          disabled={isRefreshing}
+          disabled={
+            isRefreshing ||
+            hostStatus !== "connected" ||
+            !sources.some((source) => source.enabled)
+          }
           onClick={() => void refreshAllSources()}
         >
           <ArrowsClockwise aria-hidden="true" weight="bold" />
@@ -246,7 +448,11 @@ export function ResourceSettingsPanel() {
           <h3 id="current-ae-sources">{labels.currentAeSources}</h3>
         </div>
         <div className="resource-settings__source-list">
-          {currentAeSources.map(renderSource)}
+          {currentAeSources.length > 0 ? (
+            currentAeSources.map(renderSource)
+          ) : (
+            <p className="resource-settings__empty">{labels.noCurrentAeSources}</p>
+          )}
         </div>
       </section>
 
@@ -270,7 +476,11 @@ export function ResourceSettingsPanel() {
           </div>
         </div>
         <div className="resource-settings__source-list">
-          {customSources.map(renderSource)}
+          {customSources.length > 0 ? (
+            customSources.map(renderSource)
+          ) : (
+            <p className="resource-settings__empty">{labels.noCustomSources}</p>
+          )}
         </div>
       </section>
 

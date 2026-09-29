@@ -5,6 +5,8 @@ import {
 import {
   isResourceSourceStatus,
   isResourceType,
+  normalizeResourcePath,
+  type IndexedResource,
   type ResourceScanResult,
   type ResourceSource
 } from "../resources/types";
@@ -25,7 +27,25 @@ export interface ResourceHostBridge {
   readCurrentAeSources(): Promise<CurrentAeResourceSourcesResult>;
   scanSource(source: ResourceSource): Promise<ResourceScanResult>;
   chooseDirectory(): Promise<ResourceDirectoryChoiceResult>;
+  useResource(
+    source: ResourceSource,
+    resource: IndexedResource
+  ): Promise<ResourceUseResult>;
 }
+
+export type ResourceUseResult =
+  | { ok: true; updatedItems?: number }
+  | {
+      ok: false;
+      reason:
+        | "unavailable"
+        | "invalid-resource"
+        | "no-selected-layer"
+        | "no-selected-property"
+        | "empty-expression"
+        | "host-error";
+      detail?: string;
+    };
 
 const UNAVAILABLE_SOURCES: CurrentAeResourceSourcesResult = {
   status: "unavailable",
@@ -160,6 +180,52 @@ function encodeSourcePayload(source: ResourceSource): string {
   );
 }
 
+function resourcePath(
+  source: ResourceSource,
+  resource: IndexedResource
+): string {
+  const root = normalizeResourcePath(source.path);
+  const relativePath = normalizeResourcePath(resource.relativePath).replace(
+    /^\/+/,
+    ""
+  );
+  return `${root}/${relativePath}`;
+}
+
+function parseResourceUseResult(value: string | null): ResourceUseResult {
+  if (value === null) {
+    return { ok: false, reason: "unavailable" };
+  }
+
+  const parsed = parseJson(value);
+
+  if (isRecord(parsed) && parsed.ok === true) {
+    return {
+      ok: true,
+      ...(typeof parsed.updatedItems === "number"
+        ? { updatedItems: parsed.updatedItems }
+        : {})
+    };
+  }
+
+  const reason =
+    isRecord(parsed) &&
+    (parsed.reason === "invalid-resource" ||
+      parsed.reason === "no-selected-layer" ||
+      parsed.reason === "no-selected-property" ||
+      parsed.reason === "empty-expression")
+      ? parsed.reason
+      : "host-error";
+
+  return {
+    ok: false,
+    reason,
+    ...(isRecord(parsed) && typeof parsed.detail === "string"
+      ? { detail: parsed.detail }
+      : {})
+  };
+}
+
 export function createCepResourceBridge(
   environment?: CepEnvironment
 ): ResourceHostBridge {
@@ -223,6 +289,23 @@ export function createCepResourceBridge(
       return parsed.status === "cancelled"
         ? { status: "cancelled", path: null }
         : { status: "error", path: null };
+    },
+    async useResource(source, resource) {
+      const path = resourcePath(source, resource);
+      const payload = encodeURIComponent(JSON.stringify({ path }));
+      const functionName =
+        resource.resourceType === "preset"
+          ? "applySearchPreset"
+          : resource.resourceType === "expression"
+            ? "applyResourceExpression"
+            : "runSearchScript";
+
+      return parseResourceUseResult(
+        await evaluateHostScript(
+          `NYAWORKS.${functionName}("${payload}")`,
+          environment
+        )
+      );
     }
   };
 }

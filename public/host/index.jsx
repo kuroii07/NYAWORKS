@@ -32,7 +32,7 @@
   }
 
   function createResourceSource(id, resourceType, name, relativePath) {
-    var folder = new Folder(app.path.fsName + "/" + relativePath);
+    var folder = new Folder(Folder.startup.fsName + "/" + relativePath);
     var exists = folder.exists;
 
     return {
@@ -62,8 +62,7 @@
             "ScriptUI Panels",
             "Scripts/ScriptUI Panels"
           ),
-          createResourceSource("startup", "startup", "Startup", "Scripts/Startup"),
-          createResourceSource("presets", "preset", "AE Presets", "Presets")
+          createResourceSource("startup", "startup", "Startup", "Scripts/Startup")
         ]
       });
     } catch (error) {
@@ -296,6 +295,98 @@
     } catch (error) {
       try { app.endUndoGroup(); } catch (ignore) {}
       return JSON.stringify({ ok: false, reason: "host-error" });
+    }
+  }
+
+  function applyResourceExpression(encodedPayload) {
+    var payload;
+    var file;
+    var content;
+    var parsed;
+    var item;
+    var properties;
+    var updatedProperties = 0;
+    var index;
+    var property;
+    var undoStarted = false;
+
+    try {
+      payload = decodeSearchPayload(encodedPayload);
+      if (!payload || !payload.path) {
+        return JSON.stringify({ ok: false, reason: "invalid-resource" });
+      }
+
+      file = new File(payload.path);
+      if (!file.exists) {
+        return JSON.stringify({ ok: false, reason: "invalid-resource" });
+      }
+
+      file.encoding = "UTF-8";
+      if (!file.open("r")) {
+        return JSON.stringify({ ok: false, reason: "invalid-resource" });
+      }
+      content = file.read();
+      file.close();
+
+      if (/\.json$/i.test(file.name)) {
+        parsed = JSON.parse(content);
+        content = parsed && typeof parsed.expression === "string"
+          ? parsed.expression
+          : parsed && typeof parsed.code === "string"
+            ? parsed.code
+            : "";
+      }
+
+      if (!content || !/\S/.test(content)) {
+        return JSON.stringify({ ok: false, reason: "empty-expression" });
+      }
+
+      item = app.project && app.project.activeItem;
+      properties = item && item.selectedProperties
+        ? item.selectedProperties
+        : [];
+
+      for (index = 0; index < properties.length; index += 1) {
+        if (properties[index] && properties[index].canSetExpression === true) {
+          updatedProperties += 1;
+        }
+      }
+
+      if (updatedProperties === 0) {
+        return JSON.stringify({ ok: false, reason: "no-selected-property" });
+      }
+
+      app.beginUndoGroup("NYAWORKS Apply Expression");
+      undoStarted = true;
+      for (index = 0; index < properties.length; index += 1) {
+        property = properties[index];
+        if (property && property.canSetExpression === true) {
+          property.expression = content;
+        }
+      }
+      app.endUndoGroup();
+      undoStarted = false;
+
+      return JSON.stringify({
+        ok: true,
+        updatedProperties: updatedProperties
+      });
+    } catch (error) {
+      try {
+        if (file && file.opened) {
+          file.close();
+        }
+      } catch (ignoreFileClose) {}
+      try {
+        if (undoStarted) {
+          app.endUndoGroup();
+        }
+      } catch (ignoreUndoClose) {}
+      return JSON.stringify({
+        ok: false,
+        reason: "host-error",
+        detail: error && error.toString ? error.toString() : "unknown"
+      });
     }
   }
 
@@ -1548,6 +1639,7 @@
     ,getCurrentEffects: getCurrentEffects
     ,runSearchScript: runSearchScript
     ,applySearchPreset: applySearchPreset
+    ,applyResourceExpression: applyResourceExpression
     ,addSearchEffect: addSearchEffect
     ,setAnchorPoint: setAnchorPoint
     ,getActionContext: getActionContext

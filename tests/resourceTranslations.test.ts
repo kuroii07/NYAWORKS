@@ -12,6 +12,10 @@ describe("resource copy", () => {
       expect(copy.settings.resources.currentAeSources.trim().length).toBeGreaterThan(0);
       expect(copy.settings.resources.mySources.trim().length).toBeGreaterThan(0);
       expect(copy.settings.resources.updateIndex.trim().length).toBeGreaterThan(0);
+      expect(copy.settings.resources.lastScanned.trim().length).toBeGreaterThan(0);
+      expect(copy.settings.resources.neverScanned.trim().length).toBeGreaterThan(0);
+      expect(copy.settings.resources.noCurrentAeSources.trim().length).toBeGreaterThan(0);
+      expect(copy.settings.resources.noCustomSources.trim().length).toBeGreaterThan(0);
     }
   });
 });

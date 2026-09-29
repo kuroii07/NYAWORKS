@@ -302,6 +302,14 @@ export interface UiCopy {
     revealSource: string;
     refreshSource: string;
     hostActionUnavailable: string;
+    doubleClickToUse: string;
+    useSuccess: string;
+    useFailed: string;
+    noSelectedLayer: string;
+    noSelectedProperty: string;
+    emptyExpression: string;
+    invalidResource: string;
+    noIndexedResources: string;
   };
   settings: {
     navigationAria: string;
@@ -430,6 +438,11 @@ export interface UiCopy {
       sourceCount: string;
       sourcePath: string;
       sourceVersion: string;
+      lastScanned: string;
+      neverScanned: string;
+      noCurrentAeSources: string;
+      noCustomSources: string;
+      sourceDisabled: string;
       sourceActions: string;
       addSource: string;
       sourceType: string;
