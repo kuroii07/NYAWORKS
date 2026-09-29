@@ -1,12 +1,16 @@
 import type { ActionRunner } from "./runner";
-import type { ActionContextSnapshot, ActionResult } from "./types";
+import type {
+  ActionContextSnapshot,
+  ActionResult,
+  ActionRunOptions
+} from "./types";
 
 export interface ActionContextProvider {
   getSnapshot(): Promise<ActionContextSnapshot>;
 }
 
 export interface ActionService {
-  run(actionId: string): Promise<ActionResult>;
+  run(actionId: string, options?: ActionRunOptions): Promise<ActionResult>;
 }
 
 export function createActionService(options: {
@@ -14,7 +18,7 @@ export function createActionService(options: {
   runner: ActionRunner;
 }): ActionService {
   return {
-    async run(actionId) {
+    async run(actionId, runOptions) {
       let snapshot: ActionContextSnapshot;
       try {
         snapshot = await options.contextProvider.getSnapshot();
@@ -26,7 +30,7 @@ export function createActionService(options: {
           selectedKeys: 0
         };
       }
-      return options.runner.run(actionId, snapshot);
+      return options.runner.run(actionId, snapshot, runOptions);
     }
   };
 }

@@ -8,13 +8,16 @@ import { ResourceProvider } from "../src/resources/ResourceProvider";
 import { GlobalSearchProvider } from "../src/search/GlobalSearchProvider";
 import { GlobalSearchPanel } from "../src/components/GlobalSearchPanel";
 import { createDevelopmentResourceService, createDevelopmentGlobalSearchService } from "../src/resources/developmentResourceService";
+import { ActionServiceProvider } from "../src/actions/ActionServiceProvider";
+import type { ActionService } from "../src/actions/service";
+import { ToastProvider } from "../src/notifications/ToastProvider";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 
-async function renderPanel() {
+async function renderPanel(actionService?: ActionService) {
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -22,9 +25,13 @@ async function renderPanel() {
     root?.render(
       <LanguageProvider>
         <ResourceProvider bridge={createDevelopmentResourceService()}>
-          <GlobalSearchProvider bridge={createDevelopmentGlobalSearchService()}>
-            <GlobalSearchPanel />
-          </GlobalSearchProvider>
+          <ActionServiceProvider service={actionService}>
+            <GlobalSearchProvider bridge={createDevelopmentGlobalSearchService()}>
+              <ToastProvider>
+                <GlobalSearchPanel />
+              </ToastProvider>
+            </GlobalSearchProvider>
+          </ActionServiceProvider>
         </ResourceProvider>
       </LanguageProvider>
     );
@@ -155,5 +162,39 @@ describe("GlobalSearchPanel", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("shows localized feedback when an alignment action fails", async () => {
+    const node = await renderPanel({
+      run: async () => ({
+        success: false,
+        message: "Alignment action failed",
+        error: {
+          code: "expression-conflict",
+          detail: "Layer 1"
+        }
+      })
+    });
+    const input = node.querySelector<HTMLInputElement>(".global-search input")!;
+
+    await act(async () => {
+      input.focus();
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value"
+      )?.set;
+      setter?.call(input, "layer.align.left");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => {
+      input.dispatchEvent(new KeyboardEvent("keydown", {
+        key: "Enter",
+        bubbles: true
+      }));
+    });
+
+    expect(node.querySelector('[role="alert"]')?.textContent).toContain(
+      "选中的图层含有表达式或关键帧，无法安全对齐（Layer 1）"
+    );
   });
 });

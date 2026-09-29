@@ -7,8 +7,11 @@ describe("anchor action integration", () => {
 
     expect(source).toContain("useActionService");
     expect(source).toContain("getAnchorActionId(position)");
+    expect(source).toContain("getAlignmentActionId(action)");
     expect(source).not.toContain("anchorHostBridge");
     expect(source).not.toContain("../host/anchorBridge");
+    expect(source).not.toContain("alignmentHostBridge");
+    expect(source).not.toContain("../host/alignmentBridge");
   });
 
   it("provides the shared action service outside global search", async () => {

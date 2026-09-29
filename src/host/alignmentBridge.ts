@@ -1,21 +1,15 @@
 import { evaluateHostScript, type CepEnvironment } from "./cepBridge";
+import type {
+  AlignmentAction,
+  AlignmentTarget
+} from "../actions/alignmentTypes";
 
-export const ALIGNMENT_ACTIONS = [
-  "left",
-  "center-x",
-  "right",
-  "top",
-  "center-y",
-  "bottom",
-  "paragraph-left",
-  "paragraph-center",
-  "paragraph-right"
-] as const;
-
-export type AlignmentAction = (typeof ALIGNMENT_ACTIONS)[number];
-
-export const ALIGNMENT_TARGETS = ["composition", "selection"] as const;
-export type AlignmentTarget = (typeof ALIGNMENT_TARGETS)[number];
+export {
+  ALIGNMENT_ACTIONS,
+  ALIGNMENT_TARGETS,
+  type AlignmentAction,
+  type AlignmentTarget
+} from "../actions/alignmentTypes";
 
 export type AlignmentActionResult =
   | { ok: true; updatedLayers: number }

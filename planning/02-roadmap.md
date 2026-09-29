@@ -103,7 +103,10 @@
 - [x] 锚点 Action 架构迁移：首页与全局搜索统一使用 Registry → Context Provider → Action Service/Runner → Host Executor → Bridge → Host JSX
 - [x] 锚点全局搜索：九个 Action 由 Registry 生成五语言搜索项并通过共享 Action Service 执行
 - [ ] 锚点真实 AE 验收：2D、普通 3D、父级、旋转/缩放、关键帧、表达式和锁定图层场景
-- [x] 对齐九宫格 Host Bridge：默认合成对齐，Alt/Option 或 Shift 点击切换选区对齐，包含 6 个图层对齐和 3 个文字段落对齐
+- [x] 对齐九宫格 Action 架构迁移：首页与全局搜索统一使用 Registry → Context Provider → Action Service/Runner → Host Executor → Bridge → Host JSX
+- [x] 对齐智能目标：单选默认合成，多选默认选区；多选按住 Alt/Option 或 Shift 强制合成，三个文字段落动作不受目标模式影响
+- [x] 对齐全局搜索：六个图层对齐与三个段落对齐 Action 由 Registry 生成五语言搜索项，并通过共享 Action Service 执行
+- [x] 对齐 3D 投影：根据 `threeDLayer` 自动分流；3D 图层按当前相机投影边界反算 Position X/Y 并保持 Z，支持普通 3D 与带 3D 父级图层
 - [ ] 对齐九宫格真实 AE 验收：2D/3D、父级、旋转/缩放、锁定、关键帧、表达式与文字框场景
 
 ## Nya Pie P0：Runtime 技术验证

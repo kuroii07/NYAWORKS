@@ -1,6 +1,8 @@
 (function () {
   "use strict";
 
+  var hostScriptFile = new File($.fileName);
+
   function getHostInfo() {
     return JSON.stringify({
       name: app.name,
@@ -212,7 +214,7 @@
 
   function reloadHostScript() {
     try {
-      $.evalFile(new File($.fileName));
+      $.evalFile(hostScriptFile);
       return JSON.stringify({ ok: true });
     } catch (error) {
       return JSON.stringify({ ok: false, reason: "host-error" });
@@ -756,6 +758,15 @@
   function readCompPoint(layer, point) {
     var result;
     var compPoint = [point[0], point[1], point.length > 2 ? point[2] : 0];
+    // AVLayer.sourcePointToComp always receives a two-value source-space
+    // point, including when the layer's 3D switch is enabled. Try this stable
+    // AE API first; three-value calls can return plausible but wrong results.
+    try {
+      if (layer && typeof layer.sourcePointToComp === "function") {
+        result = layer.sourcePointToComp([point[0], point[1]]);
+        if (result && result.length >= 2) return result;
+      }
+    } catch (ignoreSourcePointToComp2d) {}
     try {
       if (layer && typeof layer.toComp === "function") {
         result = layer.toComp(compPoint);
@@ -769,12 +780,6 @@
         if (result && result.length >= 2) return result;
       }
     } catch (ignoreToComp2d) {}
-    try {
-      if (layer && typeof layer.sourcePointToComp === "function") {
-        result = layer.sourcePointToComp(compPoint);
-        if (result && result.length >= 2) return result;
-      }
-    } catch (ignoreSourcePointToComp) {}
     return null;
   }
 
@@ -1008,15 +1013,128 @@
     return result;
   }
 
-  function moveLayerByCompDelta(layer, deltaX, deltaY) {
+  function compDeltaToThreeDPositionDelta(layer, positionState, probe, deltaX, deltaY) {
+    var oldPosition;
+    var before;
+    var xValue;
+    var yValue;
+    var xProbe;
+    var yProbe;
+    var axisXx;
+    var axisXy;
+    var axisYx;
+    var axisYy;
+    var determinant;
+
+    if (
+      !layer ||
+      !positionState ||
+      !probe ||
+      typeof layer.sourcePointToComp !== "function"
+    ) {
+      return null;
+    }
+    oldPosition = positionState.value.slice(0);
+    try {
+      before = layer.sourcePointToComp(probe);
+      xValue = oldPosition.slice(0);
+      xValue[0] += 1;
+      setPositionState(positionState, xValue);
+      xProbe = layer.sourcePointToComp(probe);
+
+      setPositionState(positionState, oldPosition);
+      yValue = oldPosition.slice(0);
+      yValue[1] += 1;
+      setPositionState(positionState, yValue);
+      yProbe = layer.sourcePointToComp(probe);
+      setPositionState(positionState, oldPosition);
+
+      if (!before || !xProbe || !yProbe) return null;
+      axisXx = Number(xProbe[0]) - Number(before[0]);
+      axisXy = Number(xProbe[1]) - Number(before[1]);
+      axisYx = Number(yProbe[0]) - Number(before[0]);
+      axisYy = Number(yProbe[1]) - Number(before[1]);
+      determinant = axisXx * axisYy - axisYx * axisXy;
+      if (
+        !isFiniteNumber(axisXx) ||
+        !isFiniteNumber(axisXy) ||
+        !isFiniteNumber(axisYx) ||
+        !isFiniteNumber(axisYy) ||
+        !isFiniteNumber(determinant) ||
+        Math.abs(determinant) < 0.00000001
+      ) {
+        return null;
+      }
+      return [
+        (axisYy * deltaX - axisYx * deltaY) / determinant,
+        (-axisXy * deltaX + axisXx * deltaY) / determinant
+      ];
+    } catch (ignoreThreeDDelta) {
+      try { setPositionState(positionState, oldPosition); } catch (ignoreRestore) {}
+      return null;
+    }
+  }
+
+  function compDeltaToLayerPositionDelta(layer, deltaX, deltaY) {
+    var parent;
+    var ancestor;
+    var origin;
+    var unitX;
+    var unitY;
+    var axisXx;
+    var axisXy;
+    var axisYx;
+    var axisYy;
+    var determinant;
+
+    if (!layer || layer.threeDLayer) return null;
+    parent = layer.parent;
+    if (!parent) return [deltaX, deltaY];
+    ancestor = parent;
+    while (ancestor) {
+      if (ancestor.threeDLayer) return null;
+      ancestor = ancestor.parent;
+    }
+    if (typeof parent.sourcePointToComp !== "function") return null;
+
+    try {
+      origin = parent.sourcePointToComp([0, 0]);
+      unitX = parent.sourcePointToComp([1, 0]);
+      unitY = parent.sourcePointToComp([0, 1]);
+      if (!origin || !unitX || !unitY) return null;
+      axisXx = Number(unitX[0]) - Number(origin[0]);
+      axisXy = Number(unitX[1]) - Number(origin[1]);
+      axisYx = Number(unitY[0]) - Number(origin[0]);
+      axisYy = Number(unitY[1]) - Number(origin[1]);
+      determinant = axisXx * axisYy - axisYx * axisXy;
+      if (
+        !isFiniteNumber(axisXx) ||
+        !isFiniteNumber(axisXy) ||
+        !isFiniteNumber(axisYx) ||
+        !isFiniteNumber(axisYy) ||
+        !isFiniteNumber(determinant) ||
+        Math.abs(determinant) < 0.00000001
+      ) {
+        return null;
+      }
+      return [
+        (axisYy * deltaX - axisYx * deltaY) / determinant,
+        (-axisXy * deltaX + axisXx * deltaY) / determinant
+      ];
+    } catch (ignoreParentDelta) {
+      return null;
+    }
+  }
+
+  function moveLayerByCompDelta(layer, deltaX, deltaY, time) {
     var transform;
     var positionState;
     var position;
     var oldValue;
     var nextValue;
-    var anchorComp;
-    var nextComp;
-    var parentPoint;
+    var positionDelta;
+    var rect;
+    var probe;
     var errorDetail;
 
     if (!layer || layer.locked) return "locked-layer";
@@ -1032,24 +1150,32 @@
     nextValue = oldValue.slice(0);
 
     try {
-      // Plain 2D layers (including text layers) can be moved directly in the
-      // comp coordinate system. Avoid toComp/fromComp here: older AE builds
-      // intermittently throw when these methods are called on text layers.
-      if (!layer.threeDLayer && !layer.parent) {
-        nextValue[0] += deltaX;
-        nextValue[1] += deltaY;
-      } else if (layer.parent && typeof layer.toComp === "function" && typeof layer.parent.fromComp === "function") {
-        anchorComp = layer.toComp([0, 0, 0]);
-        nextComp = anchorComp.length > 2
-          ? [anchorComp[0] + deltaX, anchorComp[1] + deltaY, anchorComp[2]]
-          : [anchorComp[0] + deltaX, anchorComp[1] + deltaY];
-        parentPoint = layer.parent.fromComp(nextComp);
-        nextValue[0] = Number(parentPoint[0]);
-        nextValue[1] = Number(parentPoint[1]);
-        if (nextValue.length > 2 && parentPoint.length > 2) nextValue[2] = Number(parentPoint[2]);
+      if (layer.threeDLayer) {
+        rect = readLayerBounds(layer, time);
+        if (!rect) return "unsupported-layer";
+        probe = [
+          Number(rect.left) + Number(rect.width) / 2,
+          Number(rect.top) + Number(rect.height) / 2
+        ];
+        positionDelta = compDeltaToThreeDPositionDelta(
+          layer,
+          positionState,
+          probe,
+          deltaX,
+          deltaY
+        );
+        if (!positionDelta) return "unsupported-layer";
+        nextValue[0] += positionDelta[0];
+        nextValue[1] += positionDelta[1];
       } else {
-        nextValue[0] += deltaX;
-        nextValue[1] += deltaY;
+        positionDelta = compDeltaToLayerPositionDelta(
+          layer,
+          deltaX,
+          deltaY
+        );
+        if (!positionDelta) return "unsupported-layer";
+        nextValue[0] += positionDelta[0];
+        nextValue[1] += positionDelta[1];
       }
       setPositionState(positionState, nextValue);
       return "updated";
@@ -1136,6 +1262,31 @@
     }
   }
 
+  function calculateAlignmentDelta(info, current, reference) {
+    var deltaX = 0;
+    var deltaY = 0;
+
+    if (!info || !current || !reference) return null;
+    if (info.axis === "x") {
+      if (info.edge === "start") {
+        deltaX = reference.left - current.left;
+      } else if (info.edge === "end") {
+        deltaX = reference.right - current.right;
+      } else {
+        deltaX = reference.centerX - current.centerX;
+      }
+    } else {
+      if (info.edge === "start") {
+        deltaY = reference.top - current.top;
+      } else if (info.edge === "end") {
+        deltaY = reference.bottom - current.bottom;
+      } else {
+        deltaY = reference.centerY - current.centerY;
+      }
+    }
+    return [deltaX, deltaY];
+  }
+
   function applyLayerAlignment(layers, action, target, time, comp) {
     var info = alignmentActionInfo(action);
     var bounds = [];
@@ -1143,9 +1294,9 @@
     var index;
     var current;
     var reference;
-    var desired;
     var deltaX;
     var deltaY;
+    var delta;
     var result;
     var updatedLayers = 0;
     var firstFailure = null;
@@ -1192,24 +1343,14 @@
         }
         continue;
       }
-      if (info.axis === "x") {
-        desired = info.edge === "start"
-          ? reference.left
-          : info.edge === "end" ? reference.right : reference.centerX;
-        deltaX = info.edge === "start"
-          ? desired - current.left
-          : info.edge === "end" ? desired - current.right : desired - current.centerX;
-        deltaY = 0;
-      } else {
-        desired = info.edge === "start"
-          ? reference.top
-          : info.edge === "end" ? reference.bottom : reference.centerY;
-        deltaY = info.edge === "start"
-          ? desired - current.top
-          : info.edge === "end" ? desired - current.bottom : desired - current.centerY;
-        deltaX = 0;
+      delta = calculateAlignmentDelta(info, current, reference);
+      if (!delta) {
+        if (!firstFailure) firstFailure = "host-error";
+        continue;
       }
-      result = moveLayerByCompDelta(layers[index], deltaX, deltaY);
+      deltaX = delta[0];
+      deltaY = delta[1];
+      result = moveLayerByCompDelta(layers[index], deltaX, deltaY, time);
       if (result === "updated") updatedLayers += 1;
       else if (!firstFailure) {
         firstFailure = typeof result === "string" ? result : result.reason;
@@ -1390,7 +1531,7 @@
   }
 
   $.global.NYAWORKS = {
-    version: "0.1.0-alpha.1-alignment-debug-1",
+    version: "0.1.0-alpha.1-dev",
     getHostInfo: getHostInfo,
     openDataDirectory: openDataDirectory,
     getCurrentResourceSources: getCurrentResourceSources,

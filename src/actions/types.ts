@@ -64,7 +64,12 @@ export interface ActionContextSnapshot {
   selectedKeys: number;
 }
 
+export interface ActionRunOptions {
+  alignmentTarget?: "composition" | "selection";
+}
+
 export type ActionExecutor = (
   definition: NyaActionDefinition,
-  context: ActionContextSnapshot
+  context: ActionContextSnapshot,
+  options?: ActionRunOptions
 ) => Promise<ActionResult>;

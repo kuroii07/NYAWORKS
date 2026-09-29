@@ -28,8 +28,19 @@ describe("buildActionSearchItems", () => {
   it("does not expose P0 compatibility actions as product search results", () => {
     const items = buildActionSearchItems(coreActionRegistry, "zhCN");
 
-    expect(items).toHaveLength(9);
-    expect(items.every((item) => item.actionId?.startsWith("layer.anchor."))).toBe(true);
+    expect(items).toHaveLength(18);
+    expect(items.map((item) => item.actionId)).toEqual(expect.arrayContaining([
+      "layer.anchor.top-left",
+      "layer.align.left",
+      "layer.align.center-x",
+      "layer.align.right",
+      "layer.align.top",
+      "layer.align.center-y",
+      "layer.align.bottom",
+      "text.paragraph.left",
+      "text.paragraph.center",
+      "text.paragraph.right"
+    ]));
     expect(items.every((item) => (item.order ?? 0) >= 500)).toBe(true);
   });
 });

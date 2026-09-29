@@ -1,3 +1,9 @@
+import {
+  isAlignmentAction,
+  isAlignmentTarget,
+  isLayerAlignmentAction,
+  type AlignmentTargetStrategy
+} from "./alignmentTypes";
 import type { ActionExecutor } from "./types";
 import { evaluateHostScript, type CepEnvironment } from "../host/cepBridge";
 import {
@@ -5,6 +11,10 @@ import {
   ANCHOR_POSITIONS,
   type AnchorHostBridge
 } from "../host/anchorBridge";
+import {
+  createAlignmentHostBridge,
+  type AlignmentHostBridge
+} from "../host/alignmentBridge";
 
 export function createInternalExecutor(
   handlers: Readonly<Record<string, ActionExecutor>>
@@ -31,9 +41,10 @@ function encodePayload(value: unknown): string {
 
 export function createCepHostExecutor(
   environment?: CepEnvironment,
-  anchorBridge: AnchorHostBridge = createAnchorHostBridge(environment)
+  anchorBridge: AnchorHostBridge = createAnchorHostBridge(environment),
+  alignmentBridge: AlignmentHostBridge = createAlignmentHostBridge(environment)
 ): ActionExecutor {
-  return async (definition) => {
+  return async (definition, context, runOptions) => {
     if (definition.execute.command === "setAnchorPoint") {
       const position = (definition.execute.payload as { position?: unknown } | undefined)?.position;
       if (typeof position !== "string" || !ANCHOR_POSITIONS.includes(position as never)) {
@@ -57,6 +68,71 @@ export function createCepHostExecutor(
       return {
         success: false,
         message: "Anchor action failed",
+        error: {
+          code: result.reason === "unavailable"
+            ? "host-unavailable"
+            : result.reason,
+          detail: result.detail
+        }
+      };
+    }
+
+    if (definition.execute.command === "setAlignment") {
+      const payload = definition.execute.payload as {
+        action?: unknown;
+        target?: unknown;
+      } | undefined;
+      if (!isAlignmentAction(payload?.action)) {
+        return {
+          success: false,
+          message: "Invalid alignment action",
+          error: { code: "invalid-alignment-action" }
+        };
+      }
+
+      let target: "composition" | "selection" = "composition";
+      if (isLayerAlignmentAction(payload.action)) {
+        if (
+          payload.target !== "smart" &&
+          !isAlignmentTarget(payload.target)
+        ) {
+          return {
+            success: false,
+            message: "Invalid alignment target",
+            error: { code: "invalid-alignment-target" }
+          };
+        }
+        if (
+          runOptions?.alignmentTarget !== undefined &&
+          !isAlignmentTarget(runOptions.alignmentTarget)
+        ) {
+          return {
+            success: false,
+            message: "Invalid alignment target",
+            error: { code: "invalid-alignment-target" }
+          };
+        }
+        const strategy: AlignmentTargetStrategy = payload.target;
+        target = runOptions?.alignmentTarget ??
+          (strategy === "smart"
+            ? context.selectedLayers > 1 ? "selection" : "composition"
+            : strategy);
+      }
+
+      const result = await alignmentBridge.applyAlignment(
+        payload.action,
+        target
+      );
+      if (result.ok) {
+        return {
+          success: true,
+          message: "Alignment updated",
+          data: { updatedLayers: result.updatedLayers }
+        };
+      }
+      return {
+        success: false,
+        message: "Alignment action failed",
         error: {
           code: result.reason === "unavailable"
             ? "host-unavailable"

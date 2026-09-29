@@ -19,7 +19,7 @@ describe("spatial quick tool tooltips", () => {
 
   it("uses a modifier click instead of adding controls to the fixed grid", () => {
     expect(source).toContain("event.altKey || event.shiftKey");
-    expect(source).toContain('"composition" : "selection"');
+    expect(source).toContain('{ alignmentTarget: "composition" }');
     expect(source).not.toContain("alignment-target-row");
   });
 

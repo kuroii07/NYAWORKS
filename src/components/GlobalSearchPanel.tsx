@@ -14,6 +14,8 @@ import { useOptionalGlobalSearch } from "../search/GlobalSearchProvider";
 import type { GlobalSearchItem } from "../search/types";
 import { useToast } from "../notifications/ToastProvider";
 import { getAnchorFailureMessage } from "../actions/anchorFeedback";
+import { getAlignmentFailureMessage } from "../actions/alignmentFeedback";
+import { isAlignmentActionId } from "../actions/definitions/alignmentActions";
 
 const SEARCH_IDLE_CLOSE_MS = 4000;
 
@@ -130,6 +132,18 @@ export function GlobalSearchPanel({ onExecute }: { onExecute?: (item: GlobalSear
           code: result.reason,
           detail: result.detail
         }, home.anchorFeedback));
+        return;
+      }
+      if (
+        !result.ok &&
+        item.action === "execute-action" &&
+        item.actionId &&
+        isAlignmentActionId(item.actionId)
+      ) {
+        toast.error(getAlignmentFailureMessage({
+          code: result.reason,
+          detail: result.detail
+        }, home.alignmentFeedback));
         return;
       }
       onExecute?.(item);

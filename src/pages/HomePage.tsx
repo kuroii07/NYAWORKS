@@ -51,12 +51,11 @@ import { useSettings } from "../settings/SettingsProvider";
 import { getActiveHomeLayout } from "../settings/homeSettingsStorage";
 import { useActionService } from "../actions/ActionServiceProvider";
 import { getAnchorFailureMessage } from "../actions/anchorFeedback";
+import { getAlignmentFailureMessage } from "../actions/alignmentFeedback";
 import { getAnchorActionId } from "../actions/definitions/anchorActions";
-import {
-  alignmentHostBridge,
-  type AlignmentAction,
-  type AlignmentTarget
-} from "../host/alignmentBridge";
+import { getAlignmentActionId } from "../actions/definitions/alignmentActions";
+import type { AlignmentAction } from "../actions/alignmentTypes";
+import type { ActionRunOptions } from "../actions/types";
 import type {
   HomeCreateMode,
   HomeSpaceMode
@@ -349,7 +348,10 @@ function SpatialGrid({
   copy: UiCopy["home"];
   mode: HomeSpaceMode;
   onAnchorPosition?: (position: SpatialPosition) => void;
-  onAlignment?: (action: AlignmentAction, target: AlignmentTarget) => void;
+  onAlignment?: (
+    action: AlignmentAction,
+    options?: ActionRunOptions
+  ) => void;
 }) {
   const layers = ["anchor", "align"] as const;
 
@@ -399,10 +401,9 @@ function SpatialGrid({
                       : (event) =>
                           onAlignment?.(
                             alignmentAction.action,
-                            // Match AE/玄如意 semantics: a normal click aligns
-                            // to the current layer selection; Alt/Shift opts
-                            // into aligning to the full composition.
-                            event.altKey || event.shiftKey ? "composition" : "selection"
+                            event.altKey || event.shiftKey
+                              ? { alignmentTarget: "composition" }
+                              : undefined
                           )
                   }
                 >
@@ -463,28 +464,25 @@ export function HomePage({
     console.warn("NYAWORKS anchor action failed", result.error);
   }
 
-  async function handleAlignment(action: AlignmentAction, target: AlignmentTarget) {
-    const result = await alignmentHostBridge.applyAlignment(action, target);
-    if (result.ok) {
+  async function handleAlignment(
+    action: AlignmentAction,
+    options?: ActionRunOptions
+  ) {
+    const result = await actionService.run(
+      getAlignmentActionId(action),
+      options
+    );
+    if (result.success) {
       return;
     }
 
-    const failureMessage =
-      result.reason === "no-selected-layer"
-        ? home.alignmentFeedback.noSelectedLayer
-        : result.reason === "no-text-layer"
-          ? home.alignmentFeedback.noTextLayer
-          : result.reason === "locked-layer"
-            ? home.alignmentFeedback.lockedLayer
-            : result.reason === "unsupported-layer"
-              ? home.alignmentFeedback.unsupportedLayer
-              : result.reason === "expression-conflict"
-                ? home.alignmentFeedback.expressionConflict
-                : result.reason === "unavailable"
-                  ? home.alignmentFeedback.unavailable
-                  : home.alignmentFeedback.hostError;
-    toast.error(result.detail ? `${failureMessage}（${result.detail}）` : failureMessage);
-    console.warn("NYAWORKS alignment action failed", result.reason, result.detail);
+    toast.error(
+      getAlignmentFailureMessage(
+        result.error,
+        home.alignmentFeedback
+      )
+    );
+    console.warn("NYAWORKS alignment action failed", result.error);
   }
 
   const visibleTools = useMemo(

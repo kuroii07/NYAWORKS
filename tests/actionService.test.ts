@@ -68,4 +68,45 @@ describe("createActionService", () => {
       error: { code: "action-unavailable", detail: "host" }
     });
   });
+
+  it("passes runtime alignment options through the runner to the executor", async () => {
+    let receivedOptions: unknown;
+    const service = createActionService({
+      contextProvider: {
+        getSnapshot: async () => ({
+          hostAvailable: true,
+          activeComp: true,
+          selectedLayers: 2,
+          selectedKeys: 0
+        })
+      },
+      runner: createActionRunner({
+        registry: createActionRegistry([{
+          id: "layer.align.left",
+          title: { zhCN: "左对齐", zhTW: "靠左對齊", en: "Align Left", ja: "左揃え", ko: "왼쪽 맞춤" },
+          icon: "BoundingBox",
+          category: "layer",
+          requirements: ["host", "activeComp", "selectedLayers"],
+          supportsPie: true,
+          execute: {
+            type: "host",
+            command: "setAlignment",
+            payload: { action: "left", target: "smart" }
+          },
+          undoPolicy: "host-undo-group"
+        }]),
+        executors: {
+          host: async (_definition, _context, options) => {
+            receivedOptions = options;
+            return { success: true, message: "ok" };
+          }
+        }
+      })
+    });
+
+    await expect(service.run("layer.align.left", {
+      alignmentTarget: "composition"
+    })).resolves.toEqual({ success: true, message: "ok" });
+    expect(receivedOptions).toEqual({ alignmentTarget: "composition" });
+  });
 });

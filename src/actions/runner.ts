@@ -4,7 +4,8 @@ import type {
   ActionContextSnapshot,
   ActionExecutor,
   ActionResult,
-  ActionExecutionDescriptor
+  ActionExecutionDescriptor,
+  ActionRunOptions
 } from "./types";
 
 type ExecutorMap = Partial<
@@ -14,7 +15,8 @@ type ExecutorMap = Partial<
 export interface ActionRunner {
   run(
     actionId: string,
-    context: ActionContextSnapshot
+    context: ActionContextSnapshot,
+    options?: ActionRunOptions
   ): Promise<ActionResult>;
 }
 
@@ -26,7 +28,7 @@ export function createActionRunner({
   executors: ExecutorMap;
 }): ActionRunner {
   return {
-    async run(actionId, context) {
+    async run(actionId, context, runOptions) {
       const definition = registry.get(actionId);
       if (!definition) {
         return {
@@ -61,7 +63,7 @@ export function createActionRunner({
       }
 
       try {
-        return await executor(definition, context);
+        return await executor(definition, context, runOptions);
       } catch (error) {
         return {
           success: false,

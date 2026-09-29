@@ -188,4 +188,24 @@ describe("GlobalSearchProvider", () => {
     expect(actionIds).toEqual(["layer.anchor.top-left"]);
     expect(bridgeActions).toEqual([]);
   });
+
+  it("discovers alignment actions and executes them in smart mode", async () => {
+    const storage = new MemoryStorage();
+    const runs: Array<{ actionId: string; options: unknown }> = [];
+    const value = await renderProviders(createSearchBridge(), storage, {
+      run: async (actionId, options) => {
+        runs.push({ actionId, options });
+        return { success: true, message: "ok" };
+      }
+    });
+
+    const item = value.index.items.find((candidate) =>
+      candidate.actionId === "layer.align.left"
+    );
+    expect(item).toBeDefined();
+    await act(async () => { await value.executeItem(item!); });
+    expect(runs).toEqual([
+      { actionId: "layer.align.left", options: undefined }
+    ]);
+  });
 });
