@@ -10,6 +10,7 @@ export type GlobalSearchItemKind =
 
 export type GlobalSearchAction =
   | "execute-tool"
+  | "execute-action"
   | "run-script"
   | "apply-preset"
   | "add-effect"
@@ -23,6 +24,7 @@ export interface GlobalSearchItem {
   searchableText: string;
   iconKey: string;
   action: GlobalSearchAction;
+  actionId?: string;
   sourceId?: string;
   resourceId?: string;
   resourceType?: ResourceType;

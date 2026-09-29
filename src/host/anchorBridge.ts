@@ -1,18 +1,11 @@
 import { evaluateHostScript, type CepEnvironment } from "./cepBridge";
+import {
+  ANCHOR_POSITIONS,
+  type AnchorPosition
+} from "../actions/anchorTypes";
 
-export const ANCHOR_POSITIONS = [
-  "top-left",
-  "top",
-  "top-right",
-  "left",
-  "center",
-  "right",
-  "bottom-left",
-  "bottom",
-  "bottom-right"
-] as const;
-
-export type AnchorPosition = (typeof ANCHOR_POSITIONS)[number];
+export { ANCHOR_POSITIONS };
+export type { AnchorPosition };
 
 export interface LayerBounds {
   left: number;
@@ -27,6 +20,7 @@ export type AnchorActionResult =
       ok: false;
       reason:
         | "unavailable"
+        | "invalid-host-response"
         | "host-error"
         | "no-selected-layer"
         | "locked-layer"
@@ -102,7 +96,7 @@ function parseResult(value: string | null): AnchorActionResult {
       detail: typeof parsed.detail === "string" ? parsed.detail : undefined
     };
   } catch {
-    return { ok: false, reason: "host-error" };
+    return { ok: false, reason: "invalid-host-response" };
   }
 }
 

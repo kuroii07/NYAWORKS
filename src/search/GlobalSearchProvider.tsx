@@ -8,6 +8,9 @@ import {
   type PropsWithChildren
 } from "react";
 import { useLanguage } from "../i18n/LanguageProvider";
+import { useActionService } from "../actions/ActionServiceProvider";
+import { coreActionRegistry } from "../actions/registry";
+import { buildActionSearchItems } from "./actionSearchAdapter";
 import { useResources } from "../resources/ResourceProvider";
 import {
   globalSearchHostBridge,
@@ -50,7 +53,8 @@ export function GlobalSearchProvider({
   children,
   bridge = globalSearchHostBridge
 }: GlobalSearchProviderProps) {
-  const { copy } = useLanguage();
+  const { copy, languageId } = useLanguage();
+  const actionService = useActionService();
   const { resources, sources } = useResources();
   const [effects, setEffects] = useState<Awaited<ReturnType<GlobalSearchHostBridge["readCurrentAeEffects"]>> | null>(null);
   const [effectsStatus, setEffectsStatus] = useState<GlobalSearchContextValue["effectsStatus"]>("loading");
@@ -68,6 +72,12 @@ export function GlobalSearchProvider({
 
   const index = useMemo(() => {
     const toolItems = buildToolSearchItems(copy.home);
+    const actionLanguage = languageId === "zh-CN"
+      ? "zhCN"
+      : languageId === "zh-TW"
+        ? "zhTW"
+        : languageId;
+    const actionItems = buildActionSearchItems(coreActionRegistry, actionLanguage);
     const resourceItems: GlobalSearchItem[] = resources.map((resource, index) => {
       return {
         id: resource.id,
@@ -101,10 +111,16 @@ export function GlobalSearchProvider({
       requiresHost: true,
       order: 2000 + index
     }));
-    return buildGlobalSearchIndex({ items: [...toolItems, ...resourceItems, ...effectItems] });
-  }, [copy.home, effects, resources, sources]);
+    return buildGlobalSearchIndex({ items: [...toolItems, ...actionItems, ...resourceItems, ...effectItems] });
+  }, [copy.home, effects, languageId, resources, sources]);
 
   const executeItem = useCallback(async (item: GlobalSearchItem): Promise<GlobalSearchActionResult> => {
+    if (item.action === "execute-action" && item.actionId) {
+      const result = await actionService.run(item.actionId);
+      return result.success
+        ? { ok: true }
+        : { ok: false, reason: result.error?.code ?? "host-error", detail: result.error?.detail };
+    }
     if (item.kind === "tool") return { ok: true };
     let action: GlobalSearchHostAction;
     if (item.action === "run-script") {
@@ -124,7 +140,7 @@ export function GlobalSearchProvider({
     }
     action = { action: "run-script", path: item.resourceId ?? item.id };
     return bridge.executeGlobalSearchAction(action);
-  }, [bridge, resources, sources]);
+  }, [actionService, bridge, resources, sources]);
 
   const value = useMemo<GlobalSearchContextValue>(() => ({
     index,

@@ -100,6 +100,8 @@
 - [ ] 资源动作：脚本执行、预设应用、表达式写入与受信任脚本管理
 - [ ] 本地临时渲染预览与云端资源目录
 - [x] 锚点九宫格第一版：通过 CEP Host 调整当前选中普通 2D/3D 图层的九点锚点，并用 Position 补偿保持画面位置
+- [x] 锚点 Action 架构迁移：首页与全局搜索统一使用 Registry → Context Provider → Action Service/Runner → Host Executor → Bridge → Host JSX
+- [x] 锚点全局搜索：九个 Action 由 Registry 生成五语言搜索项并通过共享 Action Service 执行
 - [ ] 锚点真实 AE 验收：2D、普通 3D、父级、旋转/缩放、关键帧、表达式和锁定图层场景
 - [x] 对齐九宫格 Host Bridge：默认合成对齐，Alt/Option 或 Shift 点击切换选区对齐，包含 6 个图层对齐和 3 个文字段落对齐
 - [ ] 对齐九宫格真实 AE 验收：2D/3D、父级、旋转/缩放、锁定、关键帧、表达式与文字框场景

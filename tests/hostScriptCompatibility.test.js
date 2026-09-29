@@ -24,4 +24,13 @@ describe("CEP host script compatibility", () => {
     expect(source).toContain('layer.property("Source Text")');
     expect(source).toContain('layer.property("ADBE Text Properties")');
   });
+
+  it("exposes a read-only action context snapshot for the shared runner", async () => {
+    const source = await readFile("public/host/index.jsx", "utf8");
+
+    expect(source).toContain("function getActionContext()");
+    expect(source).toContain("selectedLayers: layers ? layers.length : 0");
+    expect(source).toContain("selectedKeys: 0");
+    expect(source).toContain(",getActionContext: getActionContext");
+  });
 });

@@ -20,7 +20,7 @@ export type GlobalSearchHostAction =
 
 export type GlobalSearchActionResult =
   | { ok: true }
-  | { ok: false; reason: "unavailable" | "host-error" | "no-selected-layer" | "invalid-resource" };
+  | { ok: false; reason: string; detail?: string };
 
 export interface GlobalSearchHostBridge {
   readCurrentAeEffects(): Promise<CurrentAeEffectsResult>;

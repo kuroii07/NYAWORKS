@@ -724,6 +724,23 @@
     }
   }
 
+  function getActionContext() {
+    try {
+      var activeItem = app.project && app.project.activeItem;
+      var layers = activeItem && activeItem instanceof CompItem
+        ? activeItem.selectedLayers
+        : [];
+      return JSON.stringify({
+        ok: true,
+        activeComp: !!(activeItem && activeItem instanceof CompItem),
+        selectedLayers: layers ? layers.length : 0,
+        selectedKeys: 0
+      });
+    } catch (error) {
+      return JSON.stringify({ ok: false, reason: "host-error" });
+    }
+  }
+
   function alignmentActionInfo(action) {
     var actions = {
       "left": { axis: "x", edge: "start" },
@@ -1385,6 +1402,7 @@
     ,applySearchPreset: applySearchPreset
     ,addSearchEffect: addSearchEffect
     ,setAnchorPoint: setAnchorPoint
+    ,getActionContext: getActionContext
     ,setAlignment: setAlignment
     ,runP0TestAction: runP0TestAction
   };

@@ -1,5 +1,10 @@
 import type { ActionExecutor } from "./types";
 import { evaluateHostScript, type CepEnvironment } from "../host/cepBridge";
+import {
+  createAnchorHostBridge,
+  ANCHOR_POSITIONS,
+  type AnchorHostBridge
+} from "../host/anchorBridge";
 
 export function createInternalExecutor(
   handlers: Readonly<Record<string, ActionExecutor>>
@@ -25,9 +30,42 @@ function encodePayload(value: unknown): string {
 }
 
 export function createCepHostExecutor(
-  environment?: CepEnvironment
+  environment?: CepEnvironment,
+  anchorBridge: AnchorHostBridge = createAnchorHostBridge(environment)
 ): ActionExecutor {
   return async (definition) => {
+    if (definition.execute.command === "setAnchorPoint") {
+      const position = (definition.execute.payload as { position?: unknown } | undefined)?.position;
+      if (typeof position !== "string" || !ANCHOR_POSITIONS.includes(position as never)) {
+        return {
+          success: false,
+          message: "Invalid anchor position",
+          error: { code: "invalid-anchor-position" }
+        };
+      }
+      const result = await anchorBridge.setAnchorPoint(position as typeof ANCHOR_POSITIONS[number]);
+      if (result.ok) {
+        return {
+          success: true,
+          message: "Anchor point updated",
+          data: {
+            updatedLayers: result.updatedLayers,
+            threeDLayers: result.threeDLayers
+          }
+        };
+      }
+      return {
+        success: false,
+        message: "Anchor action failed",
+        error: {
+          code: result.reason === "unavailable"
+            ? "host-unavailable"
+            : result.reason,
+          detail: result.detail
+        }
+      };
+    }
+
     if (definition.execute.command !== "runP0TestAction") {
       return {
         success: false,

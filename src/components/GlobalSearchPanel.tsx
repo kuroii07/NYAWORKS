@@ -12,6 +12,8 @@ import { HOME_TOOL_CATALOG } from "../homeLayouts/catalog";
 import { groupGlobalSearchItems } from "../search/searchOperations";
 import { useOptionalGlobalSearch } from "../search/GlobalSearchProvider";
 import type { GlobalSearchItem } from "../search/types";
+import { useToast } from "../notifications/ToastProvider";
+import { getAnchorFailureMessage } from "../actions/anchorFeedback";
 
 const SEARCH_IDLE_CLOSE_MS = 4000;
 
@@ -27,6 +29,7 @@ function SearchItemIcon({ item }: { item: GlobalSearchItem }) {
 
 export function GlobalSearchPanel({ onExecute }: { onExecute?: (item: GlobalSearchItem) => void }) {
   const { copy } = useLanguage();
+  const { toast } = useToast();
   const globalSearch = useOptionalGlobalSearch();
   const inputRef = useRef<HTMLInputElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
@@ -117,7 +120,18 @@ export function GlobalSearchPanel({ onExecute }: { onExecute?: (item: GlobalSear
     if (!item || executionRef.current) return;
     executionRef.current = true;
     try {
-      if (globalSearch) await globalSearch.executeItem(item);
+      const result = globalSearch ? await globalSearch.executeItem(item) : { ok: true as const };
+      if (
+        !result.ok &&
+        item.action === "execute-action" &&
+        item.actionId?.startsWith("layer.anchor.")
+      ) {
+        toast.error(getAnchorFailureMessage({
+          code: result.reason,
+          detail: result.detail
+        }, home.anchorFeedback));
+        return;
+      }
       onExecute?.(item);
       closeSearch();
     } finally {

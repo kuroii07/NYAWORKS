@@ -49,7 +49,9 @@ import {
 } from "../interactions/pointerReorder";
 import { useSettings } from "../settings/SettingsProvider";
 import { getActiveHomeLayout } from "../settings/homeSettingsStorage";
-import { anchorHostBridge, type AnchorPosition } from "../host/anchorBridge";
+import { useActionService } from "../actions/ActionServiceProvider";
+import { getAnchorFailureMessage } from "../actions/anchorFeedback";
+import { getAnchorActionId } from "../actions/definitions/anchorActions";
 import {
   alignmentHostBridge,
   type AlignmentAction,
@@ -346,7 +348,7 @@ function SpatialGrid({
 }: {
   copy: UiCopy["home"];
   mode: HomeSpaceMode;
-  onAnchorPosition?: (position: AnchorPosition) => void;
+  onAnchorPosition?: (position: SpatialPosition) => void;
   onAlignment?: (action: AlignmentAction, target: AlignmentTarget) => void;
 }) {
   const layers = ["anchor", "align"] as const;
@@ -429,6 +431,7 @@ export function HomePage({
   const { copy } = useLanguage();
   const { generalSettings, homeSettings, updateHomeSettings } = useSettings();
   const { toast } = useToast();
+  const actionService = useActionService();
   const home = copy.home;
   const activeLayout = getActiveHomeLayout(homeSettings);
   const layoutName = getHomeLayoutLabel(activeLayout.name, copy);
@@ -450,26 +453,14 @@ export function HomePage({
 
   toolDragRef.current = toolDrag;
 
-  async function handleAnchorPosition(position: AnchorPosition) {
-    const result = await anchorHostBridge.setAnchorPoint(position);
-    if (result.ok) {
+  async function handleAnchorPosition(position: SpatialPosition) {
+    const result = await actionService.run(getAnchorActionId(position));
+    if (result.success) {
       return;
     }
 
-    const failureMessage =
-      result.reason === "no-selected-layer"
-        ? home.anchorFeedback.noSelectedLayer
-        : result.reason === "locked-layer"
-          ? home.anchorFeedback.lockedLayer
-          : result.reason === "unsupported-layer"
-            ? home.anchorFeedback.unsupportedLayer
-            : result.reason === "expression-conflict"
-              ? home.anchorFeedback.expressionConflict
-              : result.reason === "unavailable"
-                ? home.anchorFeedback.unavailable
-                : home.anchorFeedback.hostError;
-    toast.error(result.detail ? `${failureMessage}（${result.detail}）` : failureMessage);
-    console.warn("NYAWORKS anchor action failed", result.reason, result.detail);
+    toast.error(getAnchorFailureMessage(result.error, home.anchorFeedback));
+    console.warn("NYAWORKS anchor action failed", result.error);
   }
 
   async function handleAlignment(action: AlignmentAction, target: AlignmentTarget) {

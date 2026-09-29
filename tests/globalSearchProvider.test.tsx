@@ -12,6 +12,8 @@ import {
   useGlobalSearch,
   type GlobalSearchContextValue
 } from "../src/search/GlobalSearchProvider";
+import { ActionServiceProvider } from "../src/actions/ActionServiceProvider";
+import type { ActionService } from "../src/actions/service";
 import type { ResourceSettings } from "../src/resources/types";
 import { writeStoredResourceSettings } from "../src/resources/resourceStorage";
 
@@ -89,7 +91,11 @@ function Probe() {
   return null;
 }
 
-async function renderProviders(searchBridge: GlobalSearchHostBridge, storage: MemoryStorage) {
+async function renderProviders(
+  searchBridge: GlobalSearchHostBridge,
+  storage: MemoryStorage,
+  actionService?: ActionService
+) {
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -97,9 +103,11 @@ async function renderProviders(searchBridge: GlobalSearchHostBridge, storage: Me
     root?.render(
       <LanguageProvider>
         <ResourceProvider bridge={createResourceBridge()} storage={storage}>
-          <GlobalSearchProvider bridge={searchBridge}>
-            <Probe />
-          </GlobalSearchProvider>
+          <ActionServiceProvider service={actionService}>
+            <GlobalSearchProvider bridge={searchBridge}>
+              <Probe />
+            </GlobalSearchProvider>
+          </ActionServiceProvider>
         </ResourceProvider>
       </LanguageProvider>
     );
@@ -154,5 +162,30 @@ describe("GlobalSearchProvider", () => {
     const item = value.search("Quick Tool")[0];
     await act(async () => { await value.executeItem(item); });
     expect(actions).toEqual([{ action: "run-script", path: "C:/Tools/Quick.jsx" }]);
+  });
+
+  it("discovers anchor actions and executes them through the shared action service", async () => {
+    const storage = new MemoryStorage();
+    const actionIds: string[] = [];
+    const bridgeActions: unknown[] = [];
+    const value = await renderProviders(createSearchBridge({
+      executeGlobalSearchAction: async (action) => {
+        bridgeActions.push(action);
+        return { ok: true };
+      }
+    }), storage, {
+      run: async (actionId) => {
+        actionIds.push(actionId);
+        return { success: true, message: "ok" };
+      }
+    });
+
+    const item = value.search("锚点 左上").find((candidate) =>
+      candidate.actionId === "layer.anchor.top-left"
+    );
+    expect(item).toBeDefined();
+    await act(async () => { await value.executeItem(item!); });
+    expect(actionIds).toEqual(["layer.anchor.top-left"]);
+    expect(bridgeActions).toEqual([]);
   });
 });

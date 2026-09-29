@@ -1,4 +1,5 @@
 import type { NyaActionDefinition } from "./types";
+import { ANCHOR_ACTION_DEFINITIONS } from "./definitions/anchorActions";
 
 const P0_TITLES = {
   top: { zhCN: "上", zhTW: "上", en: "Top", ja: "上", ko: "위" },
@@ -55,3 +56,7 @@ export function createActionRegistry(
 }
 
 export const p0ActionRegistry = createActionRegistry(P0_ACTION_DEFINITIONS);
+export const coreActionRegistry = createActionRegistry([
+  ...P0_ACTION_DEFINITIONS,
+  ...ANCHOR_ACTION_DEFINITIONS
+]);

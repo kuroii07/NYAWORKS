@@ -12,6 +12,7 @@ import { ResourceProvider } from "./resources/ResourceProvider";
 import { createDevelopmentResourceService } from "./resources/developmentResourceService";
 import { GlobalSearchProvider } from "./search/GlobalSearchProvider";
 import { createDevelopmentGlobalSearchService } from "./resources/developmentResourceService";
+import { ActionServiceProvider } from "./actions/ActionServiceProvider";
 import "./styles.css";
 
 const developmentReleaseFetcher = import.meta.env.DEV
@@ -33,13 +34,15 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <LanguageProvider>
         <SettingsProvider>
           <ResourceProvider bridge={resourceBridge}>
-            <GlobalSearchProvider bridge={globalSearchBridge}>
-              <UpdatesProvider fetcher={developmentReleaseFetcher}>
-                <DensityProvider>
-                  <App />
-                </DensityProvider>
-              </UpdatesProvider>
-            </GlobalSearchProvider>
+            <ActionServiceProvider>
+              <GlobalSearchProvider bridge={globalSearchBridge}>
+                <UpdatesProvider fetcher={developmentReleaseFetcher}>
+                  <DensityProvider>
+                    <App />
+                  </DensityProvider>
+                </UpdatesProvider>
+              </GlobalSearchProvider>
+            </ActionServiceProvider>
           </ResourceProvider>
         </SettingsProvider>
       </LanguageProvider>

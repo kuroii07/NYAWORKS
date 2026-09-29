@@ -74,4 +74,17 @@ describe("anchor host bridge", () => {
       reason: "no-selected-layer"
     });
   });
+
+  it("reports invalid host JSON separately from host failures", async () => {
+    const bridge = createAnchorHostBridge({
+      __adobe_cep__: {
+        evalScript: (_script, callback) => callback("not-json")
+      }
+    });
+
+    await expect(bridge.setAnchorPoint("center")).resolves.toEqual({
+      ok: false,
+      reason: "invalid-host-response"
+    });
+  });
 });
