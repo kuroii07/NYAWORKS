@@ -92,6 +92,8 @@
 
 按功能页逐项规划、实现、测试和提交。未开始的页面保持明确占位状态。
 
+当前优先级已调整为“核心工具优先、Nya Pie 暂停在技术底座”。详细依据、统一 Action 架构、四套九宫格顺序及恢复 Nya Pie 的门槛见 [`05-core-tools-priority-roadmap.md`](05-core-tools-priority-roadmap.md)。
+
 - [x] 资源库第一阶段：当前 AE 默认目录发现边界、自定义目录索引、离线缓存和本地浏览器界面
 - [ ] 在真实 AE CEP 宿主中验收目录发现、扫描和文件夹选择
 - [x] 固定 CEP 开发目录并支持前端 watch 构建与面板内刷新
@@ -131,3 +133,5 @@
 - [ ] 完成连续呼出、AE 最小化、AE 非前台、焦点恢复、标题栏闪烁和延迟验收
 
 边界：NyaLauncher 仅补 Windows Runtime 能力，不包含 Action Registry、Action Runner、AE 工具逻辑、Pie UI、Profile、设置、输入模拟、本地网络服务或 DLL 注入。完整步骤见 `docs/testing/nya-launcher-p1-ae-test.md`。
+
+后续策略：在 NYAWORKS 至少形成 20–30 个稳定可执行 Action，并完成锚点、对齐、新建、选择四套九宫格的真实 AE 验收前，不继续开发正式 Nya Pie UI、Pie Editor、多 Profile 或 Context Aware Pie。
