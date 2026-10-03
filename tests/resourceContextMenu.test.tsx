@@ -182,6 +182,11 @@ async function renderMenu(options: {
 }
 
 describe("resource context menu interaction", () => {
+  it("uses the compact menu width", async () => {
+    const { menu } = await renderMenu();
+    expect(menu.style.width).toBe("200px");
+  });
+
   it("focuses the first enabled item and renders only inter-group separators", async () => {
     const { menu } = await renderMenu();
     const menuItems = [...menu.querySelectorAll<HTMLElement>("[role='menuitem']")];

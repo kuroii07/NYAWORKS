@@ -5393,6 +5393,7 @@ html[data-reordering="true"] * {
 .resource-list { display: grid; flex: 1 1 auto; min-height: 0; align-content: start; gap: 6px; overflow-y: auto; padding-right: 4px; }
 .resource-list-row { gap: 9px; min-width: 0; padding: 8px 9px; border: 1px solid var(--nw-border); border-radius: var(--nw-radius-card); background: var(--nw-surface); cursor: default; }
 .resource-list-row:focus-visible { outline: 2px solid var(--nw-focus); outline-offset: 1px; }
+.resource-list-row[data-selected]:focus-visible { outline: none; outline-offset: 0; }
 .resource-list-row:hover { border-color: var(--nw-border-strong); background: var(--nw-surface-raised, var(--nw-surface)); }
 .resource-list-row[data-selected] { border-color: var(--nw-accent); background: var(--nw-accent-soft); }
 .resource-list-row[data-selected]:hover { border-color: var(--nw-accent-bright); }

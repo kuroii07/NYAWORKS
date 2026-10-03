@@ -47,7 +47,7 @@ export interface ResourceContextMenuProps {
 
 const VIEWPORT_PADDING = 8;
 const ELEMENT_GAP = 6;
-const MENU_WIDTH = 236;
+const MENU_WIDTH = 200;
 
 export function getResourceContextMenuPosition({
   anchor,

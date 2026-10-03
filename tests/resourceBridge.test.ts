@@ -237,8 +237,31 @@ describe("resource host bridge", () => {
 
     const payload = scripts[0].match(/\("(.+)"\)$/)?.[1] ?? "";
     expect(JSON.parse(decodeURIComponent(payload))).toEqual({
-      path: "C:/Adobe/Scripts/ScriptUI Panels/KeyFast%E4%B8%AD%E6%96%87%E7%89%88.jsxbin",
+      path: "C:/Adobe/Scripts/ScriptUI Panels/KeyFast中文版.jsxbin",
       resourceType: "panel"
+    });
+  });
+
+  it("decodes URL-encoded Unicode paths before sending file actions to the host", async () => {
+    const scripts: string[] = [];
+    const bridge = createCepResourceBridge({
+      __adobe_cep__: {
+        evalScript: (script, callback) => {
+          scripts.push(script);
+          callback(JSON.stringify({ ok: true, path: "C:/Tools/我的 脚本/动画/Loop.jsx" }));
+        }
+      }
+    });
+
+    await bridge.revealResourceFile(customSource, {
+      ...indexedScript,
+      relativePath: "动画/Loop%E4%B8%AD%E6%96%87.jsx"
+    });
+
+    const payload = scripts[0]?.match(/\("(.+)"\)$/)?.[1] ?? "";
+    expect(JSON.parse(decodeURIComponent(payload))).toEqual({
+      path: "C:/Tools/我的 脚本/动画/Loop中文.jsx",
+      resourceType: "script"
     });
   });
 

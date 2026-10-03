@@ -320,31 +320,37 @@
         return JSON.stringify({ ok: false, reason: "invalid-resource" });
       }
       if (
-        !/Windows/i.test($.os ? String($.os) : "") ||
-        typeof system === "undefined" ||
-        typeof system.callSystem !== "function"
+        /Windows/i.test($.os ? String($.os) : "") &&
+        typeof system !== "undefined" &&
+        typeof system.callSystem === "function"
       ) {
-        return JSON.stringify({ ok: false, reason: "system-open-failed" });
+        systemPath = String(file.fsName);
+        try {
+          var selectResult = system.callSystem("explorer.exe /select,\"" + systemPath + "\"");
+          if (typeof selectResult === "string" && selectResult.length > 0) {
+            throw new Error(selectResult);
+          }
+          return JSON.stringify({ ok: true, path: file.fsName });
+        } catch (selectError) {
+          // Explorer can fail without throwing a useful error; use the folder
+          // opener below so the resource remains reachable in AE.
+        }
       }
 
-      systemPath = String(file.fsName);
-      try {
-        system.callSystem("explorer.exe /select,\"" + systemPath + "\"");
-        return JSON.stringify({ ok: true, path: file.fsName });
-      } catch (selectError) {
-        if (
-          file.parent &&
-          typeof file.parent.execute === "function" &&
-          file.parent.execute() === true
-        ) {
+      if (file.parent && typeof file.parent.execute === "function") {
+        try {
+          file.parent.execute();
           return JSON.stringify({
             ok: true,
             path: file.fsName,
             fallback: "folder"
           });
+        } catch (folderError) {
+          // Fall through to the structured failure below.
         }
-        throw selectError;
       }
+
+      return JSON.stringify({ ok: false, reason: "system-open-failed" });
     } catch (error) {
       return JSON.stringify({
         ok: false,

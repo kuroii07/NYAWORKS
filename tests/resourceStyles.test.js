@@ -68,4 +68,10 @@ describe("resource browser accessibility styles", () => {
     expect(styles.list.flexGrow).toBe("1");
     expect(styles.list.overflowY).toBe("auto");
   });
+
+  it("does not add a second outline when a resource row is selected", () => {
+    expect(css).toMatch(
+      /\.resource-list-row\[data-selected\]:focus-visible \{ outline: none; outline-offset: 0; \}/
+    );
+  });
 });

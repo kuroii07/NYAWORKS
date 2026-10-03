@@ -138,3 +138,21 @@ export function isResourceSourceStatus(
 export function normalizeResourcePath(value: string): string {
   return value.replace(/\\/g, "/").replace(/\/+$/g, "");
 }
+
+/**
+ * Resource scans may carry URI-encoded path segments from a CEP/ExtendScript
+ * boundary. Decode each segment independently so a malformed percent escape
+ * does not invalidate the entire path.
+ */
+export function decodeResourcePath(value: string): string {
+  return normalizeResourcePath(value)
+    .split("/")
+    .map((segment) => {
+      try {
+        return decodeURIComponent(segment);
+      } catch {
+        return segment;
+      }
+    })
+    .join("/");
+}

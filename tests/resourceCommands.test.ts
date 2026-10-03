@@ -54,6 +54,27 @@ describe("resource command context", () => {
     ).toBe("D:/小黑 资源/脚本/动画/常用 工具.jsx");
   });
 
+  it("decodes URL-encoded Unicode path segments before copying or opening", () => {
+    expect(
+      buildResourceAbsolutePath(
+        { ...source, path: "D:/小黑%20资源/脚本" },
+        {
+          ...resource,
+          relativePath: "动画/AutoSway%E4%B8%AD%E6%96%87.jsx"
+        }
+      )
+    ).toBe("D:/小黑 资源/脚本/动画/AutoSway中文.jsx");
+  });
+
+  it("rejects URL-encoded traversal after decoding", () => {
+    expect(
+      buildResourceAbsolutePath(source, {
+        ...resource,
+        relativePath: "Animation/%2e%2e/outside.jsx"
+      })
+    ).toBeNull();
+  });
+
   it.each([
     "../outside.jsx",
     "Animation/../outside.jsx",

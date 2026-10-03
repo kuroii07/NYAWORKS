@@ -5,6 +5,7 @@ import type {
   ResourceSource,
   ResourceType
 } from "./types";
+import { decodeResourcePath } from "./types";
 
 export type ResourceCommandId =
   | "resource.use"
@@ -130,7 +131,7 @@ export function buildResourceAbsolutePath(
     return null;
   }
 
-  const relativePath = resource.relativePath.replace(/\\/g, "/");
+  const relativePath = decodeResourcePath(resource.relativePath);
   const segments = relativePath.split("/").filter(Boolean);
 
   if (
@@ -141,7 +142,7 @@ export function buildResourceAbsolutePath(
     return null;
   }
 
-  const root = source.path.replace(/\\/g, "/").replace(/\/+$/g, "");
+  const root = decodeResourcePath(source.path);
   return root ? `${root}/${segments.join("/")}` : null;
 }
 

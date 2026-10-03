@@ -5,7 +5,7 @@ import {
 import {
   isResourceSourceStatus,
   isResourceType,
-  normalizeResourcePath,
+  decodeResourcePath,
   type IndexedResource,
   type ResourceScanResult,
   type ResourceSource,
@@ -216,8 +216,8 @@ function resourcePath(
   source: ResourceSource,
   resource: IndexedResource
 ): string {
-  const root = normalizeResourcePath(source.path);
-  const relativePath = normalizeResourcePath(resource.relativePath).replace(
+  const root = decodeResourcePath(source.path);
+  const relativePath = decodeResourcePath(resource.relativePath).replace(
     /^\/+/,
     ""
   );

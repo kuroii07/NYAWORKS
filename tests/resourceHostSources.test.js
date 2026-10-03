@@ -227,6 +227,116 @@ describe("AE resource execution paths", () => {
     ]);
   });
 
+  it("decodes URL-encoded Unicode paths before revealing a resource file", async () => {
+    const source = await readFile("public/host/index.jsx", "utf8");
+    const start = source.indexOf("  function decodeResourcePayload(encodedPayload) {");
+    const end = source.indexOf("  function getCurrentEffects() {", start);
+    const commands = [];
+    const File = function File(path) {
+      this.fsName = String(path).replace(/\//g, "\\");
+      this.exists = true;
+    };
+    const actions = Function(
+      "File", "JSON", "decodeURIComponent", "system", "$",
+      `${source.slice(start, end)}\nreturn { revealResourceFile };`
+    )(
+      File,
+      JSON,
+      decodeURIComponent,
+      { callSystem: (command) => commands.push(command) },
+      { os: "Windows 11" }
+    );
+
+    expect(JSON.parse(actions.revealResourceFile(
+      encodeURIComponent(JSON.stringify({
+        path: "C:/资源/AutoSway%E4%B8%AD%E6%96%87.jsx",
+        resourceType: "script"
+      }))
+    ))).toEqual({
+      ok: true,
+      path: "C:\\资源\\AutoSway中文.jsx"
+    });
+    expect(commands).toEqual([
+      'explorer.exe /select,"C:\\资源\\AutoSway中文.jsx"'
+    ]);
+  });
+
+  it("falls back when Explorer reports a failed command without throwing", async () => {
+    const source = await readFile("public/host/index.jsx", "utf8");
+    const start = source.indexOf("  function decodeResourcePayload(encodedPayload) {");
+    const end = source.indexOf("  function getCurrentEffects() {", start);
+    let openedFolder = false;
+    const File = function File(path) {
+      this.fsName = String(path).replace(/\//g, "\\");
+      this.exists = true;
+      this.parent = {
+        execute() {
+          openedFolder = true;
+          return true;
+        }
+      };
+    };
+    const actions = Function(
+      "File", "JSON", "decodeURIComponent", "system", "$",
+      `${source.slice(start, end)}\nreturn { revealResourceFile };`
+    )(
+      File,
+      JSON,
+      decodeURIComponent,
+      { callSystem: () => "The system cannot find the path specified." },
+      { os: "Windows 11" }
+    );
+
+    expect(JSON.parse(actions.revealResourceFile(
+      encodeURIComponent(JSON.stringify({
+        path: "C:/资源/Missing Selection.jsx",
+        resourceType: "script"
+      }))
+    ))).toMatchObject({
+      ok: true,
+      fallback: "folder"
+    });
+    expect(openedFolder).toBe(true);
+  });
+
+  it("accepts a successful Folder.execute call when AE returns no boolean", async () => {
+    const source = await readFile("public/host/index.jsx", "utf8");
+    const start = source.indexOf("  function decodeResourcePayload(encodedPayload) {");
+    const end = source.indexOf("  function getCurrentEffects() {", start);
+    let openedFolder = false;
+    const File = function File(path) {
+      this.fsName = String(path).replace(/\//g, "\\");
+      this.exists = true;
+      this.parent = {
+        execute() {
+          openedFolder = true;
+          return undefined;
+        }
+      };
+    };
+    const actions = Function(
+      "File", "JSON", "decodeURIComponent", "system", "$",
+      `${source.slice(start, end)}\nreturn { revealResourceFile };`
+    )(
+      File,
+      JSON,
+      decodeURIComponent,
+      { callSystem: () => "Explorer failed" },
+      { os: "Windows 11" }
+    );
+
+    expect(JSON.parse(actions.revealResourceFile(
+      encodeURIComponent(JSON.stringify({
+        path: "C:/资源/AutoSway.jsxbin",
+        resourceType: "script"
+      }))
+    ))).toMatchObject({
+      ok: true,
+      fallback: "folder"
+    });
+    expect(openedFolder).toBe(true);
+  });
+
   it("falls back to opening the containing folder when Explorer select is unavailable", async () => {
     const source = await readFile("public/host/index.jsx", "utf8");
     const start = source.indexOf("  function decodeResourcePayload(encodedPayload) {");
