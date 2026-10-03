@@ -328,8 +328,23 @@
       }
 
       systemPath = String(file.fsName);
-      system.callSystem("explorer.exe /select,\"" + systemPath + "\"");
-      return JSON.stringify({ ok: true, path: file.fsName });
+      try {
+        system.callSystem("explorer.exe /select,\"" + systemPath + "\"");
+        return JSON.stringify({ ok: true, path: file.fsName });
+      } catch (selectError) {
+        if (
+          file.parent &&
+          typeof file.parent.execute === "function" &&
+          file.parent.execute() === true
+        ) {
+          return JSON.stringify({
+            ok: true,
+            path: file.fsName,
+            fallback: "folder"
+          });
+        }
+        throw selectError;
+      }
     } catch (error) {
       return JSON.stringify({
         ok: false,

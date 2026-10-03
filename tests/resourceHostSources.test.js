@@ -227,6 +227,48 @@ describe("AE resource execution paths", () => {
     ]);
   });
 
+  it("falls back to opening the containing folder when Explorer select is unavailable", async () => {
+    const source = await readFile("public/host/index.jsx", "utf8");
+    const start = source.indexOf("  function decodeResourcePayload(encodedPayload) {");
+    const end = source.indexOf("  function getCurrentEffects() {", start);
+    let openedFolder = null;
+    const Folder = function Folder() {};
+    const File = function File(path) {
+      this.fsName = String(path).replace(/\//g, "\\");
+      this.exists = true;
+      this.parent = {
+        execute() {
+          openedFolder = true;
+          return true;
+        }
+      };
+    };
+    const actions = Function(
+      "Folder", "File", "JSON", "decodeURIComponent", "system", "$",
+      `${source.slice(start, end)}\nreturn { revealResourceFile };`
+    )(
+      Folder,
+      File,
+      JSON,
+      decodeURIComponent,
+      { callSystem() { throw new Error("Explorer unavailable"); } },
+      { os: "Windows 11" }
+    );
+
+    const result = JSON.parse(actions.revealResourceFile(
+      encodeURIComponent(JSON.stringify({
+        path: "C:/资源/My Tool.jsx",
+        resourceType: "script"
+      }))
+    ));
+    expect(result).toEqual({
+      ok: true,
+      path: "C:\\资源\\My Tool.jsx",
+      fallback: "folder"
+    });
+    expect(openedFolder).toBe(true);
+  });
+
   it.each([
     'C:/Tools/Bad"Name.jsx',
     "C:/Tools/Bad\rName.jsx",

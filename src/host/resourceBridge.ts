@@ -33,7 +33,7 @@ export type ResourceDirectoryOpenResult =
     };
 
 export type ResourceFileActionResult =
-  | { ok: true; path: string }
+  | { ok: true; path: string; fallback?: "folder" }
   | {
       ok: false;
       reason:

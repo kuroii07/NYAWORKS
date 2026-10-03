@@ -713,6 +713,44 @@ describe("ResourceProvider command execution", () => {
     }
   });
 
+  it("falls back to the textarea clipboard path when browser clipboard rejects", async () => {
+    const storage = new MemoryStorage();
+    writeStoredResourceSettings(initialSettings(), storage);
+    const priorClipboard = navigator.clipboard;
+    const priorExecCommand = document.execCommand;
+    let copiedValue = "";
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async () => {
+          throw new Error("CEP clipboard permission denied");
+        }
+      }
+    });
+    document.execCommand = (command) => {
+      copiedValue = command === "copy"
+        ? document.querySelector<HTMLTextAreaElement>("textarea")?.value ?? ""
+        : "";
+      return command === "copy";
+    };
+    try {
+      const resourceContext = await renderProvider(createBridge(), storage);
+      await expect(
+        resourceContext.runResourceCommand(
+          "resource.path.copy",
+          "custom:tools:legacy.jsx"
+        )
+      ).resolves.toMatchObject({ ok: true });
+      expect(copiedValue).toBe("C:/Tools/Legacy.jsx");
+    } finally {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: priorClipboard
+      });
+      document.execCommand = priorExecCommand;
+    }
+  });
+
   it("falls back to a temporary textarea when browser clipboard is unavailable", async () => {
     const storage = new MemoryStorage();
     writeStoredResourceSettings(initialSettings(), storage);

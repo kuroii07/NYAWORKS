@@ -23,7 +23,6 @@ import {
   SettingSelect,
   type SettingSelectOption
 } from "../components/SettingSelect";
-import { AppDialog } from "../components/AppDialog";
 import {
   ResourceContextMenu,
   type ResourceMenuAnchor
@@ -43,7 +42,6 @@ import {
 import type {
   ResourceCommandFailureReason,
   ResourceCommandId,
-  ResourceInfo
 } from "../resources/resourceCommands";
 import { useResources } from "../resources/ResourceProvider";
 import { useToast } from "../notifications/ToastProvider";
@@ -219,7 +217,6 @@ export function ResourcesPage() {
     anchor: ResourceMenuAnchor;
     restoreFocusTo: HTMLElement | null;
   } | null>(null);
-  const [info, setInfo] = useState<ResourceInfo | null>(null);
   const [selection, setSelection] = useState<ResourceSelectionState>({
     selectedResourceId: null,
     focusedResourceId: null
@@ -318,8 +315,6 @@ export function ResourcesPage() {
           toast.success(labels.openSuccess);
         } else if (commandId === "resource.source.refresh") {
           toast.success(labels.refreshSuccess);
-        } else if (commandId === "resource.info.view" && result.info) {
-          setInfo(result.info);
         }
       } else {
         toast.error(labels.commandFailures[result.reason]);
@@ -596,28 +591,6 @@ export function ResourcesPage() {
         }}
         onClose={closeResourceMenu}
       />
-      {info ? (
-        <AppDialog
-          title={labels.infoTitle}
-          primaryAction={{
-            label: labels.closeInfo,
-            onClick: () => setInfo(null)
-          }}
-          onClose={() => setInfo(null)}
-        >
-          <dl className="resource-info-list">
-            <div><dt>{labels.infoName}</dt><dd>{info.name}</dd></div>
-            <div><dt>{labels.infoType}</dt><dd>{labels.typeLabels[info.resourceType]}</dd></div>
-            <div><dt>{labels.infoSource}</dt><dd>{info.sourceName}</dd></div>
-            <div><dt>{labels.infoPath}</dt><dd>{info.absolutePath}</dd></div>
-            <div><dt>{labels.infoModified}</dt><dd>{info.modifiedAt ?? labels.infoUnknownDate}</dd></div>
-            <div>
-              <dt>{labels.infoFavorite}</dt>
-              <dd>{info.favorite ? labels.infoFavoriteYes : labels.infoFavoriteNo}</dd>
-            </div>
-          </dl>
-        </AppDialog>
-      ) : null}
     </>
   );
 }

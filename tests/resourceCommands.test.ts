@@ -132,20 +132,31 @@ function contextFor(
 
 describe("resource command registry", () => {
   it.each([
-    ["script", "Tool.jsx", "runScript"],
-    ["panel", "Panel.jsx", "openPanel"],
-    ["startup", "Boot.jsx", "runStartupOnce"],
-    ["preset", "Bounce.ffx", "applyPreset"],
-    ["expression", "Wiggle.txt", "applyExpression"]
-  ] as const)("gives %s its typed primary action", (type, path, labelKey) => {
+    ["script", "Tool.jsx", "runScript", "Enter"],
+    ["panel", "Panel.jsx", "openPanel", undefined],
+    ["startup", "Boot.jsx", "runStartupOnce", "Enter"],
+    ["preset", "Bounce.ffx", "applyPreset", "Enter"],
+    ["expression", "Wiggle.txt", "applyExpression", "Enter"]
+  ] as const)("gives %s its typed primary action", (type, path, labelKey, shortcut) => {
     const primary = getResourceCommandItems(contextFor(type, path))[0];
     expect(primary).toMatchObject({
       id: "resource.use",
       group: "primary",
       labelKey,
-      shortcut: "Enter",
       enabled: true
     });
+    expect(primary.shortcut).toBe(shortcut);
+  });
+
+  it("does not expose source refresh or resource info in the context menu", () => {
+    const items = getResourceCommandItems(contextFor("script", "Tool.jsx"));
+    expect(items.map((item) => item.id)).toEqual([
+      "resource.use",
+      "resource.favorite.toggle",
+      "resource.path.copy",
+      "resource.file.reveal",
+      "resource.file.open-default"
+    ]);
   });
 
   it("changes the favorite label without changing the command id", () => {
@@ -188,8 +199,7 @@ describe("resource command registry", () => {
     for (const id of [
       "resource.use",
       "resource.file.reveal",
-      "resource.file.open-default",
-      "resource.source.refresh"
+      "resource.file.open-default"
     ]) {
       expect(items.find((item) => item.id === id)).toMatchObject({
         enabled: false,
@@ -198,8 +208,7 @@ describe("resource command registry", () => {
     }
     for (const id of [
       "resource.favorite.toggle",
-      "resource.path.copy",
-      "resource.info.view"
+      "resource.path.copy"
     ]) {
       expect(items.find((item) => item.id === id)).toMatchObject({
         enabled: true

@@ -251,7 +251,8 @@ describe("resource page selection and keyboard execution", () => {
     expect(menu).toBeTruthy();
     expect(menu.textContent).toContain("执行脚本");
     expect(menu.textContent).toContain("复制完整路径");
-    expect(menu.textContent).toContain("查看资源信息");
+    expect(menu.textContent).not.toContain("更新当前来源");
+    expect(menu.textContent).not.toContain("查看资源信息");
   });
 
   it("runs the favorite command from the context menu without executing the resource", async () => {
@@ -263,7 +264,7 @@ describe("resource page selection and keyboard execution", () => {
     expect(readStoredResourceSettings(storage).index.resources[0]?.favorite).toBe(true);
   });
 
-  it("shows copy feedback and resource information from menu commands", async () => {
+  it("shows copy feedback and omits removed source/info commands", async () => {
     const copied: string[] = [];
     await renderPage({
       copyText: async (text) => {
@@ -279,10 +280,9 @@ describe("resource page selection and keyboard execution", () => {
     );
 
     await openPointerMenu(rows()[0]);
-    await chooseMenuItem("查看资源信息");
-    const dialog = document.querySelector("[role='dialog']");
-    expect(dialog?.textContent).toContain("Alpha");
-    expect(dialog?.textContent).toContain("C:/Tools/Alpha.jsx");
+    const menuText = document.querySelector("[role='menu']")?.textContent ?? "";
+    expect(menuText).not.toContain("更新当前来源");
+    expect(menuText).not.toContain("查看资源信息");
   });
 
   it("maps panel registration failures to localized feedback", async () => {

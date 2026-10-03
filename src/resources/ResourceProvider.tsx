@@ -95,8 +95,12 @@ async function copyResourceText(text: string): Promise<void> {
     navigator.clipboard &&
     typeof navigator.clipboard.writeText === "function"
   ) {
-    await navigator.clipboard.writeText(text);
-    return;
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // CEP/WebView may expose navigator.clipboard but reject file-scheme writes.
+    }
   }
 
   if (typeof document === "undefined") {

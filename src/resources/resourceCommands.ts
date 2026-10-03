@@ -215,7 +215,7 @@ export function getResourceCommandItems(
       id: "resource.use",
       group: "primary",
       labelKey: USE_LABELS[context.resource.resourceType],
-      shortcut: "Enter",
+      ...(context.resource.resourceType === "panel" ? {} : { shortcut: "Enter" as const }),
       ...hostAvailability
     },
     {
@@ -246,21 +246,6 @@ export function getResourceCommandItems(
       ...hostAvailability
     });
   }
-
-  items.push(
-    {
-      id: "resource.source.refresh",
-      group: "source",
-      labelKey: "refreshSource",
-      ...hostAvailability
-    },
-    {
-      id: "resource.info.view",
-      group: "details",
-      labelKey: "viewInfo",
-      enabled: true
-    }
-  );
 
   return items;
 }
@@ -314,8 +299,13 @@ export async function runResourceCommand(
   context: ResourceCommandContext,
   dependencies: ResourceCommandDependencies
 ): Promise<ResourceCommandResult> {
-  const item = getResourceCommandItems(context).find(
+  const visibleItem = getResourceCommandItems(context).find(
     (candidate) => candidate.id === commandId
+  );
+  const item = visibleItem ?? (
+    commandId === "resource.source.refresh" || commandId === "resource.info.view"
+      ? { id: commandId, enabled: true }
+      : undefined
   );
 
   if (!item) {
