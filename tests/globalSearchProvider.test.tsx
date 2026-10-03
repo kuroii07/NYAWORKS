@@ -57,7 +57,10 @@ const resourceSettings: ResourceSettings = {
   }
 };
 
-function createResourceBridge(): ResourceHostBridge {
+function createResourceBridge(
+  usedIds: string[] = [],
+  useResult: Awaited<ReturnType<ResourceHostBridge["useResource"]>> = { ok: true }
+): ResourceHostBridge {
   return {
     readCurrentAeSources: async () => ({
       status: "connected",
@@ -70,7 +73,10 @@ function createResourceBridge(): ResourceHostBridge {
     openSourceDirectory: async () => ({ ok: false, reason: "unavailable" }),
     revealResourceFile: async () => ({ ok: false, reason: "unavailable" }),
     openResourceFile: async () => ({ ok: false, reason: "unavailable" }),
-    useResource: async () => ({ ok: true })
+    useResource: async (_source, resource) => {
+      usedIds.push(resource.id);
+      return useResult;
+    }
   };
 }
 
@@ -98,7 +104,8 @@ function Probe() {
 async function renderProviders(
   searchBridge: GlobalSearchHostBridge,
   storage: MemoryStorage,
-  actionService?: ActionService
+  actionService?: ActionService,
+  resourceBridge?: ResourceHostBridge
 ) {
   container = document.createElement("div");
   document.body.append(container);
@@ -106,7 +113,7 @@ async function renderProviders(
   await act(async () => {
     root?.render(
       <LanguageProvider>
-        <ResourceProvider bridge={createResourceBridge()} storage={storage}>
+        <ResourceProvider bridge={resourceBridge ?? createResourceBridge()} storage={storage}>
           <ActionServiceProvider service={actionService}>
             <GlobalSearchProvider bridge={searchBridge}>
               <Probe />
@@ -153,19 +160,76 @@ describe("GlobalSearchProvider", () => {
     expect(calls).toEqual(["effects", "effects"]);
   });
 
-  it("delegates indexed script execution through the correct bridge action", async () => {
+  it("delegates indexed script execution through the shared resource command", async () => {
     const storage = new MemoryStorage();
     writeStoredResourceSettings(resourceSettings, storage);
     const actions: unknown[] = [];
+    const usedIds: string[] = [];
     const value = await renderProviders(createSearchBridge({
       executeGlobalSearchAction: async (action) => {
         actions.push(action);
         return { ok: true };
       }
-    }), storage);
+    }), storage, undefined, createResourceBridge(usedIds));
     const item = value.search("Quick Tool")[0];
     await act(async () => { await value.executeItem(item); });
-    expect(actions).toEqual([{ action: "run-script", path: "C:/Tools/Quick.jsx" }]);
+    expect(usedIds).toEqual(["custom:tools:quick.jsx"]);
+    expect(actions).toEqual([]);
+  });
+
+  it("executes every indexed resource type through the shared resource command", async () => {
+    const storage = new MemoryStorage();
+    const resourceTypes = ["script", "panel", "startup", "preset", "expression"] as const;
+    const resources = resourceTypes.map((resourceType) => ({
+      ...resourceSettings.index.resources[0],
+      id: `custom:tools:${resourceType}`,
+      name: `${resourceType} resource`,
+      resourceType,
+      relativePath: `${resourceType}.jsx`
+    }));
+    writeStoredResourceSettings({
+      ...resourceSettings,
+      index: { resources, sourceStates: [] }
+    }, storage);
+    const usedIds: string[] = [];
+    const bridgeActions: unknown[] = [];
+    const value = await renderProviders(
+      createSearchBridge({
+        executeGlobalSearchAction: async (action) => {
+          bridgeActions.push(action);
+          return { ok: true };
+        }
+      }),
+      storage,
+      undefined,
+      createResourceBridge(usedIds)
+    );
+
+    for (const resource of resources) {
+      const item = value.search(resource.name).find((candidate) => candidate.resourceId === resource.id);
+      expect(item).toBeDefined();
+      await act(async () => { await value.executeItem(item!); });
+    }
+
+    expect(usedIds).toEqual(resources.map((resource) => resource.id));
+    expect(bridgeActions).toEqual([]);
+  });
+
+  it("passes structured resource command failures through global search", async () => {
+    const storage = new MemoryStorage();
+    writeStoredResourceSettings(resourceSettings, storage);
+    const value = await renderProviders(
+      createSearchBridge(),
+      storage,
+      undefined,
+      createResourceBridge([], { ok: false, reason: "no-selected-layer" })
+    );
+    const item = value.search("Quick Tool").find((candidate) => candidate.resourceId);
+    expect(item).toBeDefined();
+    await expect(value.executeItem(item!)).resolves.toEqual({
+      ok: false,
+      reason: "no-selected-layer"
+    });
   });
 
   it("discovers anchor actions and executes them through the shared action service", async () => {

@@ -16,7 +16,6 @@ import { displayResourcePath } from "../resources/resourceOperations";
 import {
   globalSearchHostBridge,
   type GlobalSearchActionResult,
-  type GlobalSearchHostAction,
   type GlobalSearchHostBridge
 } from "../host/globalSearchBridge";
 import { buildToolSearchItems } from "./toolSearchCatalog";
@@ -56,7 +55,7 @@ export function GlobalSearchProvider({
 }: GlobalSearchProviderProps) {
   const { copy, languageId } = useLanguage();
   const actionService = useActionService();
-  const { resources, sources } = useResources();
+  const { resources, runResourceCommand } = useResources();
   const [effects, setEffects] = useState<Awaited<ReturnType<GlobalSearchHostBridge["readCurrentAeEffects"]>> | null>(null);
   const [effectsStatus, setEffectsStatus] = useState<GlobalSearchContextValue["effectsStatus"]>("loading");
 
@@ -113,7 +112,7 @@ export function GlobalSearchProvider({
       order: 2000 + index
     }));
     return buildGlobalSearchIndex({ items: [...toolItems, ...actionItems, ...resourceItems, ...effectItems] });
-  }, [copy.home, effects, languageId, resources, sources]);
+  }, [copy.home, effects, languageId, resources]);
 
   const executeItem = useCallback(async (item: GlobalSearchItem): Promise<GlobalSearchActionResult> => {
     if (item.action === "execute-action" && item.actionId) {
@@ -123,29 +122,17 @@ export function GlobalSearchProvider({
         : { ok: false, reason: result.error?.code ?? "host-error", detail: result.error?.detail };
     }
     if (item.kind === "tool") return { ok: true };
-    let action: GlobalSearchHostAction;
-    if (item.action === "run-script") {
-      const resource = resources.find((candidate) => candidate.id === item.resourceId);
-      if (!resource) return { ok: false, reason: "invalid-resource" };
-      const source = sources.find((candidate) => candidate.id === resource.sourceId);
-      return bridge.executeGlobalSearchAction({
-        action: "run-script",
-        path: `${source?.path ?? resource.sourceId}/${resource.relativePath}`,
-        ...(resource.resourceType === "panel" ? { resourceType: "panel" as const } : {})
-      });
-    }
-    if (item.action === "apply-preset") {
-      const resource = resources.find((candidate) => candidate.id === item.resourceId);
-      if (!resource) return { ok: false, reason: "invalid-resource" };
-      const source = sources.find((candidate) => candidate.id === resource.sourceId);
-      return bridge.executeGlobalSearchAction({ action: "apply-preset", path: `${source?.path ?? resource.sourceId}/${resource.relativePath}` });
+    if (item.resourceId) {
+      const result = await runResourceCommand("resource.use", item.resourceId);
+      return result.ok
+        ? { ok: true }
+        : { ok: false, reason: result.reason, detail: result.detail };
     }
     if (item.action === "add-effect") {
       return bridge.executeGlobalSearchAction({ action: "add-effect", matchName: item.sourceId ?? item.id });
     }
-    action = { action: "run-script", path: item.resourceId ?? item.id };
-    return bridge.executeGlobalSearchAction(action);
-  }, [actionService, bridge, resources, sources]);
+    return { ok: false, reason: "invalid-resource" };
+  }, [actionService, bridge, runResourceCommand]);
 
   const value = useMemo<GlobalSearchContextValue>(() => ({
     index,
