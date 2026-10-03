@@ -4,6 +4,10 @@ import type {
   SettingsTabId
 } from "../settings/types";
 import type { AiRequestErrorCode } from "../aiSettings/providerAdapters";
+import type {
+  ResourceCommandFailureReason,
+  ResourceCommandLabelKey
+} from "../resources/resourceCommands";
 
 export type ToolId =
   | "textLayer"
@@ -298,9 +302,32 @@ export interface UiCopy {
     noResults: string;
     typeLabels: Record<"script" | "panel" | "startup" | "preset" | "expression", string>;
     favorite: string;
+    unfavorite: string;
     copyPath: string;
     revealSource: string;
     refreshSource: string;
+    commandMenuAria: string;
+    commandLabels: Record<ResourceCommandLabelKey, string>;
+    commandFailures: Record<ResourceCommandFailureReason, string>;
+    favoriteSuccess: string;
+    unfavoriteSuccess: string;
+    copySuccess: string;
+    revealSuccess: string;
+    openSuccess: string;
+    refreshSuccess: string;
+    presetApplied: string;
+    expressionApplied: string;
+    infoTitle: string;
+    infoName: string;
+    infoType: string;
+    infoSource: string;
+    infoPath: string;
+    infoModified: string;
+    infoFavorite: string;
+    infoFavoriteYes: string;
+    infoFavoriteNo: string;
+    infoUnknownDate: string;
+    closeInfo: string;
     hostActionUnavailable: string;
     useSuccess: string;
     useFailed: string;

@@ -11,17 +11,40 @@ import {
   Lightning,
   SlidersHorizontal
 } from "@phosphor-icons/react";
-import { useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent
+} from "react";
 import {
   SettingSelect,
   type SettingSelectOption
 } from "../components/SettingSelect";
+import { AppDialog } from "../components/AppDialog";
+import {
+  ResourceContextMenu,
+  type ResourceMenuAnchor
+} from "../components/ResourceContextMenu";
 import { useLanguage } from "../i18n/LanguageProvider";
 import {
   buildResourceFolderTree,
   displayResourcePath,
   filterIndexedResources
 } from "../resources/resourceOperations";
+import {
+  moveResourceSelection,
+  reconcileFilteredSelection,
+  reconcileRefreshedSelection,
+  type ResourceSelectionState
+} from "../resources/resourceSelection";
+import type {
+  ResourceCommandFailureReason,
+  ResourceCommandId,
+  ResourceInfo
+} from "../resources/resourceCommands";
 import { useResources } from "../resources/ResourceProvider";
 import { useToast } from "../notifications/ToastProvider";
 import type { IndexedResource, ResourceFolderNode, ResourceType } from "../resources/types";
@@ -99,15 +122,56 @@ function ResourceTypeIcon({ type }: { type: ResourceType }) {
   return <Icon aria-hidden="true" weight="regular" />;
 }
 
-function ResourceRow({ resource, labels, executing, onUse, onFavorite }: {
+function ResourceRow({
+  resource,
+  labels,
+  executing,
+  selected,
+  focused,
+  tabIndex,
+  rowRef,
+  onSelect,
+  onFocus,
+  onUse,
+  onFavorite,
+  onContextMenu
+}: {
   resource: IndexedResource;
   labels: ReturnType<typeof useLanguage>["copy"]["resources"];
   executing: boolean;
+  selected: boolean;
+  focused: boolean;
+  tabIndex: 0 | -1;
+  rowRef: (element: HTMLElement | null) => void;
+  onSelect: () => void;
+  onFocus: () => void;
   onUse: () => void;
   onFavorite: () => void;
+  onContextMenu: (event: ReactMouseEvent<HTMLElement>) => void;
 }) {
   return (
-    <article className="resource-list-row" data-resource-type={resource.resourceType} role="button" tabIndex={0} aria-label={resource.name} aria-busy={executing || undefined} onDoubleClick={onUse} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); onUse(); } }}>
+    <article
+      className="resource-list-row"
+      data-resource-type={resource.resourceType}
+      data-selected={selected || undefined}
+      data-focused={focused || undefined}
+      role="option"
+      tabIndex={tabIndex}
+      aria-label={resource.name}
+      aria-selected={selected}
+      aria-busy={executing || undefined}
+      ref={rowRef}
+      onClick={(event) => {
+        onSelect();
+        event.currentTarget.focus();
+      }}
+      onFocus={onFocus}
+      onDoubleClick={() => {
+        onSelect();
+        onUse();
+      }}
+      onContextMenu={onContextMenu}
+    >
       <ResourceTypeIcon type={resource.resourceType} />
       <div className="resource-list-row__copy">
         <strong>{resource.name}</strong>
@@ -119,6 +183,8 @@ function ResourceRow({ resource, labels, executing, onUse, onFavorite }: {
           title={labels.favorite}
           data-active={resource.favorite || undefined}
           onClick={(event) => { event.stopPropagation(); onFavorite(); }}
+          onDoubleClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
         >
           <Heart aria-hidden="true" weight={resource.favorite ? "fill" : "regular"} />
         </button>
@@ -135,7 +201,8 @@ export function ResourcesPage() {
     hostStatus,
     sources,
     resources,
-    useResource,
+    getResourceCommands,
+    runResourceCommand,
     toggleFavorite
   } = useResources();
   const { toast } = useToast();
@@ -144,7 +211,23 @@ export function ResourcesPage() {
   const [sourceId, setSourceId] = useState<SourceFilter>("all");
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
-  const [executingId, setExecutingId] = useState<string | null>(null);
+  const [executingIds, setExecutingIds] = useState<ReadonlySet<string>>(
+    () => new Set()
+  );
+  const [menu, setMenu] = useState<{
+    resourceId: string;
+    anchor: ResourceMenuAnchor;
+    restoreFocusTo: HTMLElement | null;
+  } | null>(null);
+  const [info, setInfo] = useState<ResourceInfo | null>(null);
+  const [selection, setSelection] = useState<ResourceSelectionState>({
+    selectedResourceId: null,
+    focusedResourceId: null
+  });
+  const rowRefs = useRef(new Map<string, HTMLElement>());
+  const searchRef = useRef<HTMLInputElement>(null);
+  const previousResourcesRef = useRef(resources);
+  const previousVisibleIdsRef = useRef<readonly string[]>([]);
   const sourceOptions = useMemo<readonly SettingSelectOption<string>[]>(
     () => [
       { value: "all", label: labels.allSources },
@@ -177,16 +260,178 @@ export function ResourcesPage() {
     [filteredResources]
   );
   const listResources = filteredResources;
+  const visibleResourceIds = useMemo(
+    () => listResources.map((resource) => resource.id),
+    [listResources]
+  );
 
-  async function handleUse(resource: IndexedResource) {
-    if (executingId) return;
-    setExecutingId(resource.id);
+  useEffect(() => {
+    setSelection((current) =>
+      previousResourcesRef.current === resources
+        ? reconcileFilteredSelection(current, visibleResourceIds)
+        : reconcileRefreshedSelection(
+            current,
+            previousVisibleIdsRef.current,
+            visibleResourceIds
+          )
+    );
+    previousResourcesRef.current = resources;
+    previousVisibleIdsRef.current = visibleResourceIds;
+  }, [resources, visibleResourceIds]);
+
+  async function handleCommand(
+    commandId: ResourceCommandId,
+    resource: IndexedResource
+  ) {
+    if (executingIds.has(resource.id)) return;
+    setExecutingIds((current) => new Set(current).add(resource.id));
     try {
-      const result = await useResource(resource.id);
-      if (result.ok) toast.success(`${labels.useSuccess}: ${resource.name}`);
-      else toast.error(result.reason === "no-selected-layer" ? labels.noSelectedLayer : result.reason === "no-selected-property" ? labels.noSelectedProperty : result.reason === "empty-expression" ? labels.emptyExpression : result.reason === "invalid-resource" ? labels.invalidResource : result.reason === "unavailable" ? labels.hostActionUnavailable : labels.useFailed);
+      const result = await runResourceCommand(commandId, resource.id);
+      if (result.ok) {
+        if (commandId === "resource.use") {
+          if (
+            resource.resourceType === "preset" &&
+            result.affectedItems !== undefined
+          ) {
+            toast.success(
+              `${labels.presetApplied}: ${result.affectedItems} — ${resource.name}`
+            );
+          } else if (
+            resource.resourceType === "expression" &&
+            result.affectedItems !== undefined
+          ) {
+            toast.success(
+              `${labels.expressionApplied}: ${result.affectedItems} — ${resource.name}`
+            );
+          } else {
+            toast.success(`${labels.useSuccess}: ${resource.name}`);
+          }
+        } else if (commandId === "resource.favorite.toggle") {
+          toast.success(
+            resource.favorite ? labels.unfavoriteSuccess : labels.favoriteSuccess
+          );
+        } else if (commandId === "resource.path.copy") {
+          toast.success(labels.copySuccess);
+        } else if (commandId === "resource.file.reveal") {
+          toast.success(labels.revealSuccess);
+        } else if (commandId === "resource.file.open-default") {
+          toast.success(labels.openSuccess);
+        } else if (commandId === "resource.source.refresh") {
+          toast.success(labels.refreshSuccess);
+        } else if (commandId === "resource.info.view" && result.info) {
+          setInfo(result.info);
+        }
+      } else {
+        toast.error(labels.commandFailures[result.reason]);
+      }
     } finally {
-      setExecutingId(null);
+      setExecutingIds((current) => {
+        const next = new Set(current);
+        next.delete(resource.id);
+        return next;
+      });
+    }
+  }
+
+  function handleUse(resource: IndexedResource) {
+    void handleCommand("resource.use", resource);
+  }
+
+  function openResourceMenu(
+    resource: IndexedResource,
+    anchor: ResourceMenuAnchor,
+    restoreFocusTo: HTMLElement | null
+  ) {
+    selectResource(resource.id);
+    setMenu({ resourceId: resource.id, anchor, restoreFocusTo });
+  }
+
+  function closeResourceMenu() {
+    setMenu(null);
+  }
+
+  function menuItemsFor(resourceId: string) {
+    return getResourceCommands(resourceId);
+  }
+
+  const menuResource = menu
+    ? resources.find((resource) => resource.id === menu.resourceId) ?? null
+    : null;
+  const menuItems = menuResource ? menuItemsFor(menuResource.id) : [];
+
+  function selectResource(resourceId: string) {
+    setSelection({
+      selectedResourceId: resourceId,
+      focusedResourceId: resourceId
+    });
+  }
+
+  function focusSelection(next: ResourceSelectionState) {
+    const targetId = next.focusedResourceId;
+    if (!targetId) return;
+    const row = rowRefs.current.get(targetId);
+    row?.focus();
+    row?.scrollIntoView({ block: "nearest" });
+  }
+
+  function handleListKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    const target = event.target as HTMLElement;
+    if (target.closest("button, input, textarea, select, [role='menu']")) {
+      return;
+    }
+
+    if (event.ctrlKey && event.key.toLocaleLowerCase() === "f") {
+      event.preventDefault();
+      searchRef.current?.focus();
+      searchRef.current?.select();
+      return;
+    }
+
+    if (
+      event.key === "ContextMenu" ||
+      (event.key === "F10" && event.shiftKey)
+    ) {
+      event.preventDefault();
+      const resource = listResources.find(
+        (candidate) => candidate.id === selection.selectedResourceId
+      );
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (resource && target) {
+        openResourceMenu(
+          resource,
+          { kind: "element", element: target },
+          target
+        );
+      }
+      return;
+    }
+
+    let direction: "previous" | "next" | "first" | "last" | null = null;
+    if (event.key === "ArrowDown" || event.code === "Numpad2") direction = "next";
+    else if (event.key === "ArrowUp" || event.code === "Numpad8") direction = "previous";
+    else if (event.key === "Home") direction = "first";
+    else if (event.key === "End") direction = "last";
+
+    if (direction) {
+      event.preventDefault();
+      const next = moveResourceSelection(
+        selection,
+        visibleResourceIds,
+        direction
+      );
+      setSelection(next);
+      focusSelection(next);
+      return;
+    }
+
+    if (event.key === "Enter" || event.code === "NumpadEnter") {
+      const resource = listResources.find(
+        (candidate) => candidate.id === selection.selectedResourceId
+      );
+      if (resource) {
+        event.preventDefault();
+        void handleUse(resource);
+      }
     }
   }
 
@@ -199,7 +444,8 @@ export function ResourcesPage() {
   }
 
   return (
-    <main className="resources-page">
+    <>
+      <main className="resources-page">
       <header className="resources-page__header">
         <div>
           <Archive aria-hidden="true" weight="regular" />
@@ -243,6 +489,7 @@ export function ResourcesPage() {
             <label className="resource-search">
               <MagnifyingGlass aria-hidden="true" weight="regular" />
               <input
+                ref={searchRef}
                 type="search"
                 value={query}
                 placeholder={labels.searchPlaceholder}
@@ -282,15 +529,46 @@ export function ResourcesPage() {
           ) : (
             <>
               {listResources.length > 0 ? (
-                <div className="resource-list">
-                  {listResources.map((resource) => (
+                <div
+                  className="resource-list"
+                  role="listbox"
+                  aria-label={labels.title}
+                  onKeyDown={handleListKeyDown}
+                >
+                  {listResources.map((resource, index) => (
                     <ResourceRow
                       key={resource.id}
                       resource={resource}
                       labels={labels}
-                      executing={executingId === resource.id}
-                      onUse={() => void handleUse(resource)}
+                      executing={executingIds.has(resource.id)}
+                      selected={selection.selectedResourceId === resource.id}
+                      focused={selection.focusedResourceId === resource.id}
+                      tabIndex={
+                        selection.selectedResourceId === resource.id ||
+                        (!selection.selectedResourceId && index === 0)
+                          ? 0
+                          : -1
+                      }
+                      rowRef={(element) => {
+                        if (element) rowRefs.current.set(resource.id, element);
+                        else rowRefs.current.delete(resource.id);
+                      }}
+                      onSelect={() => selectResource(resource.id)}
+                      onFocus={() => selectResource(resource.id)}
+                      onUse={() => handleUse(resource)}
                       onFavorite={() => toggleFavorite(resource.id)}
+                      onContextMenu={(event) => {
+                        event.preventDefault();
+                        openResourceMenu(
+                          resource,
+                          {
+                            kind: "point",
+                            x: event.clientX,
+                            y: event.clientY
+                          },
+                          event.currentTarget
+                        );
+                      }}
                     />
                   ))}
                 </div>
@@ -299,6 +577,47 @@ export function ResourcesPage() {
           )}
         </section>
       </div>
-    </main>
+      </main>
+      <ResourceContextMenu
+        open={Boolean(menu && menuResource)}
+        ariaLabel={labels.commandMenuAria}
+        anchor={menu?.anchor ?? null}
+        restoreFocusTo={menu?.restoreFocusTo ?? null}
+        items={menuItems}
+        getLabel={(item) => labels.commandLabels[item.labelKey]}
+        getDisabledReason={(reason: ResourceCommandFailureReason) =>
+          labels.commandFailures[reason]
+        }
+        onSelect={(commandId) => {
+          if (menuResource) {
+            void handleCommand(commandId, menuResource);
+          }
+          closeResourceMenu();
+        }}
+        onClose={closeResourceMenu}
+      />
+      {info ? (
+        <AppDialog
+          title={labels.infoTitle}
+          primaryAction={{
+            label: labels.closeInfo,
+            onClick: () => setInfo(null)
+          }}
+          onClose={() => setInfo(null)}
+        >
+          <dl className="resource-info-list">
+            <div><dt>{labels.infoName}</dt><dd>{info.name}</dd></div>
+            <div><dt>{labels.infoType}</dt><dd>{labels.typeLabels[info.resourceType]}</dd></div>
+            <div><dt>{labels.infoSource}</dt><dd>{info.sourceName}</dd></div>
+            <div><dt>{labels.infoPath}</dt><dd>{info.absolutePath}</dd></div>
+            <div><dt>{labels.infoModified}</dt><dd>{info.modifiedAt ?? labels.infoUnknownDate}</dd></div>
+            <div>
+              <dt>{labels.infoFavorite}</dt>
+              <dd>{info.favorite ? labels.infoFavoriteYes : labels.infoFavoriteNo}</dd>
+            </div>
+          </dl>
+        </AppDialog>
+      ) : null}
+    </>
   );
 }

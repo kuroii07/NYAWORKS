@@ -112,6 +112,8 @@ describe("local resources page", () => {
   it("renders compact resource rows without path or legacy actions", () => {
     const markup = renderPage();
 
+    expect(markup).toContain('role="listbox"');
+    expect(markup).toContain('role="option"');
     expect(markup).toContain('class="resource-list-row"');
     expect(markup).not.toContain('class="resource-preview-card"');
     expect(markup).not.toContain("Animation / Loop.jsx");
