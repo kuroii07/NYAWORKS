@@ -59,12 +59,12 @@ export function Sidebar({ activePage, onPageChange }: SidebarProps) {
             data-active={isActive}
             key={item.id}
             type="button"
+            aria-label={label}
             aria-current={isActive ? "page" : undefined}
             title={label}
             onClick={() => onPageChange(item.id)}
           >
             <Icon aria-hidden="true" weight="regular" />
-            <span>{label}</span>
           </button>
         );
       })}
