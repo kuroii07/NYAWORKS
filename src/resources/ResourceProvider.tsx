@@ -26,6 +26,14 @@ import {
   readStoredResourceSettings,
   writeStoredResourceSettings
 } from "./resourceStorage";
+import {
+  getResourceCommandItems,
+  resolveResourceCommandContext,
+  runResourceCommand as executeResourceCommand,
+  type ResourceCommandId,
+  type ResourceCommandItem,
+  type ResourceCommandResult
+} from "./resourceCommands";
 import type {
   IndexedResource,
   ResourceScanResult,
@@ -63,6 +71,11 @@ export interface ResourceContextValue {
     patch: Partial<Pick<ResourceSource, "name" | "path" | "resourceType" | "enabled">>
   ): Promise<void>;
   useResource(resourceId: string): Promise<ResourceUseResult>;
+  getResourceCommands(resourceId: string): readonly ResourceCommandItem[];
+  runResourceCommand(
+    commandId: ResourceCommandId,
+    resourceId: string
+  ): Promise<ResourceCommandResult>;
   removeCustomSource(sourceId: string): void;
   toggleFavorite(resourceId: string): void;
 }
@@ -71,9 +84,41 @@ interface ResourceProviderProps extends PropsWithChildren {
   bridge?: ResourceHostBridge;
   storage?: ResourceStorage;
   now?: () => Date;
+  copyText?: (text: string) => Promise<void>;
 }
 
 const ResourceContext = createContext<ResourceContextValue | null>(null);
+
+async function copyResourceText(text: string): Promise<void> {
+  if (
+    typeof navigator !== "undefined" &&
+    navigator.clipboard &&
+    typeof navigator.clipboard.writeText === "function"
+  ) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  if (typeof document === "undefined") {
+    throw new Error("Clipboard is unavailable");
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.append(textarea);
+  textarea.select();
+  const copied =
+    typeof document.execCommand === "function" &&
+    document.execCommand("copy");
+  textarea.remove();
+
+  if (!copied) {
+    throw new Error("Clipboard write failed");
+  }
+}
 
 function mergeSourceScanResult(
   settings: ResourceSettings,
@@ -128,7 +173,8 @@ export function ResourceProvider({
   children,
   bridge = cepResourceBridge,
   storage,
-  now = () => new Date()
+  now = () => new Date(),
+  copyText = copyResourceText
 }: ResourceProviderProps) {
   const [settings, setSettings] = useState<ResourceSettings>(() =>
     readStoredResourceSettings(storage)
@@ -143,6 +189,7 @@ export function ResourceProvider({
   const settingsRef = useRef(settings);
   const mountedRef = useRef(true);
   const scanVersionRef = useRef(new Map<string, number>());
+  const executingResourceIdsRef = useRef(new Set<string>());
 
   settingsRef.current = settings;
 
@@ -162,6 +209,7 @@ export function ResourceProvider({
     return () => {
       mountedRef.current = false;
       scanVersionRef.current.clear();
+      executingResourceIdsRef.current.clear();
     };
   }, []);
 
@@ -299,6 +347,129 @@ export function ResourceProvider({
     }
   }, [refreshSource, sourceList]);
 
+  const useResource = useCallback(
+    async (resourceId: string): Promise<ResourceUseResult> => {
+      const resource = settingsRef.current.index.resources.find(
+        (candidate) => candidate.id === resourceId
+      );
+      const source = [
+        ...currentAeSources,
+        ...settingsRef.current.customSources
+      ].find((candidate) => candidate.id === resource?.sourceId);
+
+      if (!resource || !source || !source.enabled) {
+        return { ok: false, reason: "invalid-resource" };
+      }
+
+      let result: ResourceUseResult;
+      try {
+        result = await bridge.useResource(source, resource);
+      } catch {
+        result = { ok: false, reason: "host-error" };
+      }
+
+      if (result.ok && mountedRef.current) {
+        const usedAt = now().toISOString();
+        updateSettings((current) => ({
+          ...current,
+          index: {
+            ...current.index,
+            resources: current.index.resources.map((candidate) =>
+              candidate.id === resourceId
+                ? { ...candidate, lastUsedAt: usedAt }
+                : candidate
+            )
+          }
+        }));
+      }
+
+      return result;
+    },
+    [bridge, currentAeSources, now, updateSettings]
+  );
+
+  const getResourceCommands = useCallback(
+    (resourceId: string): readonly ResourceCommandItem[] => {
+      const commandContext = resolveResourceCommandContext(
+        resourceId,
+        settingsRef.current.index.resources,
+        [...currentAeSources, ...settingsRef.current.customSources],
+        hostStatus
+      );
+      return commandContext.ok ? getResourceCommandItems(commandContext) : [];
+    },
+    [currentAeSources, hostStatus]
+  );
+
+  const runCommand = useCallback(
+    async (
+      commandId: ResourceCommandId,
+      resourceId: string
+    ): Promise<ResourceCommandResult> => {
+      const commandContext = resolveResourceCommandContext(
+        resourceId,
+        settingsRef.current.index.resources,
+        [...currentAeSources, ...settingsRef.current.customSources],
+        hostStatus
+      );
+
+      if (!commandContext.ok) {
+        return {
+          ok: false,
+          commandId,
+          resourceId,
+          reason: commandContext.reason
+        };
+      }
+
+      if (
+        commandId === "resource.use" &&
+        executingResourceIdsRef.current.has(resourceId)
+      ) {
+        return {
+          ok: false,
+          commandId,
+          resourceId,
+          reason: "command-in-progress"
+        };
+      }
+
+      if (commandId === "resource.use") {
+        executingResourceIdsRef.current.add(resourceId);
+      }
+
+      try {
+        return await executeResourceCommand(commandId, commandContext, {
+          useResource,
+          toggleFavorite: (targetId) => {
+            updateSettings((current) =>
+              toggleResourceFavorite(current, targetId)
+            );
+          },
+          refreshSource,
+          copyText,
+          revealFile: (context) =>
+            bridge.revealResourceFile(context.source, context.resource),
+          openDefault: (context) =>
+            bridge.openResourceFile(context.source, context.resource)
+        });
+      } finally {
+        if (commandId === "resource.use") {
+          executingResourceIdsRef.current.delete(resourceId);
+        }
+      }
+    },
+    [
+      bridge,
+      copyText,
+      currentAeSources,
+      hostStatus,
+      refreshSource,
+      updateSettings,
+      useResource
+    ]
+  );
+
   const value = useMemo<ResourceContextValue>(
     () => ({
       hostStatus,
@@ -357,43 +528,9 @@ export function ResourceProvider({
           await scanSourceDefinition(nextSource);
         }
       },
-      useResource: async (resourceId) => {
-        const resource = settingsRef.current.index.resources.find(
-          (candidate) => candidate.id === resourceId
-        );
-        const source = [
-          ...currentAeSources,
-          ...settingsRef.current.customSources
-        ].find((candidate) => candidate.id === resource?.sourceId);
-
-        if (!resource || !source || !source.enabled) {
-          return { ok: false, reason: "invalid-resource" };
-        }
-
-        let result: ResourceUseResult;
-        try {
-          result = await bridge.useResource(source, resource);
-        } catch {
-          result = { ok: false, reason: "host-error" };
-        }
-
-        if (result.ok && mountedRef.current) {
-          const usedAt = now().toISOString();
-          updateSettings((current) => ({
-            ...current,
-            index: {
-              ...current.index,
-              resources: current.index.resources.map((candidate) =>
-                candidate.id === resourceId
-                  ? { ...candidate, lastUsedAt: usedAt }
-                  : candidate
-              )
-            }
-          }));
-        }
-
-        return result;
-      },
+      useResource,
+      getResourceCommands,
+      runResourceCommand: runCommand,
       removeCustomSource: (sourceId) => {
         updateSettings((current) =>
           removeCustomResourceSource(current, sourceId)
@@ -410,8 +547,9 @@ export function ResourceProvider({
       hostVersion,
       isDevelopmentFixture,
       bridge,
-      currentAeSources,
       now,
+      getResourceCommands,
+      runCommand,
       refreshAllSources,
       refreshSource,
       sourceList,
@@ -419,7 +557,8 @@ export function ResourceProvider({
       scanSourceDefinition,
       settings,
       sources,
-      updateSettings
+      updateSettings,
+      useResource
     ]
   );
 
