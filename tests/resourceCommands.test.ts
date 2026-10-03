@@ -216,7 +216,7 @@ describe("resource command runner", () => {
       dependencies: {
         async useResource(resourceId: string) {
           calls.push(`use:${resourceId}`);
-          return { ok: true as const, updatedItems: 3 };
+          return { ok: true as const, affectedItems: 3 };
         },
         toggleFavorite(resourceId: string) {
           calls.push(`favorite:${resourceId}`);

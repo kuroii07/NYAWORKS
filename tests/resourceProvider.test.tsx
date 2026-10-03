@@ -75,7 +75,7 @@ function initialSettings(
 function createBridge(
   overrides: Partial<ResourceHostBridge> = {}
 ): ResourceHostBridge {
-  return {
+  const defaults: ResourceHostBridge = {
     readCurrentAeSources: async () => ({
       status: "connected",
       hostVersion: "25.6",
@@ -89,8 +89,17 @@ function createBridge(
     }),
     chooseDirectory: async () => ({ status: "cancelled", path: null }),
     openSourceDirectory: async () => ({ ok: false, reason: "unavailable" }),
+    revealResourceFile: async () => ({ ok: false, reason: "unavailable" }),
+    openResourceFile: async () => ({ ok: false, reason: "unavailable" }),
     useResource: async () => ({ ok: true }),
-    ...overrides
+  };
+
+  return {
+    ...defaults,
+    ...overrides,
+    revealResourceFile:
+      overrides.revealResourceFile ?? defaults.revealResourceFile,
+    openResourceFile: overrides.openResourceFile ?? defaults.openResourceFile
   };
 }
 

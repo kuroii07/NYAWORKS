@@ -41,6 +41,12 @@ export function createDevelopmentResourceService(): ResourceHostBridge {
     async openSourceDirectory() {
       return { ok: false as const, reason: "unavailable" as const };
     },
+    async revealResourceFile() {
+      return { ok: false as const, reason: "unavailable" as const };
+    },
+    async openResourceFile() {
+      return { ok: false as const, reason: "unavailable" as const };
+    },
     async useResource() {
       return { ok: false as const, reason: "unavailable" as const };
     }

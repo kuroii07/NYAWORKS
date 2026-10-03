@@ -99,6 +99,12 @@ describe("resource settings source contents", () => {
       async openSourceDirectory(openedSource) {
         return { ok: true, path: openedSource.path };
       },
+      async revealResourceFile() {
+        return { ok: false, reason: "unavailable" };
+      },
+      async openResourceFile() {
+        return { ok: false, reason: "unavailable" };
+      },
       async useResource() {
         return { ok: true };
       }
@@ -154,6 +160,12 @@ describe("resource settings source contents", () => {
       async openSourceDirectory(openedSource) {
         openedSources.push(openedSource.path);
         return { ok: true, path: openedSource.path };
+      },
+      async revealResourceFile() {
+        return { ok: false, reason: "unavailable" };
+      },
+      async openResourceFile() {
+        return { ok: false, reason: "unavailable" };
       },
       async useResource() {
         return { ok: true };
@@ -221,6 +233,12 @@ describe("resource settings source contents", () => {
         return { status: "cancelled", path: null };
       },
       async openSourceDirectory() {
+        return { ok: false, reason: "unavailable" };
+      },
+      async revealResourceFile() {
+        return { ok: false, reason: "unavailable" };
+      },
+      async openResourceFile() {
         return { ok: false, reason: "unavailable" };
       },
       async useResource(_owningSource, usedResource) {

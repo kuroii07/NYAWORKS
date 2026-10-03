@@ -334,9 +334,9 @@ export async function runResourceCommand(
       const result = await dependencies.useResource(context.resource.id);
       return result.ok
         ? commandSuccess(commandId, context, {
-            ...(result.updatedItems === undefined
+            ...(result.affectedItems === undefined
               ? {}
-              : { affectedItems: result.updatedItems })
+              : { affectedItems: result.affectedItems })
           })
         : commandFailure(
             commandId,

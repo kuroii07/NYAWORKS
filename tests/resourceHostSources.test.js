@@ -191,4 +191,150 @@ describe("AE resource execution paths", () => {
     expect(executedCommand).toBe(4321);
     expect(evaluatedFile).toBe(false);
   });
+
+  it("reveals a Unicode resource file with Explorer select", async () => {
+    const source = await readFile("public/host/index.jsx", "utf8");
+    const start = source.indexOf("  function decodeResourcePayload(encodedPayload) {");
+    const end = source.indexOf("  function getCurrentEffects() {", start);
+    const commands = [];
+    const Folder = function Folder() {};
+    const File = function File(path) {
+      this.fsName = String(path).replace(/\//g, "\\");
+      this.exists = true;
+    };
+    const actions = Function(
+      "Folder", "File", "JSON", "decodeURIComponent", "system", "$",
+      `${source.slice(start, end)}\nreturn { revealResourceFile, openResourceFile };`
+    )(
+      Folder,
+      File,
+      JSON,
+      decodeURIComponent,
+      { callSystem: (command) => commands.push(command) },
+      { os: "Windows 11" }
+    );
+    const payload = encodeURIComponent(JSON.stringify({
+      path: "C:/资源/My Tool.jsx",
+      resourceType: "script"
+    }));
+
+    expect(JSON.parse(actions.revealResourceFile(payload))).toEqual({
+      ok: true,
+      path: "C:\\资源\\My Tool.jsx"
+    });
+    expect(commands).toEqual([
+      'explorer.exe /select,"C:\\资源\\My Tool.jsx"'
+    ]);
+  });
+
+  it.each([
+    'C:/Tools/Bad"Name.jsx',
+    "C:/Tools/Bad\rName.jsx",
+    "C:/Tools/Bad\nName.jsx"
+  ])("rejects an unsafe reveal path before calling the system: %s", async (path) => {
+    const source = await readFile("public/host/index.jsx", "utf8");
+    const start = source.indexOf("  function decodeResourcePayload(encodedPayload) {");
+    const end = source.indexOf("  function getCurrentEffects() {", start);
+    const commands = [];
+    const actions = Function(
+      "Folder", "File", "JSON", "decodeURIComponent", "system", "$",
+      `${source.slice(start, end)}\nreturn { revealResourceFile, openResourceFile };`
+    )(
+      function Folder() {},
+      function File(filePath) { this.fsName = filePath; this.exists = true; },
+      JSON,
+      decodeURIComponent,
+      { callSystem: (command) => commands.push(command) },
+      { os: "Windows 11" }
+    );
+
+    expect(JSON.parse(actions.revealResourceFile(
+      encodeURIComponent(JSON.stringify({ path, resourceType: "script" }))
+    ))).toEqual({ ok: false, reason: "invalid-resource" });
+    expect(commands).toEqual([]);
+  });
+
+  it("returns invalid-resource when the file no longer exists", async () => {
+    const source = await readFile("public/host/index.jsx", "utf8");
+    const start = source.indexOf("  function decodeResourcePayload(encodedPayload) {");
+    const end = source.indexOf("  function getCurrentEffects() {", start);
+    const actions = Function(
+      "Folder", "File", "JSON", "decodeURIComponent", "system", "$",
+      `${source.slice(start, end)}\nreturn { revealResourceFile, openResourceFile };`
+    )(
+      function Folder() {},
+      function File(path) { this.fsName = path; this.exists = false; },
+      JSON,
+      decodeURIComponent,
+      { callSystem() { throw new Error("must not run"); } },
+      { os: "Windows 11" }
+    );
+
+    expect(JSON.parse(actions.revealResourceFile(
+      encodeURIComponent(JSON.stringify({ path: "C:/Tools/Missing.jsx", resourceType: "script" }))
+    ))).toEqual({ ok: false, reason: "invalid-resource" });
+  });
+
+  it("opens editable resources with the system default application", async () => {
+    const source = await readFile("public/host/index.jsx", "utf8");
+    const start = source.indexOf("  function decodeResourcePayload(encodedPayload) {");
+    const end = source.indexOf("  function getCurrentEffects() {", start);
+    const executed = [];
+    const actions = Function(
+      "Folder", "File", "JSON", "decodeURIComponent", "system", "$",
+      `${source.slice(start, end)}\nreturn { revealResourceFile, openResourceFile };`
+    )(
+      function Folder() {},
+      function File(path) {
+        this.fsName = String(path);
+        this.name = String(path).split("/").pop();
+        this.exists = true;
+        this.execute = () => { executed.push(this.fsName); return true; };
+      },
+      JSON,
+      decodeURIComponent,
+      { callSystem() { throw new Error("default open must not use the shell"); } },
+      { os: "Windows 11" }
+    );
+    const payload = encodeURIComponent(JSON.stringify({
+      path: "C:/Tools/Edit Me.jsx",
+      resourceType: "script"
+    }));
+
+    expect(JSON.parse(actions.openResourceFile(payload))).toEqual({
+      ok: true,
+      path: "C:/Tools/Edit Me.jsx"
+    });
+    expect(executed).toEqual(["C:/Tools/Edit Me.jsx"]);
+  });
+
+  it.each([
+    ["C:/Tools/Binary.jsxbin", "script"],
+    ["C:/Presets/Bounce.ffx", "preset"],
+    ["C:/Tools/Unknown.bin", "script"]
+  ])("rejects unsupported default-open file %s", async (path, resourceType) => {
+    const source = await readFile("public/host/index.jsx", "utf8");
+    const start = source.indexOf("  function decodeResourcePayload(encodedPayload) {");
+    const end = source.indexOf("  function getCurrentEffects() {", start);
+    const actions = Function(
+      "Folder", "File", "JSON", "decodeURIComponent", "system", "$",
+      `${source.slice(start, end)}\nreturn { revealResourceFile, openResourceFile };`
+    )(
+      function Folder() {},
+      function File(filePath) {
+        this.fsName = filePath;
+        this.name = String(filePath).split("/").pop();
+        this.exists = true;
+        this.execute = () => true;
+      },
+      JSON,
+      decodeURIComponent,
+      {},
+      { os: "Windows 11" }
+    );
+
+    expect(JSON.parse(actions.openResourceFile(
+      encodeURIComponent(JSON.stringify({ path, resourceType }))
+    ))).toEqual({ ok: false, reason: "unsupported-file-type" });
+  });
 });

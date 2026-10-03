@@ -286,6 +286,107 @@
     }
   }
 
+  function decodeResourceFileActionPayload(encodedPayload) {
+    try {
+      return JSON.parse(decodeURIComponent(encodedPayload));
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function isUnsafeResourceFilePath(path) {
+    return !path || /[\x00-\x1f"]/.test(String(path));
+  }
+
+  function revealResourceFile(encodedPayload) {
+    var payload;
+    var path;
+    var file;
+    var systemPath;
+
+    try {
+      payload = decodeResourceFileActionPayload(encodedPayload);
+      if (!payload || isUnsafeResourceFilePath(payload.path)) {
+        return JSON.stringify({ ok: false, reason: "invalid-resource" });
+      }
+
+      path = decodeResourceFilePath(payload.path);
+      if (isUnsafeResourceFilePath(path)) {
+        return JSON.stringify({ ok: false, reason: "invalid-resource" });
+      }
+
+      file = new File(path);
+      if (!file.exists || isUnsafeResourceFilePath(file.fsName)) {
+        return JSON.stringify({ ok: false, reason: "invalid-resource" });
+      }
+      if (
+        !/Windows/i.test($.os ? String($.os) : "") ||
+        typeof system === "undefined" ||
+        typeof system.callSystem !== "function"
+      ) {
+        return JSON.stringify({ ok: false, reason: "system-open-failed" });
+      }
+
+      systemPath = String(file.fsName);
+      system.callSystem("explorer.exe /select,\"" + systemPath + "\"");
+      return JSON.stringify({ ok: true, path: file.fsName });
+    } catch (error) {
+      return JSON.stringify({
+        ok: false,
+        reason: "system-open-failed",
+        detail: error && error.toString ? error.toString() : "unknown"
+      });
+    }
+  }
+
+  function canOpenResourceFile(resourceType, filename) {
+    var lowerName = String(filename || "").toLowerCase();
+    if (resourceType === "expression") {
+      return /\.(jsx|txt|json)$/.test(lowerName);
+    }
+    if (resourceType === "script" || resourceType === "startup") {
+      return /\.(jsx|js)$/.test(lowerName);
+    }
+    return false;
+  }
+
+  function openResourceFile(encodedPayload) {
+    var payload;
+    var path;
+    var file;
+
+    try {
+      payload = decodeResourceFileActionPayload(encodedPayload);
+      if (!payload || isUnsafeResourceFilePath(payload.path)) {
+        return JSON.stringify({ ok: false, reason: "invalid-resource" });
+      }
+
+      path = decodeResourceFilePath(payload.path);
+      if (isUnsafeResourceFilePath(path)) {
+        return JSON.stringify({ ok: false, reason: "invalid-resource" });
+      }
+
+      file = new File(path);
+      if (!file.exists) {
+        return JSON.stringify({ ok: false, reason: "invalid-resource" });
+      }
+      if (!canOpenResourceFile(payload.resourceType, file.name)) {
+        return JSON.stringify({ ok: false, reason: "unsupported-file-type" });
+      }
+      if (typeof file.execute !== "function" || file.execute() !== true) {
+        return JSON.stringify({ ok: false, reason: "system-open-failed" });
+      }
+
+      return JSON.stringify({ ok: true, path: file.fsName });
+    } catch (error) {
+      return JSON.stringify({
+        ok: false,
+        reason: "system-open-failed",
+        detail: error && error.toString ? error.toString() : "unknown"
+      });
+    }
+  }
+
   function reloadHostScript() {
     try {
       $.evalFile(hostScriptFile);
@@ -366,6 +467,8 @@
           app.executeCommand(commandId);
           return JSON.stringify({ ok: true });
         }
+
+        return JSON.stringify({ ok: false, reason: "panel-not-registered" });
       }
 
       $.evalFile(file);
@@ -397,7 +500,7 @@
       app.beginUndoGroup("NYAWORKS Apply Preset");
       for (index = 0; index < layers.length; index += 1) layers[index].applyPreset(file);
       app.endUndoGroup();
-      return JSON.stringify({ ok: true });
+      return JSON.stringify({ ok: true, updatedItems: layers.length });
     } catch (error) {
       try { app.endUndoGroup(); } catch (ignore) {}
       return JSON.stringify({ ok: false, reason: "host-error" });
@@ -475,7 +578,7 @@
 
       return JSON.stringify({
         ok: true,
-        updatedProperties: updatedProperties
+        updatedItems: updatedProperties
       });
     } catch (error) {
       try {
@@ -1742,6 +1845,8 @@
     scanResourceSource: scanResourceSource,
     chooseResourceDirectory: chooseResourceDirectory
     ,openResourceDirectory: openResourceDirectory
+    ,revealResourceFile: revealResourceFile
+    ,openResourceFile: openResourceFile
     ,reloadHostScript: reloadHostScript
     ,getCurrentEffects: getCurrentEffects
     ,runSearchScript: runSearchScript

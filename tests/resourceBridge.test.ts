@@ -16,6 +16,23 @@ const customSource: ResourceSource = {
   lastError: null
 };
 
+const indexedScript = {
+  id: "custom:tools:animation/loop.jsx",
+  sourceId: customSource.id,
+  resourceType: "script" as const,
+  name: "Loop",
+  relativePath: "Animation/Loop.jsx",
+  modifiedAt: null,
+  favorite: false,
+  lastUsedAt: null,
+  preview: {
+    coverUri: null,
+    loopUri: null,
+    cacheKey: null,
+    status: "none" as const
+  }
+};
+
 describe("resource host bridge", () => {
   it("requests only the current AE default sources", async () => {
     const scripts: string[] = [];
@@ -143,22 +160,7 @@ describe("resource host bridge", () => {
         }
       }
     });
-    const resource = {
-      id: "custom:tools:animation/loop.jsx",
-      sourceId: customSource.id,
-      resourceType: "script" as const,
-      name: "Loop",
-      relativePath: "Animation/Loop.jsx",
-      modifiedAt: null,
-      favorite: false,
-      lastUsedAt: null,
-      preview: {
-        coverUri: null,
-        loopUri: null,
-        cacheKey: null,
-        status: "none" as const
-      }
-    };
+    const resource = indexedScript;
 
     await expect(bridge.useResource(customSource, resource)).resolves.toEqual({
       ok: true
@@ -253,5 +255,80 @@ describe("resource host bridge", () => {
     expect(sourceSnapshot.sources[0].path).toContain("仅用于界面预览");
     expect(scanResult.status).toBe("ready");
     expect(scanResult.resources).toHaveLength(2);
+  });
+
+  it("encodes resource file actions and parses their results", async () => {
+    const scripts: string[] = [];
+    const bridge = createCepResourceBridge({
+      __adobe_cep__: {
+        evalScript: (script, callback) => {
+          scripts.push(script);
+          callback(JSON.stringify({
+            ok: true,
+            path: "C:/Tools/我的 脚本/Animation/Loop.jsx"
+          }));
+        }
+      }
+    });
+
+    await expect(
+      bridge.revealResourceFile(customSource, indexedScript)
+    ).resolves.toEqual({
+      ok: true,
+      path: "C:/Tools/我的 脚本/Animation/Loop.jsx"
+    });
+    await expect(
+      bridge.openResourceFile(customSource, indexedScript)
+    ).resolves.toEqual({
+      ok: true,
+      path: "C:/Tools/我的 脚本/Animation/Loop.jsx"
+    });
+
+    expect(scripts.map((script) => script.split("(")[0])).toEqual([
+      "NYAWORKS.revealResourceFile",
+      "NYAWORKS.openResourceFile"
+    ]);
+    expect(scripts.map((script) => {
+      const payload = script.match(/\("(.+)"\)$/)?.[1] ?? "";
+      return JSON.parse(decodeURIComponent(payload));
+    })).toEqual([
+      {
+        path: "C:/Tools/我的 脚本/Animation/Loop.jsx",
+        resourceType: "script"
+      },
+      {
+        path: "C:/Tools/我的 脚本/Animation/Loop.jsx",
+        resourceType: "script"
+      }
+    ]);
+  });
+
+  it("normalizes typed host failures and affected item counts", async () => {
+    const responses = [
+      JSON.stringify({ ok: false, reason: "panel-not-registered" }),
+      JSON.stringify({ ok: true, updatedItems: 2 }),
+      JSON.stringify({ ok: false, reason: "system-open-failed" }),
+      JSON.stringify({ ok: false, reason: "unsupported-file-type" })
+    ];
+    const bridge = createCepResourceBridge({
+      __adobe_cep__: {
+        evalScript: (_script, callback) => callback(responses.shift() ?? "")
+      }
+    });
+
+    await expect(bridge.useResource(customSource, indexedScript)).resolves.toEqual({
+      ok: false,
+      reason: "panel-not-registered"
+    });
+    await expect(bridge.useResource(customSource, indexedScript)).resolves.toEqual({
+      ok: true,
+      affectedItems: 2
+    });
+    await expect(
+      bridge.revealResourceFile(customSource, indexedScript)
+    ).resolves.toEqual({ ok: false, reason: "system-open-failed" });
+    await expect(
+      bridge.openResourceFile(customSource, indexedScript)
+    ).resolves.toEqual({ ok: false, reason: "unsupported-file-type" });
   });
 });

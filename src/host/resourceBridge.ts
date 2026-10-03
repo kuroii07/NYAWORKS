@@ -32,11 +32,32 @@ export type ResourceDirectoryOpenResult =
       detail?: string;
     };
 
+export type ResourceFileActionResult =
+  | { ok: true; path: string }
+  | {
+      ok: false;
+      reason:
+        | "unavailable"
+        | "invalid-resource"
+        | "unsupported-file-type"
+        | "system-open-failed"
+        | "host-error";
+      detail?: string;
+    };
+
 export interface ResourceHostBridge {
   readCurrentAeSources(): Promise<CurrentAeResourceSourcesResult>;
   scanSource(source: ResourceSource): Promise<ResourceScanResult>;
   chooseDirectory(): Promise<ResourceDirectoryChoiceResult>;
   openSourceDirectory(source: ResourceSource): Promise<ResourceDirectoryOpenResult>;
+  revealResourceFile(
+    source: ResourceSource,
+    resource: IndexedResource
+  ): Promise<ResourceFileActionResult>;
+  openResourceFile(
+    source: ResourceSource,
+    resource: IndexedResource
+  ): Promise<ResourceFileActionResult>;
   useResource(
     source: ResourceSource,
     resource: IndexedResource
@@ -44,7 +65,7 @@ export interface ResourceHostBridge {
 }
 
 export type ResourceUseResult =
-  | { ok: true; updatedItems?: number }
+  | { ok: true; affectedItems?: number }
   | {
       ok: false;
       reason:
@@ -53,6 +74,7 @@ export type ResourceUseResult =
         | "no-selected-layer"
         | "no-selected-property"
         | "empty-expression"
+        | "panel-not-registered"
         | "host-error";
       detail?: string;
     };
@@ -213,7 +235,7 @@ function parseResourceUseResult(value: string | null): ResourceUseResult {
     return {
       ok: true,
       ...(typeof parsed.updatedItems === "number"
-        ? { updatedItems: parsed.updatedItems }
+        ? { affectedItems: parsed.updatedItems }
         : {})
     };
   }
@@ -223,7 +245,37 @@ function parseResourceUseResult(value: string | null): ResourceUseResult {
     (parsed.reason === "invalid-resource" ||
       parsed.reason === "no-selected-layer" ||
       parsed.reason === "no-selected-property" ||
-      parsed.reason === "empty-expression")
+      parsed.reason === "empty-expression" ||
+      parsed.reason === "panel-not-registered")
+      ? parsed.reason
+      : "host-error";
+
+  return {
+    ok: false,
+    reason,
+    ...(isRecord(parsed) && typeof parsed.detail === "string"
+      ? { detail: parsed.detail }
+      : {})
+  };
+}
+
+function parseResourceFileActionResult(
+  value: string | null
+): ResourceFileActionResult {
+  if (value === null) {
+    return { ok: false, reason: "unavailable" };
+  }
+
+  const parsed = parseJson(value);
+  if (isRecord(parsed) && parsed.ok === true && typeof parsed.path === "string") {
+    return { ok: true, path: parsed.path };
+  }
+
+  const reason =
+    isRecord(parsed) &&
+    (parsed.reason === "invalid-resource" ||
+      parsed.reason === "unsupported-file-type" ||
+      parsed.reason === "system-open-failed")
       ? parsed.reason
       : "host-error";
 
@@ -329,6 +381,34 @@ export function createCepResourceBridge(
       return parseResourceDirectoryOpenResult(
         await evaluateHostScript(
           `NYAWORKS.openResourceDirectory("${encodeSourcePayload(source)}")`,
+          environment
+        )
+      );
+    },
+    async revealResourceFile(source, resource) {
+      const payload = encodeURIComponent(
+        JSON.stringify({
+          path: resourcePath(source, resource),
+          resourceType: resource.resourceType
+        })
+      );
+      return parseResourceFileActionResult(
+        await evaluateHostScript(
+          `NYAWORKS.revealResourceFile("${payload}")`,
+          environment
+        )
+      );
+    },
+    async openResourceFile(source, resource) {
+      const payload = encodeURIComponent(
+        JSON.stringify({
+          path: resourcePath(source, resource),
+          resourceType: resource.resourceType
+        })
+      );
+      return parseResourceFileActionResult(
+        await evaluateHostScript(
+          `NYAWORKS.openResourceFile("${payload}")`,
           environment
         )
       );

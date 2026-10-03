@@ -68,6 +68,8 @@ function createResourceBridge(): ResourceHostBridge {
     scanSource: async (candidate) => ({ sourceId: candidate.id, status: "ready", resources: [] }),
     chooseDirectory: async () => ({ status: "cancelled", path: null }),
     openSourceDirectory: async () => ({ ok: false, reason: "unavailable" }),
+    revealResourceFile: async () => ({ ok: false, reason: "unavailable" }),
+    openResourceFile: async () => ({ ok: false, reason: "unavailable" }),
     useResource: async () => ({ ok: true })
   };
 }
