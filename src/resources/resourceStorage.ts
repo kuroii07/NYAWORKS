@@ -11,7 +11,6 @@ import {
   type ResourceSourceState
 } from "./types";
 import { decodeResourceLabel } from "./resourceOperations";
-import { displayResourceName } from "./resourceOperations";
 
 export const RESOURCE_SETTINGS_STORAGE_KEY = "nyaworks.resources.v1";
 
@@ -109,9 +108,7 @@ function normalizeIndexedResource(value: unknown): IndexedResource | null {
     id,
     sourceId,
     resourceType: value.resourceType,
-    name: name === displayResourceName(relativePath)
-      ? name
-      : displayResourceName(relativePath),
+    name,
     relativePath,
     modifiedAt: readDate(value.modifiedAt),
     favorite: value.favorite === true,
