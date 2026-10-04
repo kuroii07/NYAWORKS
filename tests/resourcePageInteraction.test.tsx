@@ -235,6 +235,41 @@ describe("resource page selection and keyboard execution", () => {
     expect(input.selectionEnd).toBe(5);
   });
 
+  it("keeps the complete folder tree visible while search narrows the resource list", async () => {
+    const nestedResources: IndexedResource[] = [
+      {
+        ...resources[0],
+        id: "custom:tools:animation/loop.jsx",
+        name: "Loop",
+        relativePath: "Animation/Loop.jsx"
+      },
+      {
+        ...resources[1],
+        id: "custom:tools:effects/color.jsx",
+        name: "Color",
+        relativePath: "Effects/Color.jsx"
+      }
+    ];
+
+    await renderPage({ resources: nestedResources });
+
+    const input = document.querySelector<HTMLInputElement>("input[type='search']")!;
+    await act(async () => {
+      const setInputValue = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value"
+      )?.set;
+      setInputValue?.call(input, "Loop");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    expect(rows()).toHaveLength(1);
+    expect(
+      [...document.querySelectorAll<HTMLElement>(".resource-folder-tree__item")]
+        .map((item) => item.textContent)
+    ).toEqual(expect.arrayContaining(["Animation", "Effects"]));
+  });
+
   it("does not execute from nested controls", async () => {
     const { usedIds } = await renderPage();
     const favorite = rows()[0].querySelector<HTMLButtonElement>("button")!;

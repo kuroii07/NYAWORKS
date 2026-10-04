@@ -233,6 +233,22 @@ export function ResourcesPage() {
     ],
     [labels.allSources, sources]
   );
+  const navigationResources = useMemo(() => {
+    const indexed = filterIndexedResources(
+      {
+        schemaVersion: 1,
+        customSources: [],
+        index: { resources, sourceStates: [] }
+      },
+      "",
+      resourceType,
+      sourceId === "all" || sourceId === "favorites" ? undefined : sourceId
+    );
+
+    return indexed.filter(
+      (resource) => sourceId !== "favorites" || resource.favorite
+    );
+  }, [resourceType, resources, sourceId]);
   const filteredResources = useMemo(() => {
     const indexed = filterIndexedResources(
       {
@@ -253,8 +269,8 @@ export function ResourcesPage() {
       : next;
   }, [query, resourceType, resources, selectedFolder, sourceId]);
   const folderTree = useMemo(
-    () => buildResourceFolderTree(filteredResources),
-    [filteredResources]
+    () => buildResourceFolderTree(navigationResources),
+    [navigationResources]
   );
   const listResources = filteredResources;
   const visibleResourceIds = useMemo(
