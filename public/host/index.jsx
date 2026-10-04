@@ -1197,6 +1197,104 @@
     return finishCreatedLayer(layer, context);
   }
 
+  function addLayerControl(layer, matchName, name, value) {
+    var effects = layer.property("ADBE Effect Parade");
+    var control = effects.addProperty(matchName);
+    var property;
+    control.name = name;
+    property = control.property(1);
+    property.setValue(value);
+    return property;
+  }
+
+  function setShapeExpression(property, expression) {
+    property.expression = expression;
+    property.expressionEnabled = true;
+  }
+
+  function addShapeFill(contents) {
+    var fill = contents.addProperty("ADBE Vector Graphic - Fill");
+    var color = fill && fill.property("ADBE Vector Fill Color");
+    if (color) color.setValue([1, 1, 1]);
+  }
+
+  function createRoundedRectangleShape(layer, contents) {
+    var path = contents.addProperty("ADBE Vector Shape - Group");
+    var pathProperty = path.property("ADBE Vector Shape");
+    path.name = "Nya Rounded Rectangle";
+    addLayerControl(layer, "ADBE Slider Control", "Nya Width", 500);
+    addLayerControl(layer, "ADBE Slider Control", "Nya Height", 500);
+    addLayerControl(layer, "ADBE Slider Control", "Nya Roundness", 50);
+    addLayerControl(layer, "ADBE Checkbox Control", "Nya Separate Corners", 0);
+    addLayerControl(layer, "ADBE Slider Control", "Nya Corner TL", 100);
+    addLayerControl(layer, "ADBE Slider Control", "Nya Corner TR", 100);
+    addLayerControl(layer, "ADBE Slider Control", "Nya Corner BR", 100);
+    addLayerControl(layer, "ADBE Slider Control", "Nya Corner BL", 100);
+    setShapeExpression(pathProperty, [
+      'w=Math.max(0,effect("Nya Width")(1));',
+      'h=Math.max(0,effect("Nya Height")(1));',
+      'round=Math.max(0,effect("Nya Roundness")(1));',
+      'separate=effect("Nya Separate Corners")(1)>0;',
+      'limit=Math.min(w,h)/2;',
+      'tl=Math.min(limit,round*(separate?Math.max(0,effect("Nya Corner TL")(1))/100:1));',
+      'tr=Math.min(limit,round*(separate?Math.max(0,effect("Nya Corner TR")(1))/100:1));',
+      'br=Math.min(limit,round*(separate?Math.max(0,effect("Nya Corner BR")(1))/100:1));',
+      'bl=Math.min(limit,round*(separate?Math.max(0,effect("Nya Corner BL")(1))/100:1));',
+      'hw=w/2;hh=h/2;k=0.5522847498;',
+      'points=[[-hw+tl,-hh],[hw-tr,-hh],[hw,-hh+tr],[hw,hh-br],[hw-br,hh],[-hw+bl,hh],[-hw,hh-bl],[-hw,-hh+tl]];',
+      'ins=[[0,-k*tl],[-k*tr,0],[0,-k*tr],[0,-k*br],[k*br,0],[k*bl,0],[0,k*bl],[0,k*tl]];',
+      'outs=[[0,0],[k*tr,0],[0,0],[0,k*br],[0,0],[-k*bl,0],[0,0],[0,-k*tl]];',
+      'createPath(points,ins,outs,true);'
+    ].join("\n"));
+  }
+
+  function createEllipseShape(layer, contents) {
+    var ellipse = contents.addProperty("ADBE Vector Shape - Ellipse");
+    var size = ellipse.property("ADBE Vector Ellipse Size");
+    ellipse.name = "Nya Ellipse";
+    addLayerControl(layer, "ADBE Slider Control", "Nya Width", 500);
+    addLayerControl(layer, "ADBE Slider Control", "Nya Height", 500);
+    setShapeExpression(size, '[Math.max(0,effect("Nya Width")(1)),Math.max(0,effect("Nya Height")(1))]');
+  }
+
+  function createPolygonShape(layer, contents, isStar) {
+    var star = contents.addProperty("ADBE Vector Shape - Star");
+    var type = star.property("ADBE Vector Star Type");
+    var points = star.property("ADBE Vector Star Points");
+    var outerRadius = star.property("ADBE Vector Star Outer Radius");
+    var innerRadius;
+    star.name = isStar ? "Nya Star" : "Nya Triangle";
+    type.setValue(isStar ? 1 : 2);
+    points.setValue(isStar ? 5 : 3);
+    addLayerControl(layer, "ADBE Slider Control", "Nya Size", 500);
+    setShapeExpression(outerRadius, 'Math.max(0,effect("Nya Size")(1))/2');
+    if (isStar) {
+      addLayerControl(layer, "ADBE Slider Control", "Nya Inner Size", 250);
+      innerRadius = star.property("ADBE Vector Star Inner Radius");
+      setShapeExpression(innerRadius, 'Math.max(0,effect("Nya Inner Size")(1))/2');
+    }
+  }
+
+  function createShapeLayer(context, modifier) {
+    var layer = context.comp.layers.addShape();
+    var root = layer.property("ADBE Root Vectors Group");
+    var group = root.addProperty("ADBE Vector Group");
+    var contents = group.property("ADBE Vectors Group");
+    group.name = "Nya Shape";
+    if (modifier === "alt") {
+      createEllipseShape(layer, contents);
+    } else if (modifier === "ctrl") {
+      createPolygonShape(layer, contents, false);
+    } else if (modifier === "shift") {
+      createPolygonShape(layer, contents, true);
+    } else {
+      createRoundedRectangleShape(layer, contents);
+    }
+    addShapeFill(contents);
+    setLayerCentered(layer, context.comp, [0, 0]);
+    return finishCreatedLayer(layer, context);
+  }
+
   function createAdjustmentLayer(context) {
     var comp = context.comp;
     var layer = comp.layers.addSolid(
@@ -1249,6 +1347,8 @@
         result = createTextLayer(context, modifier);
       } else if (action === "create-solid") {
         result = createSolidLayer(context, modifier);
+      } else if (action === "create-shape") {
+        result = createShapeLayer(context, modifier);
       } else if (action === "create-adjustment") {
         result = createAdjustmentLayer(context, modifier);
       } else if (action === "create-light") {
