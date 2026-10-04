@@ -1065,6 +1065,212 @@
     }
   }
 
+  function decodeLayerActionPayload(encodedPayload) {
+    try {
+      return JSON.parse(decodeURIComponent(encodedPayload || ""));
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function getLayerCreationContext() {
+    var comp = app.project && app.project.activeItem;
+    var selection;
+    var start;
+    var end;
+    var insertionIndex = null;
+    var index;
+    var layer;
+
+    if (!comp || !(comp instanceof CompItem)) return null;
+    selection = comp.selectedLayers || [];
+    start = Number(comp.displayStartTime) || 0;
+    end = start + Number(comp.duration || 0);
+
+    if (selection.length > 0) {
+      start = Number(selection[0].inPoint);
+      end = Number(selection[0].outPoint);
+      insertionIndex = Number(selection[0].index);
+      for (index = 1; index < selection.length; index += 1) {
+        layer = selection[index];
+        if (Number(layer.inPoint) < start) start = Number(layer.inPoint);
+        if (Number(layer.outPoint) > end) end = Number(layer.outPoint);
+        if (Number(layer.index) < insertionIndex) insertionIndex = Number(layer.index);
+      }
+    }
+
+    return {
+      comp: comp,
+      selection: selection,
+      start: start,
+      end: end,
+      insertionIndex: insertionIndex
+    };
+  }
+
+  function applyLayerTiming(layer, context) {
+    layer.startTime = context.start;
+    layer.inPoint = context.start;
+    layer.outPoint = context.end;
+  }
+
+  function placeLayerAboveSelection(layer, context) {
+    var target = null;
+    var index;
+    if (context.insertionIndex !== null) {
+      for (index = 0; index < context.selection.length; index += 1) {
+        if (Number(context.selection[index].index) === context.insertionIndex) {
+          target = context.selection[index];
+          break;
+        }
+      }
+    }
+    if (target && typeof layer.moveBefore === "function") {
+      layer.moveBefore(target);
+    } else if (typeof layer.moveToBeginning === "function") {
+      layer.moveToBeginning();
+    }
+  }
+
+  function selectOnlyLayers(layers, comp) {
+    var index;
+    var current;
+    for (index = 1; index <= comp.numLayers; index += 1) {
+      try {
+        current = comp.layer(index);
+        if (current) current.selected = false;
+      } catch (ignoreSelectionClear) {}
+    }
+    for (index = 0; index < layers.length; index += 1) {
+      layers[index].selected = true;
+    }
+  }
+
+  function layerTransformProperty(layer, matchName) {
+    var transform = layer && layer.property("ADBE Transform Group");
+    return transform && transform.property(matchName);
+  }
+
+  function setLayerCentered(layer, comp, anchor) {
+    var anchorProperty = layerTransformProperty(layer, "ADBE Anchor Point");
+    var positionProperty = layerTransformProperty(layer, "ADBE Position");
+    if (anchorProperty) anchorProperty.setValue(anchor);
+    if (positionProperty) positionProperty.setValue([comp.width / 2, comp.height / 2]);
+  }
+
+  function finishCreatedLayer(layer, context) {
+    applyLayerTiming(layer, context);
+    placeLayerAboveSelection(layer, context);
+    selectOnlyLayers([layer], context.comp);
+    return {
+      ok: true,
+      createdLayers: 1,
+      updatedLayers: 0,
+      createdItems: 0
+    };
+  }
+
+  function createTextLayer(context) {
+    var layer = context.comp.layers.addText("text");
+    var rect = layer.sourceRectAtTime(context.start, false);
+    setLayerCentered(layer, context.comp, [
+      Number(rect.left) + Number(rect.width) / 2,
+      Number(rect.top) + Number(rect.height) / 2
+    ]);
+    return finishCreatedLayer(layer, context);
+  }
+
+  function createSolidLayer(context) {
+    var comp = context.comp;
+    var layer = comp.layers.addSolid(
+      [0, 0, 0],
+      "Nya Solid",
+      comp.width,
+      comp.height,
+      comp.pixelAspect,
+      comp.duration
+    );
+    var effects = layer.property("ADBE Effect Parade");
+    var fill = effects && effects.addProperty("ADBE Fill");
+    var color = fill && fill.property("ADBE Fill-0002");
+    if (color) color.setValue([0, 0, 0]);
+    return finishCreatedLayer(layer, context);
+  }
+
+  function createAdjustmentLayer(context) {
+    var comp = context.comp;
+    var layer = comp.layers.addSolid(
+      [1, 1, 1],
+      "Nya Adjustment",
+      comp.width,
+      comp.height,
+      comp.pixelAspect,
+      comp.duration
+    );
+    layer.adjustmentLayer = true;
+    return finishCreatedLayer(layer, context);
+  }
+
+  function createLightLayer(context, modifier) {
+    var comp = context.comp;
+    var layer = comp.layers.addLight("Nya Light", [comp.width / 2, comp.height / 2]);
+    var lightTypes = {
+      none: LightType.POINT,
+      alt: LightType.SPOT,
+      ctrl: LightType.PARALLEL,
+      shift: LightType.AMBIENT
+    };
+    layer.lightType = lightTypes[modifier];
+    return finishCreatedLayer(layer, context);
+  }
+
+  function runLayerAction(encodedPayload) {
+    var payload = decodeLayerActionPayload(encodedPayload);
+    var context;
+    var result;
+    var action;
+    var modifier;
+    var undoStarted = false;
+
+    if (!payload || typeof payload.action !== "string") {
+      return JSON.stringify({ ok: false, reason: "host-error", detail: "invalid-payload" });
+    }
+    action = payload.action;
+    modifier = payload.modifier === "alt" || payload.modifier === "ctrl" || payload.modifier === "shift"
+      ? payload.modifier
+      : "none";
+    context = getLayerCreationContext();
+    if (!context) return JSON.stringify({ ok: false, reason: "no-active-comp" });
+
+    try {
+      app.beginUndoGroup("NYAWORKS Create Layer");
+      undoStarted = true;
+      if (action === "create-text") {
+        result = createTextLayer(context, modifier);
+      } else if (action === "create-solid") {
+        result = createSolidLayer(context, modifier);
+      } else if (action === "create-adjustment") {
+        result = createAdjustmentLayer(context, modifier);
+      } else if (action === "create-light") {
+        result = createLightLayer(context, modifier);
+      } else {
+        result = { ok: false, reason: "unsupported-layer-type" };
+      }
+      app.endUndoGroup();
+      undoStarted = false;
+      return JSON.stringify(result);
+    } catch (error) {
+      try {
+        if (undoStarted) app.endUndoGroup();
+      } catch (ignoreUndoClose) {}
+      return JSON.stringify({
+        ok: false,
+        reason: "host-error",
+        detail: error && error.toString ? error.toString() : "unknown"
+      });
+    }
+  }
+
   function alignmentActionInfo(action) {
     var actions = {
       "left": { axis: "x", edge: "start" },
@@ -1877,6 +2083,7 @@
     ,addSearchEffect: addSearchEffect
     ,setAnchorPoint: setAnchorPoint
     ,getActionContext: getActionContext
+    ,runLayerAction: runLayerAction
     ,setAlignment: setAlignment
     ,runP0TestAction: runP0TestAction
   };

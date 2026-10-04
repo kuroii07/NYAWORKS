@@ -33,4 +33,11 @@ describe("CEP host script compatibility", () => {
     expect(source).toContain("selectedKeys: 0");
     expect(source).toContain(",getActionContext: getActionContext");
   });
+
+  it("exports the shared layer action dispatcher", async () => {
+    const source = await readFile("public/host/index.jsx", "utf8");
+
+    expect(source).toContain("function runLayerAction(encodedPayload)");
+    expect(source).toContain(",runLayerAction: runLayerAction");
+  });
 });
