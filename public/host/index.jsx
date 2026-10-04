@@ -1480,6 +1480,190 @@
     return { ok: true, createdLayers: 2, updatedLayers: 0, createdItems: 0 };
   }
 
+  function projectItemNameExists(name) {
+    var project = app.project;
+    var index;
+    if (!project) return false;
+    for (index = 1; index <= Number(project.numItems || 0); index += 1) {
+      if (project.item(index) && project.item(index).name === name) return true;
+    }
+    return false;
+  }
+
+  function uniqueProjectItemName(baseName) {
+    var candidate = baseName;
+    var suffix = 2;
+    while (projectItemNameExists(candidate)) {
+      candidate = baseName + " " + suffix;
+      suffix += 1;
+    }
+    return candidate;
+  }
+
+  function selectedLayerIndices(selection) {
+    var indices = [];
+    var index;
+    for (index = 0; index < selection.length; index += 1) {
+      indices.push(Number(selection[index].index));
+    }
+    indices.sort(function (first, second) { return first - second; });
+    return indices;
+  }
+
+  function findLayerForSource(comp, source) {
+    var index;
+    var layer;
+    for (index = 1; index <= comp.numLayers; index += 1) {
+      layer = comp.layer(index);
+      if (layer && layer.source === source) return layer;
+    }
+    return comp.selectedLayers && comp.selectedLayers.length === 1
+      ? comp.selectedLayers[0]
+      : null;
+  }
+
+  function precomposeSelected(context, modifier) {
+    var selection = context.selection;
+    var topLayer = selection[0];
+    var index;
+    var indices;
+    var name;
+    var source;
+    var layer;
+    if (!selection.length) return { ok: false, reason: "no-selected-layer" };
+    if (modifier === "alt" && selection.length !== 1) {
+      return { ok: false, reason: "invalid-selection", detail: "alt-requires-single-layer" };
+    }
+    for (index = 1; index < selection.length; index += 1) {
+      if (Number(selection[index].index) < Number(topLayer.index)) topLayer = selection[index];
+    }
+    indices = selectedLayerIndices(selection);
+    name = uniqueProjectItemName(String(topLayer.name || "Layer") + " Precomp");
+    source = context.comp.layers.precompose(indices, name, modifier !== "alt");
+    layer = findLayerForSource(context.comp, source);
+    if (!layer) return { ok: false, reason: "host-error", detail: "precomp-layer-not-found" };
+    selectOnlyLayers([layer], context.comp);
+    return { ok: true, createdLayers: 1, updatedLayers: 0, createdItems: 1 };
+  }
+
+  function propertyIsDefault(property, expected) {
+    var value;
+    var index;
+    if (!property || Number(property.numKeys || 0) > 0 || property.expressionEnabled || property.expression) {
+      return false;
+    }
+    value = property.value;
+    if (expected && typeof expected.length === "number") {
+      if (!value || value.length < expected.length) return false;
+      for (index = 0; index < expected.length; index += 1) {
+        if (Math.abs(Number(value[index]) - Number(expected[index])) > 0.0001) return false;
+      }
+      return true;
+    }
+    return Math.abs(Number(value) - Number(expected)) <= 0.0001;
+  }
+
+  function validateUnprecomposeOuter(layer, comp) {
+    var source = layer && layer.source;
+    var transform;
+    var effects;
+    var masks;
+    if (!layer || !source || !(source instanceof CompItem)) {
+      return { ok: false, reason: "unsupported-precomp", detail: "select-one-precomp-layer" };
+    }
+    if (layer.threeDLayer || layer.collapseTransformation || layer.parent || layer.hasTrackMatte || layer.isTrackMatte) {
+      return { ok: false, reason: "unsafe-unprecompose", detail: "outer-layer-dependency" };
+    }
+    if (layer.timeRemapEnabled || Number(layer.stretch) !== 100) {
+      return { ok: false, reason: "unsafe-unprecompose", detail: "outer-time-modification" };
+    }
+    effects = layer.property("ADBE Effect Parade");
+    masks = layer.property("ADBE Mask Parade");
+    if ((effects && effects.numProperties > 0) || (masks && masks.numProperties > 0)) {
+      return { ok: false, reason: "unsafe-unprecompose", detail: "outer-effects-or-masks" };
+    }
+    transform = layer.property("ADBE Transform Group");
+    if (
+      !propertyIsDefault(transform && transform.property("ADBE Anchor Point"), [source.width / 2, source.height / 2]) ||
+      !propertyIsDefault(transform && transform.property("ADBE Position"), [comp.width / 2, comp.height / 2]) ||
+      !propertyIsDefault(transform && transform.property("ADBE Scale"), [100, 100]) ||
+      !propertyIsDefault(transform && (transform.property("ADBE Rotate Z") || transform.property("ADBE Rotation")), 0) ||
+      !propertyIsDefault(transform && transform.property("ADBE Orientation"), [0, 0, 0]) ||
+      !propertyIsDefault(transform && transform.property("ADBE Opacity"), 100)
+    ) {
+      return { ok: false, reason: "unsafe-unprecompose", detail: "outer-transform-not-default" };
+    }
+    return { ok: true, source: source };
+  }
+
+  function validateUnprecomposeSource(source) {
+    var index;
+    var layer;
+    for (index = 1; index <= source.numLayers; index += 1) {
+      layer = source.layer(index);
+      if (!layer) return { ok: false, reason: "unsafe-unprecompose", detail: "missing-source-layer" };
+      if (layer.matchName === "ADBE Camera Layer" || layer.matchName === "ADBE Light Layer") {
+        return { ok: false, reason: "unsafe-unprecompose", detail: "camera-or-light-content" };
+      }
+      if (layer.parent || layer.hasTrackMatte || layer.isTrackMatte) {
+        return { ok: false, reason: "unsafe-unprecompose", detail: "cross-layer-dependency" };
+      }
+    }
+    return { ok: true };
+  }
+
+  function unprecomposeSelected(context) {
+    var outer = context.selection[0];
+    var outerValidation;
+    var sourceValidation;
+    var source;
+    var copies = [];
+    var copy;
+    var index;
+    var delta;
+    var anchor;
+    if (context.selection.length !== 1) {
+      return {
+        ok: false,
+        reason: context.selection.length === 0 ? "no-selected-layer" : "invalid-selection"
+      };
+    }
+    outerValidation = validateUnprecomposeOuter(outer, context.comp);
+    if (!outerValidation.ok) return outerValidation;
+    source = outerValidation.source;
+    sourceValidation = validateUnprecomposeSource(source);
+    if (!sourceValidation.ok) return sourceValidation;
+    delta = Number(outer.startTime) - Number(source.displayStartTime || 0);
+
+    try {
+      for (index = source.numLayers; index >= 1; index -= 1) {
+        source.layer(index).copyToComp(context.comp);
+        copy = context.comp.layer(1);
+        copy.startTime = Number(copy.startTime) + delta;
+        copy.inPoint = Number(copy.inPoint) + delta;
+        copy.outPoint = Number(copy.outPoint) + delta;
+        copies.push(copy);
+      }
+      anchor = outer;
+      for (index = 0; index < copies.length; index += 1) {
+        copies[index].moveBefore(anchor);
+        anchor = copies[index];
+      }
+      outer.remove();
+      selectOnlyLayers(copies, context.comp);
+      return { ok: true, createdLayers: copies.length, updatedLayers: 0, createdItems: 0 };
+    } catch (error) {
+      for (index = 0; index < copies.length; index += 1) {
+        try { copies[index].remove(); } catch (ignoreCopyRemoval) {}
+      }
+      return {
+        ok: false,
+        reason: "host-error",
+        detail: error && error.toString ? error.toString() : "copy-failed"
+      };
+    }
+  }
+
   function createLightLayer(context, modifier) {
     var comp = context.comp;
     var layer = comp.layers.addLight("Nya Light", [comp.width / 2, comp.height / 2]);
@@ -1510,9 +1694,21 @@
       : "none";
     context = getLayerCreationContext();
     if (!context) return JSON.stringify({ ok: false, reason: "no-active-comp" });
+    if ((action === "precompose-selected" || action === "unprecompose-selected") && context.selection.length === 0) {
+      return JSON.stringify({ ok: false, reason: "no-selected-layer" });
+    }
+    if (action === "precompose-selected" && modifier === "alt" && context.selection.length !== 1) {
+      return JSON.stringify({ ok: false, reason: "invalid-selection", detail: "alt-requires-single-layer" });
+    }
 
     try {
-      app.beginUndoGroup("NYAWORKS Create Layer");
+      app.beginUndoGroup(
+        action === "precompose-selected"
+          ? "NYAWORKS Precompose"
+          : action === "unprecompose-selected"
+            ? "NYAWORKS Unprecompose"
+            : "NYAWORKS Create Layer"
+      );
       undoStarted = true;
       if (action === "create-text") {
         result = createTextLayer(context, modifier);
@@ -1528,6 +1724,10 @@
         result = createCameraRig(context, modifier);
       } else if (action === "create-light") {
         result = createLightLayer(context, modifier);
+      } else if (action === "precompose-selected") {
+        result = precomposeSelected(context, modifier);
+      } else if (action === "unprecompose-selected") {
+        result = unprecomposeSelected(context, modifier);
       } else {
         result = { ok: false, reason: "unsupported-layer-type" };
       }
