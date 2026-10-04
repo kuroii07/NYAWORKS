@@ -105,6 +105,31 @@ describe("home settings storage", () => {
     ]);
   });
 
+  it("migrates the legacy threeDObject slot to unprecompose", () => {
+    const normalized = normalizeHomeSettings({
+      activeLayoutId: "custom:legacy-tools",
+      customLayouts: [{
+        id: "custom:legacy-tools",
+        kind: "custom",
+        name: { kind: "custom", value: "Legacy Tools" },
+        groups: [{
+          id: "group:legacy-tools",
+          name: { kind: "custom", value: "Legacy" },
+          iconId: "layers",
+          visible: true,
+          toolSlots: ["textLayer", "threeDObject", "camera"]
+        }]
+      }]
+    });
+
+    expect(normalized.customLayouts[0].groups[0].toolSlots.slice(0, 3)).toEqual([
+      "textLayer",
+      "unprecompose",
+      "camera"
+    ]);
+    expect(JSON.stringify(normalized)).not.toContain("threeDObject");
+  });
+
   it("migrates the accidental active copy back into the built-in layout without losing edits", () => {
     const accidentalId = "layout:7834600e-8df9-4313-90ed-4f448d9960ea";
     const preservedTools = [

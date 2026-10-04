@@ -115,6 +115,7 @@ function normalizeGroup(value: unknown, index: number): HomeLayoutGroup | null {
     ? candidate.toolSlots
     : [];
   const validTools = inputSlots
+    .map((toolId) => String(toolId) === "threeDObject" ? "unprecompose" : toolId)
     .filter(isKnownHomeToolId)
     .slice(0, HOME_GROUP_SLOT_COUNT);
 

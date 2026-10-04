@@ -9,16 +9,19 @@ import type {
   ResourceCommandLabelKey
 } from "../resources/resourceCommands";
 
-export type ToolId =
+export type LayerToolId =
   | "textLayer"
   | "solidLayer"
   | "shapeLayer"
-  | "threeDObject"
   | "adjustmentLayer"
   | "precompose"
+  | "unprecompose"
   | "camera"
   | "light"
-  | "nullObject"
+  | "nullObject";
+
+export type ToolId =
+  | LayerToolId
   | "allLayers"
   | "textLayers"
   | "solidLayers"
@@ -249,6 +252,18 @@ export interface UiCopy {
     alignPositionLabels: Record<SpatialPositionId, string>;
     plannedAriaSuffix: string;
     plannedTitleSuffix: string;
+    layerActionTooltips: Record<LayerToolId, string>;
+    layerActionMenuDefault: string;
+    layerFeedback: {
+      noActiveComp: string;
+      noSelectedLayer: string;
+      invalidSelection: string;
+      unsupportedLayerType: string;
+      unsupportedPrecomp: string;
+      unsafeUnprecompose: string;
+      unavailable: string;
+      hostError: string;
+    };
     anchorFeedback: {
       success: (updatedLayers: number, threeDLayers: number) => string;
       noSelectedLayer: string;

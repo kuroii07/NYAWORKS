@@ -1225,6 +1225,16 @@ input:focus-visible {
   pointer-events: auto;
 }
 
+.create-tool-cell {
+  position: relative;
+  min-width: 0;
+  display: grid;
+}
+
+.create-tool-cell > .tool-button {
+  width: 100%;
+}
+
 .spatial-grid__layer[data-active="true"] {
   pointer-events: auto;
 }

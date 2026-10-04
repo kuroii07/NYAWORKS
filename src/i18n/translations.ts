@@ -85,6 +85,28 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       },
       plannedAriaSuffix: "（后续阶段实现）",
       plannedTitleSuffix: " · 后续阶段接入 AE",
+      layerActionTooltips: {
+        textLayer: "点击：新建居中 text 文字层",
+        solidLayer: "点击：新建黑色纯色层并添加填充效果",
+        shapeLayer: "点击：圆角矩形\nAlt：圆形\nCtrl：三角形\nShift：星形\nAlt+Ctrl+Shift：选择模式",
+        adjustmentLayer: "点击：新建调整图层",
+        nullObject: "点击：新建参考线空对象并绑定选中图层\nAlt：每个选中图层单独创建\nShift：新建三维空对象\nAlt+Ctrl+Shift：选择模式",
+        camera: "点击：新建 35mm 摄像机与控制器\nAlt：仅新建摄像机\nAlt+Ctrl+Shift：选择模式",
+        light: "点击：点光源\nAlt：聚光灯\nCtrl：平行光\nShift：环境光\nAlt+Ctrl+Shift：选择模式",
+        precompose: "点击：预合成选中图层\nAlt：单层保留属性\nCtrl：移动全部属性\nAlt+Ctrl+Shift：选择模式",
+        unprecompose: "点击：安全解开单个预合成"
+      },
+      layerActionMenuDefault: "默认",
+      layerFeedback: {
+        noActiveComp: "请先打开一个 AE 合成",
+        noSelectedLayer: "请先选择至少一个图层",
+        invalidSelection: "当前图层选择不符合此操作要求",
+        unsupportedLayerType: "当前图层类型暂不支持",
+        unsupportedPrecomp: "请选择一个预合成图层",
+        unsafeUnprecompose: "该预合成包含无法安全保留的属性，已停止操作",
+        unavailable: "尚未连接到 After Effects",
+        hostError: "图层操作失败，请检查当前合成和图层状态"
+      },
       anchorFeedback: {
         success: (updatedLayers, threeDLayers) =>
           `已调整 ${updatedLayers} 个图层${threeDLayers ? `（含 ${threeDLayers} 个三维图层）` : ""}`,
@@ -116,7 +138,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         textLayer: "文字图层",
         solidLayer: "纯色图层",
         shapeLayer: "形状图层",
-        threeDObject: "三维对象",
+        unprecompose: "解预合成",
         adjustmentLayer: "调整图层",
         precompose: "预合成",
         camera: "摄像机",
@@ -567,6 +589,28 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       },
       plannedAriaSuffix: "（後續階段實作）",
       plannedTitleSuffix: " · 後續階段接入 AE",
+      layerActionTooltips: {
+        textLayer: "點擊：新增置中的 text 文字圖層",
+        solidLayer: "點擊：新增黑色純色圖層並加入填色效果",
+        shapeLayer: "點擊：圓角矩形\nAlt：圓形\nCtrl：三角形\nShift：星形\nAlt+Ctrl+Shift：選擇模式",
+        adjustmentLayer: "點擊：新增調整圖層",
+        nullObject: "點擊：新增參考線空物件並綁定選取圖層\nAlt：為每個選取圖層分別建立\nShift：新增 3D 空物件\nAlt+Ctrl+Shift：選擇模式",
+        camera: "點擊：新增 35mm 攝影機與控制器\nAlt：只新增攝影機\nAlt+Ctrl+Shift：選擇模式",
+        light: "點擊：點光源\nAlt：聚光燈\nCtrl：平行光\nShift：環境光\nAlt+Ctrl+Shift：選擇模式",
+        precompose: "點擊：預合成選取圖層\nAlt：單層保留屬性\nCtrl：移動全部屬性\nAlt+Ctrl+Shift：選擇模式",
+        unprecompose: "點擊：安全解開單一預合成"
+      },
+      layerActionMenuDefault: "預設",
+      layerFeedback: {
+        noActiveComp: "請先開啟 AE 合成",
+        noSelectedLayer: "請先選取至少一個圖層",
+        invalidSelection: "目前圖層選取不符合此操作要求",
+        unsupportedLayerType: "目前圖層類型暫不支援",
+        unsupportedPrecomp: "請選取一個預合成圖層",
+        unsafeUnprecompose: "此預合成包含無法安全保留的屬性，操作已停止",
+        unavailable: "尚未連線到 After Effects",
+        hostError: "圖層操作失敗，請檢查目前合成與圖層狀態"
+      },
       anchorFeedback: {
         success: (updatedLayers, threeDLayers) =>
           `已調整 ${updatedLayers} 個圖層${threeDLayers ? `（含 ${threeDLayers} 個三維圖層）` : ""}`,
@@ -598,7 +642,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         textLayer: "文字圖層",
         solidLayer: "純色圖層",
         shapeLayer: "形狀圖層",
-        threeDObject: "3D 物件",
+        unprecompose: "解預合成",
         adjustmentLayer: "調整圖層",
         precompose: "預先合成",
         camera: "攝影機",
@@ -1043,6 +1087,28 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       },
       plannedAriaSuffix: " (coming later)",
       plannedTitleSuffix: " · AE integration coming later",
+      layerActionTooltips: {
+        textLayer: "Click: Create centered text layer",
+        solidLayer: "Click: Create black solid with Fill",
+        shapeLayer: "Click: Rounded rectangle\nAlt: Ellipse\nCtrl: Triangle\nShift: Star\nAlt+Ctrl+Shift: Choose mode",
+        adjustmentLayer: "Click: Create adjustment layer",
+        nullObject: "Click: Create guide Null and parent selection\nAlt: One Null per selected layer\nShift: Create 3D Null\nAlt+Ctrl+Shift: Choose mode",
+        camera: "Click: Create 35mm camera rig\nAlt: Camera only\nAlt+Ctrl+Shift: Choose mode",
+        light: "Click: Point light\nAlt: Spot light\nCtrl: Parallel light\nShift: Ambient light\nAlt+Ctrl+Shift: Choose mode",
+        precompose: "Click: Pre-compose selection\nAlt: Leave attributes for one layer\nCtrl: Move all attributes\nAlt+Ctrl+Shift: Choose mode",
+        unprecompose: "Click: Safely extract one precomp"
+      },
+      layerActionMenuDefault: "Default",
+      layerFeedback: {
+        noActiveComp: "Open an After Effects composition first",
+        noSelectedLayer: "Select at least one layer first",
+        invalidSelection: "The current layer selection is not valid for this action",
+        unsupportedLayerType: "This layer type is not supported yet",
+        unsupportedPrecomp: "Select one precomp layer",
+        unsafeUnprecompose: "This precomp cannot be extracted safely, so no changes were made",
+        unavailable: "After Effects is not connected",
+        hostError: "Layer action failed; check the active composition and layer state"
+      },
       anchorFeedback: {
         success: (updatedLayers, threeDLayers) =>
           `Adjusted ${updatedLayers} layer${updatedLayers === 1 ? "" : "s"}${threeDLayers ? ` (${threeDLayers} 3D)` : ""}`,
@@ -1074,7 +1140,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         textLayer: "Text Layer",
         solidLayer: "Solid Layer",
         shapeLayer: "Shape Layer",
-        threeDObject: "3D Object",
+        unprecompose: "Unprecompose",
         adjustmentLayer: "Adjustment Layer",
         precompose: "Pre-compose",
         camera: "Camera",
@@ -1520,6 +1586,28 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       },
       plannedAriaSuffix: "（今後実装）",
       plannedTitleSuffix: " · AE 連携は今後実装",
+      layerActionTooltips: {
+        textLayer: "クリック：中央に text レイヤーを作成",
+        solidLayer: "クリック：塗り付きの黒い平面を作成",
+        shapeLayer: "クリック：角丸長方形\nAlt：楕円\nCtrl：三角形\nShift：星形\nAlt+Ctrl+Shift：モード選択",
+        adjustmentLayer: "クリック：調整レイヤーを作成",
+        nullObject: "クリック：ガイドヌルを作成し選択レイヤーを親子付け\nAlt：選択レイヤーごとに作成\nShift：3D ヌルを作成\nAlt+Ctrl+Shift：モード選択",
+        camera: "クリック：35mm カメラリグを作成\nAlt：カメラのみ\nAlt+Ctrl+Shift：モード選択",
+        light: "クリック：ポイントライト\nAlt：スポットライト\nCtrl：平行ライト\nShift：環境光\nAlt+Ctrl+Shift：モード選択",
+        precompose: "クリック：選択レイヤーをプリコンポーズ\nAlt：単一レイヤーの属性を保持\nCtrl：すべての属性を移動\nAlt+Ctrl+Shift：モード選択",
+        unprecompose: "クリック：単一プリコンポーズを安全に展開"
+      },
+      layerActionMenuDefault: "デフォルト",
+      layerFeedback: {
+        noActiveComp: "先に After Effects のコンポジションを開いてください",
+        noSelectedLayer: "先にレイヤーを1つ以上選択してください",
+        invalidSelection: "現在のレイヤー選択ではこの操作を実行できません",
+        unsupportedLayerType: "このレイヤータイプはまだ対応していません",
+        unsupportedPrecomp: "プリコンポーズレイヤーを1つ選択してください",
+        unsafeUnprecompose: "安全に展開できない属性があるため、変更せず停止しました",
+        unavailable: "After Effects に接続されていません",
+        hostError: "レイヤー操作に失敗しました。コンポジションとレイヤー状態を確認してください"
+      },
       anchorFeedback: {
         success: (updatedLayers, threeDLayers) =>
           `${updatedLayers} 個のレイヤーを調整${threeDLayers ? `（3D ${threeDLayers} 個）` : ""}`,
@@ -1551,7 +1639,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         textLayer: "テキストレイヤー",
         solidLayer: "平面レイヤー",
         shapeLayer: "シェイプレイヤー",
-        threeDObject: "3D オブジェクト",
+        unprecompose: "プリコンポーズ解除",
         adjustmentLayer: "調整レイヤー",
         precompose: "プリコンポーズ",
         camera: "カメラ",
@@ -1996,6 +2084,28 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       },
       plannedAriaSuffix: "(추후 구현)",
       plannedTitleSuffix: " · AE 연동 추후 구현",
+      layerActionTooltips: {
+        textLayer: "클릭: 중앙에 text 레이어 만들기",
+        solidLayer: "클릭: 채우기 효과가 있는 검은 단색 만들기",
+        shapeLayer: "클릭: 둥근 사각형\nAlt: 원형\nCtrl: 삼각형\nShift: 별\nAlt+Ctrl+Shift: 모드 선택",
+        adjustmentLayer: "클릭: 조정 레이어 만들기",
+        nullObject: "클릭: 가이드 널을 만들고 선택 레이어 연결\nAlt: 선택 레이어별로 만들기\nShift: 3D 널 만들기\nAlt+Ctrl+Shift: 모드 선택",
+        camera: "클릭: 35mm 카메라 리그 만들기\nAlt: 카메라만 만들기\nAlt+Ctrl+Shift: 모드 선택",
+        light: "클릭: 포인트 라이트\nAlt: 스포트 라이트\nCtrl: 평행 라이트\nShift: 앰비언트 라이트\nAlt+Ctrl+Shift: 모드 선택",
+        precompose: "클릭: 선택 레이어 프리컴포즈\nAlt: 단일 레이어 속성 유지\nCtrl: 모든 속성 이동\nAlt+Ctrl+Shift: 모드 선택",
+        unprecompose: "클릭: 단일 프리컴프를 안전하게 해제"
+      },
+      layerActionMenuDefault: "기본",
+      layerFeedback: {
+        noActiveComp: "먼저 After Effects 컴포지션을 여세요",
+        noSelectedLayer: "먼저 하나 이상의 레이어를 선택하세요",
+        invalidSelection: "현재 레이어 선택으로는 이 작업을 실행할 수 없습니다",
+        unsupportedLayerType: "이 레이어 유형은 아직 지원하지 않습니다",
+        unsupportedPrecomp: "프리컴프 레이어 하나를 선택하세요",
+        unsafeUnprecompose: "안전하게 유지할 수 없는 속성이 있어 변경 없이 중지했습니다",
+        unavailable: "After Effects에 연결되지 않았습니다",
+        hostError: "레이어 작업에 실패했습니다. 컴포지션과 레이어 상태를 확인하세요"
+      },
       anchorFeedback: {
         success: (updatedLayers, threeDLayers) =>
           `${updatedLayers}개 레이어 조정 완료${threeDLayers ? ` (3D ${threeDLayers}개)` : ""}`,
@@ -2027,7 +2137,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         textLayer: "텍스트 레이어",
         solidLayer: "솔리드 레이어",
         shapeLayer: "셰이프 레이어",
-        threeDObject: "3D 오브젝트",
+        unprecompose: "프리컴프 해제",
         adjustmentLayer: "조정 레이어",
         precompose: "프리컴포즈",
         camera: "카메라",

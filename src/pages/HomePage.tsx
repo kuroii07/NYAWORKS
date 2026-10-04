@@ -14,7 +14,6 @@ import {
   AnchorSimple,
   BoundingBox,
   Check,
-  Cube,
   Lightbulb,
   PencilSimple,
   Plus,
@@ -24,6 +23,7 @@ import {
   SelectionBackground,
   SlidersHorizontal,
   Stack,
+  StackMinus,
   TextT,
   Trash,
   VideoCamera
@@ -52,15 +52,26 @@ import { getActiveHomeLayout } from "../settings/homeSettingsStorage";
 import { useActionService } from "../actions/ActionServiceProvider";
 import { getAnchorFailureMessage } from "../actions/anchorFeedback";
 import { getAlignmentFailureMessage } from "../actions/alignmentFeedback";
+import { getLayerFailureMessage } from "../actions/layerFeedback";
 import { getAnchorActionId } from "../actions/definitions/anchorActions";
 import { getAlignmentActionId } from "../actions/definitions/alignmentActions";
+import { getLayerActionId } from "../actions/layerActionTypes";
 import type { AlignmentAction } from "../actions/alignmentTypes";
+import type {
+  LayerAction,
+  LayerActionModifier
+} from "../actions/layerActionTypes";
 import type { ActionRunOptions } from "../actions/types";
 import type {
   HomeCreateMode,
   HomeSpaceMode
 } from "../settings/types";
-import type { SpatialPositionId, ToolId, UiCopy } from "../i18n/types";
+import type {
+  LayerToolId,
+  SpatialPositionId,
+  ToolId,
+  UiCopy
+} from "../i18n/types";
 import type { GlobalSearchItem } from "../search/types";
 
 interface HomeToolDrag {
@@ -85,16 +96,21 @@ interface HomeToolDrag {
 
 type ToolIcon = ComponentType<IconProps>;
 
-const CREATE_TOOLS: readonly { id: ToolId; icon: ToolIcon }[] = [
-  { id: "textLayer", icon: TextT },
-  { id: "solidLayer", icon: Rectangle },
-  { id: "shapeLayer", icon: BoundingBox },
-  { id: "threeDObject", icon: Cube },
-  { id: "adjustmentLayer", icon: SlidersHorizontal },
-  { id: "precompose", icon: ProjectorScreen },
-  { id: "camera", icon: VideoCamera },
-  { id: "light", icon: Lightbulb },
-  { id: "nullObject", icon: AnchorSimple }
+const CREATE_TOOLS: readonly {
+  id: LayerToolId;
+  icon: ToolIcon;
+  action: LayerAction;
+  modifiers: readonly LayerActionModifier[];
+}[] = [
+  { id: "textLayer", icon: TextT, action: "create-text", modifiers: ["none"] },
+  { id: "solidLayer", icon: Rectangle, action: "create-solid", modifiers: ["none"] },
+  { id: "shapeLayer", icon: BoundingBox, action: "create-shape", modifiers: ["none", "alt", "ctrl", "shift"] },
+  { id: "adjustmentLayer", icon: SlidersHorizontal, action: "create-adjustment", modifiers: ["none"] },
+  { id: "nullObject", icon: AnchorSimple, action: "create-null", modifiers: ["none", "alt", "shift"] },
+  { id: "camera", icon: VideoCamera, action: "create-camera-rig", modifiers: ["none", "alt"] },
+  { id: "light", icon: Lightbulb, action: "create-light", modifiers: ["none", "alt", "ctrl", "shift"] },
+  { id: "precompose", icon: ProjectorScreen, action: "precompose-selected", modifiers: ["none", "alt", "ctrl"] },
+  { id: "unprecompose", icon: StackMinus, action: "unprecompose-selected", modifiers: ["none"] }
 ] as const;
 
 const SELECT_TOOLS: readonly { id: ToolId; icon: ToolIcon }[] = [
@@ -295,11 +311,17 @@ function PlannedToolButton({
 
 function CreateToolGrid({
   copy,
-  mode
+  mode,
+  onLayerAction
 }: {
   copy: UiCopy["home"];
   mode: HomeCreateMode;
+  onLayerAction: (
+    action: LayerAction,
+    modifier: LayerActionModifier
+  ) => void;
 }) {
+  const [variantMenu, setVariantMenu] = useState<LayerToolId | null>(null);
   const layers = [
     { id: "create", tools: CREATE_TOOLS },
     { id: "select", tools: SELECT_TOOLS }
@@ -317,21 +339,73 @@ function CreateToolGrid({
             data-active={active || undefined}
             key={layer.id}
           >
-            {layer.tools.map((tool, index) => (
-              <PlannedToolButton
-                icon={tool.icon}
-                key={tool.id}
-                label={copy.toolLabels[tool.id]}
-                ariaSuffix={copy.plannedAriaSuffix}
-                titleSuffix={copy.plannedTitleSuffix}
-                tabIndex={active ? undefined : -1}
-                style={
-                  {
-                    "--create-motion-index": index
-                  } as CSSProperties
-                }
-              />
-            ))}
+            {layer.tools.map((tool, index) => {
+              const style = {
+                "--create-motion-index": index
+              } as CSSProperties;
+              if (layer.id === "select") {
+                return (
+                  <PlannedToolButton
+                    icon={tool.icon}
+                    key={tool.id}
+                    label={copy.toolLabels[tool.id]}
+                    ariaSuffix={copy.plannedAriaSuffix}
+                    titleSuffix={copy.plannedTitleSuffix}
+                    tabIndex={active ? undefined : -1}
+                    style={style}
+                  />
+                );
+              }
+
+              const createTool = tool as (typeof CREATE_TOOLS)[number];
+              const CreateIcon = createTool.icon;
+              const menuItems: readonly CompactActionMenuItem[] = createTool.modifiers.map((modifier) => ({
+                id: modifier,
+                label: `${copy.toolLabels[createTool.id]} · ${
+                  modifier === "none" ? copy.layerActionMenuDefault : modifier.toUpperCase()
+                }`,
+                icon: createTool.icon,
+                onSelect: () => onLayerAction(createTool.action, modifier)
+              }));
+              return (
+                <div className="create-tool-cell" key={createTool.id} style={style}>
+                  <button
+                    className="tool-button"
+                    type="button"
+                    aria-label={copy.toolLabels[createTool.id]}
+                    title={copy.layerActionTooltips[createTool.id]}
+                    tabIndex={active ? undefined : -1}
+                    onClick={(event) => {
+                      if (event.altKey && event.ctrlKey && event.shiftKey) {
+                        setVariantMenu(createTool.id);
+                        return;
+                      }
+                      const candidate: LayerActionModifier = event.shiftKey
+                        ? "shift"
+                        : event.ctrlKey
+                          ? "ctrl"
+                          : event.altKey
+                            ? "alt"
+                            : "none";
+                      onLayerAction(
+                        createTool.action,
+                        createTool.modifiers.some((modifier) => modifier === candidate)
+                          ? candidate
+                          : "none"
+                      );
+                    }}
+                  >
+                    <CreateIcon aria-hidden="true" weight="regular" />
+                  </button>
+                  <CompactActionMenu
+                    ariaLabel={copy.toolLabels[createTool.id]}
+                    open={variantMenu === createTool.id}
+                    items={menuItems}
+                    onClose={() => setVariantMenu(null)}
+                  />
+                </div>
+              );
+            })}
           </div>
         );
       })}
@@ -483,6 +557,21 @@ export function HomePage({
       )
     );
     console.warn("NYAWORKS alignment action failed", result.error);
+  }
+
+  async function handleLayerAction(
+    action: LayerAction,
+    modifier: LayerActionModifier
+  ) {
+    const result = await actionService.run(getLayerActionId(action), {
+      layerModifier: modifier
+    });
+    if (result.success) {
+      return;
+    }
+
+    toast.error(getLayerFailureMessage(result.error, home.layerFeedback));
+    console.warn("NYAWORKS layer action failed", result.error);
   }
 
   const visibleTools = useMemo(
@@ -846,7 +935,11 @@ export function HomePage({
               <SelectionAll aria-hidden="true" />
             </button>
           </div>
-          <CreateToolGrid copy={home} mode={homeSettings.createMode} />
+          <CreateToolGrid
+            copy={home}
+            mode={homeSettings.createMode}
+            onLayerAction={handleLayerAction}
+          />
           </article>
 
           <article className="quick-panel">
