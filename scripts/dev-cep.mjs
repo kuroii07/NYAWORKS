@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
@@ -7,8 +7,18 @@ import { resolveDevOutputDir } from "./cep-dev-config.mjs";
 const projectRoot = process.cwd();
 const devOutput = resolveDevOutputDir(projectRoot);
 const isWindows = process.platform === "win32";
-const npmCommand = isWindows ? "npm.cmd" : "npm";
-const commandShell = isWindows ? process.env.ComSpec || "cmd.exe" : npmCommand;
+const packageManagerPreference = process.env.NYAWORKS_PACKAGE_MANAGER;
+
+function commandExists(command) {
+  const lookup = isWindows ? "where.exe" : "which";
+  return spawnSync(lookup, [command], { stdio: "ignore" }).status === 0;
+}
+
+const packageManager =
+  packageManagerPreference ||
+  (commandExists(isWindows ? "pnpm.cmd" : "pnpm") ? "pnpm" : "npm");
+const packageManagerCommand = isWindows ? `${packageManager}.cmd` : packageManager;
+const commandShell = isWindows ? process.env.ComSpec || "cmd.exe" : packageManagerCommand;
 const spawnOptions = {
   cwd: projectRoot,
   stdio: "inherit",
@@ -17,13 +27,13 @@ const spawnOptions = {
 
 function runNpm(args, env = process.env) {
   if (isWindows) {
-    return spawn(commandShell, ["/d", "/s", "/c", `${npmCommand} ${args.join(" ")}`], {
+    return spawn(commandShell, ["/d", "/s", "/c", `${packageManagerCommand} ${args.join(" ")}`], {
       ...spawnOptions,
       env
     });
   }
 
-  return spawn(npmCommand, args, { ...spawnOptions, env });
+  return spawn(packageManagerCommand, args, { ...spawnOptions, env });
 }
 
 async function syncPublicFile(publicRoot, outputRoot, relativePath) {

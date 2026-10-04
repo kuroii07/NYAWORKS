@@ -253,6 +253,13 @@ describe("resource page selection and keyboard execution", () => {
 
     await renderPage({ resources: nestedResources });
 
+    const sourceToggle = document.querySelector<HTMLButtonElement>(
+      ".resource-folder-tree__source-toggle"
+    )!;
+    expect(sourceToggle.getAttribute("aria-expanded")).toBe("false");
+    await act(async () => sourceToggle.click());
+    expect(sourceToggle.getAttribute("aria-expanded")).toBe("true");
+
     const input = document.querySelector<HTMLInputElement>("input[type='search']")!;
     await act(async () => {
       const setInputValue = Object.getOwnPropertyDescriptor(
@@ -268,6 +275,145 @@ describe("resource page selection and keyboard execution", () => {
       [...document.querySelectorAll<HTMLElement>(".resource-folder-tree__item")]
         .map((item) => item.textContent)
     ).toEqual(expect.arrayContaining(["Animation", "Effects"]));
+  });
+
+  it("filters recently used resources and supports recent-use sorting", async () => {
+    const usageResources: IndexedResource[] = [
+      {
+        ...resources[0],
+        name: "Alpha",
+        lastUsedAt: "2026-10-04T10:00:00.000Z"
+      },
+      {
+        ...resources[1],
+        name: "Beta",
+        lastUsedAt: null
+      },
+      {
+        ...resources[2],
+        name: "Gamma",
+        lastUsedAt: "2026-10-04T11:00:00.000Z"
+      }
+    ];
+
+    await renderPage({ resources: usageResources });
+
+    const recentToggle = document.querySelector<HTMLButtonElement>(
+      ".resource-recent-toggle"
+    )!;
+    await act(async () => recentToggle.click());
+
+    expect(rows()).toHaveLength(2);
+    expect(rows().map((row) => row.querySelector("strong")?.textContent)).toEqual([
+      "Alpha",
+      "Gamma"
+    ]);
+
+    const sortButton = document.querySelector<HTMLButtonElement>(
+      "[aria-label='资源排序']"
+    )!;
+    await act(async () => sortButton.click());
+    const recentOption = [...document.querySelectorAll<HTMLElement>("[role='option']")]
+      .find((option) => option.textContent?.includes("最近使用"))!;
+    await act(async () => recentOption.click());
+
+    expect(rows().map((row) => row.querySelector("strong")?.textContent)).toEqual([
+      "Gamma",
+      "Alpha"
+    ]);
+  });
+
+  it("keeps the type filter focused on scripts, presets, and expressions", async () => {
+    await renderPage();
+
+    expect(
+      [...document.querySelectorAll<HTMLButtonElement>(".resource-type-filters button")]
+        .map((button) => button.textContent)
+    ).toEqual(["全部类型", "脚本", "预设", "表达式"]);
+  });
+
+  it("keeps the folder tree aligned with the active view", async () => {
+    const viewResources: IndexedResource[] = [
+      {
+        ...resources[0],
+        id: "custom:tools:animation/loop.jsx",
+        name: "Loop",
+        relativePath: "Animation/Loop.jsx",
+        lastUsedAt: "2026-10-04T10:00:00.000Z"
+      },
+      {
+        ...resources[1],
+        id: "custom:tools:effects/color.jsx",
+        name: "Color",
+        relativePath: "Effects/Color.jsx",
+        lastUsedAt: null
+      }
+    ];
+
+    await renderPage({ resources: viewResources });
+    await act(async () => document.querySelector<HTMLButtonElement>(".resource-recent-toggle")?.click());
+
+    expect(rows().map((row) => row.querySelector("strong")?.textContent)).toEqual(["Loop"]);
+    await act(async () =>
+      document.querySelector<HTMLButtonElement>(".resource-folder-tree__source-toggle")?.click()
+    );
+    expect(
+      [...document.querySelectorAll<HTMLElement>(".resource-folder-tree__item")]
+        .map((item) => item.textContent)
+    ).toEqual(["Animation"]);
+  });
+
+  it("filters by source from the grouped source tree and can return to all sources", async () => {
+    const otherSource: ResourceSource = {
+      ...source,
+      id: "custom:other",
+      name: "Other Tools",
+      path: "C:/Other Tools"
+    };
+    const otherResource: IndexedResource = {
+      ...resources[0],
+      id: "custom:other:utility.jsx",
+      sourceId: otherSource.id,
+      name: "Utility",
+      relativePath: "Utility.jsx"
+    };
+
+    await renderPage({
+      sources: [source, otherSource],
+      resources: [resources[0], otherResource]
+    });
+
+    const otherSourceButton = [...document.querySelectorAll<HTMLButtonElement>(
+      ".resource-folder-tree__source-item"
+    )].find((button) => button.textContent?.includes("Other Tools"));
+    expect(otherSourceButton).toBeTruthy();
+
+    await act(async () => otherSourceButton?.click());
+    expect(rows().map((row) => row.querySelector("strong")?.textContent)).toEqual([
+      "Utility"
+    ]);
+
+    await act(async () =>
+      document.querySelector<HTMLButtonElement>(".resource-folder-tree__all")?.click()
+    );
+    expect(rows().map((row) => row.querySelector("strong")?.textContent)).toEqual([
+      "Alpha",
+      "Utility"
+    ]);
+  });
+
+  it("keeps view filters in the results toolbar and source labels focused on source selection", async () => {
+    await renderPage();
+
+    const navigation = document.querySelector(".resource-browser__navigation")!;
+    expect(navigation.querySelector(".resource-view-filter")).toBeNull();
+    expect(document.querySelector(".resource-browser__filters .resource-view-filter")).toBeTruthy();
+
+    const sourceItem = document.querySelector<HTMLButtonElement>(
+      ".resource-folder-tree__source-item"
+    )!;
+    await act(async () => sourceItem.click());
+    expect(sourceItem.getAttribute("data-active")).toBe("true");
   });
 
   it("does not execute from nested controls", async () => {

@@ -99,14 +99,18 @@ function renderPage(): string {
 }
 
 describe("local resources page", () => {
-  it("renders search, filters, source categories, and source index status", () => {
+  it("renders search, filters, grouped source tree, and source index status", () => {
     const markup = renderPage();
 
     expect(markup).toContain('type="search"');
     expect(markup).toContain("全部类型");
-    expect(markup).toContain("资源来源");
+    expect(markup).toContain("全部来源");
+    expect(markup).toContain("我的脚本");
     expect(markup).toContain("资源总数");
-    expect(markup).toContain("Animation");
+    expect(markup).toContain("resource-folder-tree__source-toggle");
+    expect(markup).toContain('aria-expanded="false"');
+    expect(markup).not.toContain(">Animation</button>");
+    expect(markup).not.toContain('aria-label="按资源来源筛选"');
   });
 
   it("renders compact resource rows without path or legacy actions", () => {
@@ -125,10 +129,14 @@ describe("local resources page", () => {
     expect(markup).toContain("收藏");
   });
 
-  it("offers favorites as a shared source filter", () => {
+  it("offers compact all, favorites, and recent resource views", () => {
     const markup = renderPage();
+
+    expect(markup).toContain("resource-all-toggle");
     expect(markup).toContain("收藏");
     expect(markup).toContain("resource-favorites-toggle");
+    expect(markup).toContain("resource-recent-toggle");
+    expect(markup).toContain('aria-label="资源排序"');
   });
 
   it("keeps the title count and each resource favorite control in their row layout", () => {

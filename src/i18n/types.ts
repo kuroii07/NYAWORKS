@@ -293,8 +293,14 @@ export interface UiCopy {
     searchAria: string;
     typeFilterAria: string;
     sourceFilterAria: string;
+    sortAria: string;
     allTypes: string;
     allSources: string;
+    allResources: string;
+    recent: string;
+    sortByName: string;
+    sortByRecent: string;
+    sortByFavorite: string;
     sources: string;
     categories: string;
     indexStatus: string;

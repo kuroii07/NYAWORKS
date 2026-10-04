@@ -134,7 +134,7 @@ describe("resource host actions", () => {
     }
   });
 
-  it("refuses an unregistered panel instead of evaluating it as a script", async () => {
+  it("falls back to evaluating an unregistered panel as a script", async () => {
     const calls = [];
     const app = {
       findMenuCommandId: () => 0,
@@ -155,11 +155,8 @@ describe("resource host actions", () => {
         path: "C:/Panels/Missing.jsx",
         resourceType: "panel"
       }));
-      expect(JSON.parse(runSearchScript(payload))).toEqual({
-        ok: false,
-        reason: "panel-not-registered"
-      });
-      expect(calls).toEqual([]);
+      expect(JSON.parse(runSearchScript(payload))).toEqual({ ok: true });
+      expect(calls).toEqual(["eval"]);
     } finally {
       globalThis.$ = originalDollar;
     }

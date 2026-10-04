@@ -24,17 +24,19 @@ npm run setup:cep
 执行：
 
 ```powershell
-npm run dev:cep
+pnpm run dev:cep
 ```
 
 该命令会先确认 junction，再启动 `vite build --watch`。修改 React、CSS、翻译或其他前端源码后，Vite 会自动更新 `dev-extension/`；在 AE 面板中点击开发构建专用的刷新按钮即可加载最新前端代码，不需要重启 AE。
+
+开发脚本会优先使用 pnpm；如果本机只有 npm，也可以执行 `npm run dev:cep`。
 
 Host JSX 的修改同样会被复制到开发输出，但为了让宿主重新读取脚本，建议关闭并重新打开 NYAWORKS 面板。修改 `CSXS/manifest.xml`、扩展 ID 或 CEP 权限时，仍需要重启 AE。
 
 ## 与浏览器预览的区别
 
 - `npm run dev` 和 `http://127.0.0.1:5175/` 只适合验证浏览器 UI。
-- `npm run dev:cep` 使用真实 CEP 扩展目录，适合在 AE 中验证 Host 调用和面板行为。
+- `pnpm run dev:cep` 使用真实 CEP 扩展目录，适合在 AE 中验证 Host 调用和面板行为。
 - 浏览器测试、构建测试通过，不等于真实 AE 版本、图层状态和宿主权限已经验收。
 
 ## 停止与正式构建

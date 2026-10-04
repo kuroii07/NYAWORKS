@@ -3,6 +3,7 @@ import {
   BracketsCurly,
   CaretDown,
   CaretRight,
+  Clock,
   FileCode,
   FileText,
   FolderSimple,
@@ -31,7 +32,10 @@ import { useLanguage } from "../i18n/LanguageProvider";
 import {
   buildResourceFolderTree,
   displayResourcePath,
-  filterIndexedResources
+  filterIndexedResources,
+  sortIndexedResources,
+  type ResourceSortMode,
+  type ResourceTypeFilter
 } from "../resources/resourceOperations";
 import {
   moveResourceSelection,
@@ -47,38 +51,115 @@ import { useResources } from "../resources/ResourceProvider";
 import { useToast } from "../notifications/ToastProvider";
 import type { IndexedResource, ResourceFolderNode, ResourceType } from "../resources/types";
 
-type ResourceFilterType = "all" | ResourceType;
-type SourceFilter = "all" | "favorites" | string;
+type ResourceFilterType = ResourceTypeFilter;
+type SourceFilter = "all" | string;
+type ResourceViewFilter = "all" | "favorites" | "recent";
+type ResourceSourceTreeGroup = {
+  sourceId: string;
+  sourceName: string;
+  nodes: readonly ResourceFolderNode[];
+};
 
 function SourceTree({
-  nodes,
+  groups,
+  selectedSourceId,
   selectedFolder,
   expandedFolders,
+  labels,
+  onSelectSource,
   onSelectFolder,
   onToggleFolder
 }: {
-  nodes: readonly ResourceFolderNode[];
+  groups: readonly ResourceSourceTreeGroup[];
+  selectedSourceId: SourceFilter;
   selectedFolder: string | null;
   expandedFolders: readonly string[];
-  onSelectFolder: (path: string) => void;
+  labels: ReturnType<typeof useLanguage>["copy"]["resources"];
+  onSelectSource: (sourceId: SourceFilter) => void;
+  onSelectFolder: (sourceId: string, path: string) => void;
   onToggleFolder: (path: string) => void;
 }) {
+  function renderFolderNode(node: ResourceFolderNode, sourceId: string) {
+    const expansionKey = `${sourceId}:${node.path}`;
+    const expanded = expandedFolders.includes(expansionKey);
+    const hasChildren = node.children.length > 0;
+
+    return (
+      <li key={expansionKey}>
+        <div>
+          {hasChildren ? (
+            <button
+              className="resource-folder-tree__toggle"
+              type="button"
+              aria-label={node.name}
+              aria-expanded={expanded}
+              onClick={() => onToggleFolder(expansionKey)}
+            >
+              {expanded ? (
+                <CaretDown aria-hidden="true" weight="bold" />
+              ) : (
+                <CaretRight aria-hidden="true" weight="bold" />
+              )}
+            </button>
+          ) : (
+            <span className="resource-folder-tree__spacer" aria-hidden="true" />
+          )}
+          <button
+            className="resource-folder-tree__item"
+            type="button"
+            data-active={
+              selectedSourceId === sourceId &&
+              selectedFolder === node.path
+                ? true
+                : undefined
+            }
+            onClick={() => onSelectFolder(sourceId, node.path)}
+          >
+            <FolderSimple aria-hidden="true" weight="regular" />
+            {node.name}
+          </button>
+        </div>
+        {hasChildren && expanded ? (
+          <ul>
+            {node.children.map((child) => renderFolderNode(child, sourceId))}
+          </ul>
+        ) : null}
+      </li>
+    );
+  }
+
   return (
     <ul className="resource-folder-tree">
-      {nodes.map((node) => {
-        const expanded = expandedFolders.includes(node.path);
-        const hasChildren = node.children.length > 0;
+      <li>
+        <button
+          className="resource-folder-tree__all"
+          type="button"
+          data-active={
+            selectedSourceId === "all" && selectedFolder === null
+              ? true
+              : undefined
+          }
+          onClick={() => onSelectSource("all")}
+        >
+          <Archive aria-hidden="true" weight="regular" />
+          {labels.allSources}
+        </button>
+      </li>
+      {groups.map((group) => {
+        const expansionKey = `source:${group.sourceId}`;
+        const expanded = expandedFolders.includes(expansionKey);
+        const hasChildren = group.nodes.length > 0;
 
         return (
-          <li key={node.path}>
-            <div>
+          <li className="resource-folder-tree__source" key={group.sourceId}>
+            <div className="resource-folder-tree__source-row">
               {hasChildren ? (
                 <button
-                  className="resource-folder-tree__toggle"
+                  className="resource-folder-tree__toggle resource-folder-tree__source-toggle"
                   type="button"
-                  aria-label={node.name}
+                  aria-label={group.sourceName}
                   aria-expanded={expanded}
-                  onClick={() => onToggleFolder(node.path)}
+                  onClick={() => onToggleFolder(expansionKey)}
                 >
                   {expanded ? (
                     <CaretDown aria-hidden="true" weight="bold" />
@@ -90,23 +171,23 @@ function SourceTree({
                 <span className="resource-folder-tree__spacer" aria-hidden="true" />
               )}
               <button
-                className="resource-folder-tree__item"
+                className="resource-folder-tree__source-item"
                 type="button"
-                data-active={selectedFolder === node.path || undefined}
-                onClick={() => onSelectFolder(node.path)}
+                data-active={
+                  selectedSourceId === group.sourceId && selectedFolder === null
+                    ? true
+                    : undefined
+                }
+                onClick={() => onSelectSource(group.sourceId)}
               >
                 <FolderSimple aria-hidden="true" weight="regular" />
-                {node.name}
+                {group.sourceName}
               </button>
             </div>
             {hasChildren && expanded ? (
-              <SourceTree
-                nodes={node.children}
-                selectedFolder={selectedFolder}
-                expandedFolders={expandedFolders}
-                onSelectFolder={onSelectFolder}
-                onToggleFolder={onToggleFolder}
-              />
+              <ul>
+                {group.nodes.map((node) => renderFolderNode(node, group.sourceId))}
+              </ul>
             ) : null}
           </li>
         );
@@ -207,6 +288,8 @@ export function ResourcesPage() {
   const [query, setQuery] = useState("");
   const [resourceType, setResourceType] = useState<ResourceFilterType>("all");
   const [sourceId, setSourceId] = useState<SourceFilter>("all");
+  const [viewFilter, setViewFilter] = useState<ResourceViewFilter>("all");
+  const [sortMode, setSortMode] = useState<ResourceSortMode>("name");
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
   const [executingIds, setExecutingIds] = useState<ReadonlySet<string>>(
@@ -225,13 +308,13 @@ export function ResourcesPage() {
   const searchRef = useRef<HTMLInputElement>(null);
   const previousResourcesRef = useRef(resources);
   const previousVisibleIdsRef = useRef<readonly string[]>([]);
-  const sourceOptions = useMemo<readonly SettingSelectOption<string>[]>(
+  const sortOptions = useMemo<readonly SettingSelectOption<ResourceSortMode>[]>(
     () => [
-      { value: "all", label: labels.allSources },
-      { value: "favorites", label: labels.favorite },
-      ...sources.map((source) => ({ value: source.id, label: source.name }))
+      { value: "name", label: labels.sortByName },
+      { value: "recent", label: labels.sortByRecent },
+      { value: "favorite", label: labels.sortByFavorite }
     ],
-    [labels.allSources, sources]
+    [labels.sortByFavorite, labels.sortByName, labels.sortByRecent]
   );
   const navigationResources = useMemo(() => {
     const indexed = filterIndexedResources(
@@ -241,14 +324,15 @@ export function ResourcesPage() {
         index: { resources, sourceStates: [] }
       },
       "",
-      resourceType,
-      sourceId === "all" || sourceId === "favorites" ? undefined : sourceId
+      resourceType
     );
 
     return indexed.filter(
-      (resource) => sourceId !== "favorites" || resource.favorite
+      (resource) =>
+        viewFilter === "all" ||
+        (viewFilter === "favorites" ? resource.favorite : Boolean(resource.lastUsedAt))
     );
-  }, [resourceType, resources, sourceId]);
+  }, [resourceType, resources, sourceId, viewFilter]);
   const filteredResources = useMemo(() => {
     const indexed = filterIndexedResources(
       {
@@ -258,19 +342,38 @@ export function ResourcesPage() {
       },
       query,
       resourceType,
-      sourceId === "all" || sourceId === "favorites" ? undefined : sourceId
+      sourceId === "all" ? undefined : sourceId
     );
 
-    const next = indexed.filter((resource) => sourceId !== "favorites" || resource.favorite);
-    return selectedFolder
+    const next = indexed.filter(
+      (resource) =>
+        viewFilter === "all" ||
+        (viewFilter === "favorites" ? resource.favorite : Boolean(resource.lastUsedAt))
+    );
+    const folderFiltered = selectedFolder
       ? next.filter((resource) =>
           resource.relativePath.toLocaleLowerCase().startsWith(`${selectedFolder}/`)
         )
       : next;
-  }, [query, resourceType, resources, selectedFolder, sourceId]);
-  const folderTree = useMemo(
-    () => buildResourceFolderTree(navigationResources),
-    [navigationResources]
+    return sortIndexedResources(folderFiltered, sortMode);
+  }, [query, resourceType, resources, selectedFolder, sortMode, sourceId, viewFilter]);
+  const sourceTreeGroups = useMemo<readonly ResourceSourceTreeGroup[]>(
+    () =>
+      sources
+        .map((source) => {
+          const sourceResources = navigationResources.filter(
+            (resource) => resource.sourceId === source.id
+          );
+          return {
+            sourceId: source.id,
+            sourceName: source.name,
+            nodes: buildResourceFolderTree(sourceResources),
+            hasResources: sourceResources.length > 0
+          };
+        })
+        .filter((group) => group.hasResources)
+        .map(({ hasResources: _hasResources, ...group }) => group),
+    [navigationResources, sources]
   );
   const listResources = filteredResources;
   const visibleResourceIds = useMemo(
@@ -454,6 +557,21 @@ export function ResourcesPage() {
     );
   }
 
+  function changeViewFilter(nextFilter: ResourceViewFilter) {
+    setViewFilter(nextFilter);
+    setSelectedFolder(null);
+  }
+
+  function selectSource(nextSourceId: SourceFilter) {
+    setSourceId(nextSourceId);
+    setSelectedFolder(null);
+  }
+
+  function selectFolder(nextSourceId: string, path: string) {
+    setSourceId(nextSourceId);
+    setSelectedFolder(path);
+  }
+
   return (
     <>
       <main className="resources-page">
@@ -470,26 +588,16 @@ export function ResourcesPage() {
         <aside className="resource-browser__navigation" aria-label={labels.categories}>
           <div className="resource-browser__source-control">
             <span>{labels.sources}</span>
-            <div className="resource-source-filter">
-              <SettingSelect
-                ariaLabel={labels.sourceFilterAria}
-                value={sourceId}
-                options={sourceOptions}
-                onChange={(nextSourceId) => {
-                setSourceId(nextSourceId);
-                setSelectedFolder(null);
-              }}
-              />
-              <button className="resource-favorites-toggle" type="button" aria-label={labels.favorite} aria-pressed={sourceId === "favorites"} data-active={sourceId === "favorites" || undefined} onClick={() => setSourceId((current) => current === "favorites" ? "all" : "favorites")}><Heart aria-hidden="true" weight={sourceId === "favorites" ? "fill" : "regular"} /></button>
-            </div>
           </div>
           <div className="resource-browser__categories">
-            <span>{labels.categories}</span>
             <SourceTree
-              nodes={folderTree}
+              groups={sourceTreeGroups}
+              selectedSourceId={sourceId}
               selectedFolder={selectedFolder}
               expandedFolders={expandedFolders}
-              onSelectFolder={setSelectedFolder}
+              labels={labels}
+              onSelectSource={selectSource}
+              onSelectFolder={selectFolder}
               onToggleFolder={toggleFolder}
             />
           </div>
@@ -508,21 +616,70 @@ export function ResourcesPage() {
                 onChange={(event) => setQuery(event.target.value)}
               />
             </label>
+            <div className="resource-view-filter">
+              <button
+                className="resource-view-toggle resource-all-toggle"
+                type="button"
+                aria-label={labels.allResources}
+                title={labels.allResources}
+                aria-pressed={viewFilter === "all"}
+                data-active={viewFilter === "all" || undefined}
+                onClick={() => changeViewFilter("all")}
+              >
+                <Archive aria-hidden="true" weight="regular" />
+              </button>
+              <button
+                className="resource-view-toggle resource-favorites-toggle"
+                type="button"
+                aria-label={labels.favorite}
+                title={labels.favorite}
+                aria-pressed={viewFilter === "favorites"}
+                data-active={viewFilter === "favorites" || undefined}
+                onClick={() =>
+                  changeViewFilter(viewFilter === "favorites" ? "all" : "favorites")
+                }
+              >
+                <Heart aria-hidden="true" weight={viewFilter === "favorites" ? "fill" : "regular"} />
+              </button>
+              <button
+                className="resource-view-toggle resource-recent-toggle"
+                type="button"
+                aria-label={labels.recent}
+                title={labels.recent}
+                aria-pressed={viewFilter === "recent"}
+                data-active={viewFilter === "recent" || undefined}
+                onClick={() =>
+                  changeViewFilter(viewFilter === "recent" ? "all" : "recent")
+                }
+              >
+                <Clock aria-hidden="true" weight="regular" />
+              </button>
+            </div>
             <div className="resource-type-filters" aria-label={labels.typeFilterAria}>
-              {(["all", "script", "panel", "startup", "preset", "expression"] as const).map(
+              {(["all", "script", "preset", "expression"] as const).map(
                 (type) => (
                   <button
                     type="button"
                     key={type}
                     data-active={resourceType === type || undefined}
                     aria-pressed={resourceType === type}
-                    onClick={() => setResourceType(type)}
+                    onClick={() => {
+                      setResourceType(type);
+                      setSelectedFolder(null);
+                    }}
                   >
                     {type === "all" ? labels.allTypes : labels.typeLabels[type]}
                   </button>
                 )
               )}
             </div>
+            <SettingSelect
+              className="resource-sort-select"
+              ariaLabel={labels.sortAria}
+              value={sortMode}
+              options={sortOptions}
+              onChange={setSortMode}
+            />
           </div>
 
           {selectedFolder ? (

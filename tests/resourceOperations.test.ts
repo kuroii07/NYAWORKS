@@ -8,6 +8,7 @@ import {
   mergeScanResult,
   normalizeResourceScanResult,
   removeCustomResourceSource,
+  sortIndexedResources,
   toggleResourceFavorite,
   updateCustomResourceSource
 } from "../src/resources/resourceOperations";
@@ -247,6 +248,66 @@ describe("resource source and index operations", () => {
     ]);
   });
 
+  it("treats panels and startup scripts as scripts in the user-facing type filter", () => {
+    const resources = [
+      {
+        id: "source:script",
+        sourceId: "source",
+        resourceType: "script" as const,
+        name: "Script",
+        relativePath: "Script.jsx",
+        modifiedAt: null,
+        favorite: false,
+        lastUsedAt: null,
+        preview: { coverUri: null, loopUri: null, cacheKey: null, status: "none" as const }
+      },
+      {
+        id: "source:panel",
+        sourceId: "source",
+        resourceType: "panel" as const,
+        name: "Panel",
+        relativePath: "Panel.jsx",
+        modifiedAt: null,
+        favorite: false,
+        lastUsedAt: null,
+        preview: { coverUri: null, loopUri: null, cacheKey: null, status: "none" as const }
+      },
+      {
+        id: "source:startup",
+        sourceId: "source",
+        resourceType: "startup" as const,
+        name: "Startup",
+        relativePath: "Startup.jsx",
+        modifiedAt: null,
+        favorite: false,
+        lastUsedAt: null,
+        preview: { coverUri: null, loopUri: null, cacheKey: null, status: "none" as const }
+      },
+      {
+        id: "source:preset",
+        sourceId: "source",
+        resourceType: "preset" as const,
+        name: "Preset",
+        relativePath: "Preset.ffx",
+        modifiedAt: null,
+        favorite: false,
+        lastUsedAt: null,
+        preview: { coverUri: null, loopUri: null, cacheKey: null, status: "none" as const }
+      }
+    ];
+    const settings = {
+      ...DEFAULT_RESOURCE_SETTINGS,
+      index: { resources, sourceStates: [] }
+    };
+
+    expect(
+      filterIndexedResources(settings, "", "script").map((resource) => resource.id)
+    ).toEqual(["source:script", "source:panel", "source:startup"]);
+    expect(
+      filterIndexedResources(settings, "", "preset").map((resource) => resource.id)
+    ).toEqual(["source:preset"]);
+  });
+
   it("uses decoded folder labels while retaining encoded internal paths", () => {
     const resources = [{
       id: "custom:tools:%E8%84%9A%E6%9C%AC/Tool.jsx",
@@ -263,5 +324,60 @@ describe("resource source and index operations", () => {
     expect(buildResourceFolderTree(resources)).toEqual([
       { name: "脚本", path: "%e8%84%9a%e6%9c%ac", children: [], resourceIds: [resources[0].id] }
     ]);
+  });
+
+  it("sorts resources by name, recent use, and favorite priority without mutating input", () => {
+    const resources = [
+      {
+        id: "a",
+        sourceId: "custom:tools",
+        resourceType: "script" as const,
+        name: "Beta",
+        relativePath: "Beta.jsx",
+        modifiedAt: null,
+        favorite: false,
+        lastUsedAt: null,
+        preview: { coverUri: null, loopUri: null, cacheKey: null, status: "none" as const }
+      },
+      {
+        id: "b",
+        sourceId: "custom:tools",
+        resourceType: "script" as const,
+        name: "Alpha",
+        relativePath: "Alpha.jsx",
+        modifiedAt: null,
+        favorite: true,
+        lastUsedAt: "2026-10-04T10:00:00.000Z",
+        preview: { coverUri: null, loopUri: null, cacheKey: null, status: "none" as const }
+      },
+      {
+        id: "c",
+        sourceId: "custom:tools",
+        resourceType: "script" as const,
+        name: "Gamma",
+        relativePath: "Gamma.jsx",
+        modifiedAt: null,
+        favorite: false,
+        lastUsedAt: "2026-10-04T11:00:00.000Z",
+        preview: { coverUri: null, loopUri: null, cacheKey: null, status: "none" as const }
+      }
+    ];
+
+    expect(sortIndexedResources(resources, "name").map((resource) => resource.id)).toEqual([
+      "b",
+      "a",
+      "c"
+    ]);
+    expect(sortIndexedResources(resources, "recent").map((resource) => resource.id)).toEqual([
+      "c",
+      "b",
+      "a"
+    ]);
+    expect(sortIndexedResources(resources, "favorite").map((resource) => resource.id)).toEqual([
+      "b",
+      "a",
+      "c"
+    ]);
+    expect(resources.map((resource) => resource.id)).toEqual(["a", "b", "c"]);
   });
 });

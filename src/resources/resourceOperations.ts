@@ -282,7 +282,7 @@ export function toggleResourceFavorite(
 export function filterIndexedResources(
   settings: ResourceSettings,
   query: string,
-  type: "all" | ResourceType,
+  type: ResourceTypeFilter,
   sourceId?: string
 ): IndexedResource[] {
   const normalizedQuery = query.trim().toLocaleLowerCase();
@@ -298,9 +298,85 @@ export function filterIndexedResources(
 
     return (
       matchesQuery &&
-      (type === "all" || resource.resourceType === type) &&
+      matchesResourceType(resource.resourceType, type) &&
       (sourceId === undefined || resource.sourceId === sourceId)
     );
+  });
+}
+
+export type ResourceTypeFilter = "all" | "script" | "preset" | "expression";
+
+function matchesResourceType(
+  resourceType: ResourceType,
+  filter: ResourceTypeFilter
+): boolean {
+  if (filter === "all") {
+    return true;
+  }
+
+  if (filter === "script") {
+    return (
+      resourceType === "script" ||
+      resourceType === "panel" ||
+      resourceType === "startup"
+    );
+  }
+
+  return resourceType === filter;
+}
+
+export type ResourceSortMode = "name" | "recent" | "favorite";
+
+function recentTimestamp(value: string | null): number {
+  if (!value) {
+    return Number.NEGATIVE_INFINITY;
+  }
+
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : Number.NEGATIVE_INFINITY;
+}
+
+function compareResourceName(left: IndexedResource, right: IndexedResource): number {
+  const nameResult = left.name.localeCompare(right.name, undefined, {
+    sensitivity: "base",
+    numeric: true
+  });
+
+  if (nameResult !== 0) {
+    return nameResult;
+  }
+
+  const pathResult = left.relativePath.localeCompare(right.relativePath, undefined, {
+    sensitivity: "base",
+    numeric: true
+  });
+
+  return pathResult !== 0 ? pathResult : left.id.localeCompare(right.id);
+}
+
+export function sortIndexedResources(
+  resources: readonly IndexedResource[],
+  mode: ResourceSortMode
+): IndexedResource[] {
+  return [...resources].sort((left, right) => {
+    if (mode === "recent") {
+      const recentResult =
+        recentTimestamp(right.lastUsedAt) - recentTimestamp(left.lastUsedAt);
+
+      return recentResult !== 0 ? recentResult : compareResourceName(left, right);
+    }
+
+    if (mode === "favorite") {
+      const favoriteResult = Number(right.favorite) - Number(left.favorite);
+
+      if (favoriteResult !== 0) {
+        return favoriteResult;
+      }
+
+      return compareResourceName(left, right);
+    }
+
+    return compareResourceName(left, right);
   });
 }
 

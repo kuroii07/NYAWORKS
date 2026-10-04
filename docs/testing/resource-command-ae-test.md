@@ -84,7 +84,7 @@ Screenshot or exact error:
 - Observed behavior:
 - Screenshot or exact error:
 
-### 10. ScriptUI Panel 已注册/未注册
+### 10. ScriptUI Panel 已注册/未注册回退执行
 
 - Result:
 - Observed behavior:

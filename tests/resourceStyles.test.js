@@ -50,6 +50,7 @@ describe("resource browser accessibility styles", () => {
   it("keeps the folder tree compact", () => {
     const styles = renderResourceLayout();
     expect(styles.folderItem.fontSize).toBe("12px");
+    expect(css).toMatch(/\.resource-folder-tree ul \{[^}]*list-style: none;/);
   });
 
   it("keeps navigation visible while the resource list owns vertical scrolling", () => {
@@ -72,6 +73,12 @@ describe("resource browser accessibility styles", () => {
   it("does not add a second outline when a resource row is selected", () => {
     expect(css).toMatch(
       /\.resource-list-row\[data-selected\]:focus-visible \{ outline: none; outline-offset: 0; \}/
+    );
+  });
+
+  it("hides source navigation in narrow panels", () => {
+    expect(css).toMatch(
+      /\.resource-browser__navigation \{ display: none; \}/
     );
   });
 });

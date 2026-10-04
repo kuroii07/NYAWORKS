@@ -488,10 +488,11 @@
           app.executeCommand(commandId);
           return JSON.stringify({ ok: true });
         }
-
-        return JSON.stringify({ ok: false, reason: "panel-not-registered" });
       }
 
+      // A ScriptUI panel file is still a valid JSX resource. When AE has not
+      // registered a menu command for it yet, execute the file directly so
+      // the resource remains usable from the library.
       $.evalFile(file);
       return JSON.stringify({ ok: true });
     } catch (error) {
