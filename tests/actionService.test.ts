@@ -109,4 +109,45 @@ describe("createActionService", () => {
     })).resolves.toEqual({ success: true, message: "ok" });
     expect(receivedOptions).toEqual({ alignmentTarget: "composition" });
   });
+
+  it("passes runtime layer modifiers through the runner to the executor", async () => {
+    let receivedOptions: unknown;
+    const service = createActionService({
+      contextProvider: {
+        getSnapshot: async () => ({
+          hostAvailable: true,
+          activeComp: true,
+          selectedLayers: 0,
+          selectedKeys: 0
+        })
+      },
+      runner: createActionRunner({
+        registry: createActionRegistry([{
+          id: "layer.createShape",
+          title: { zhCN: "形状", zhTW: "形狀", en: "Shape", ja: "シェイプ", ko: "도형" },
+          icon: "BoundingBox",
+          category: "shape",
+          requirements: ["host", "activeComp"],
+          supportsPie: true,
+          execute: {
+            type: "host",
+            command: "runLayerAction",
+            payload: { action: "create-shape" }
+          },
+          undoPolicy: "host-undo-group"
+        }]),
+        executors: {
+          host: async (_definition, _context, options) => {
+            receivedOptions = options;
+            return { success: true, message: "ok" };
+          }
+        }
+      })
+    });
+
+    await expect(service.run("layer.createShape", {
+      layerModifier: "alt"
+    })).resolves.toEqual({ success: true, message: "ok" });
+    expect(receivedOptions).toEqual({ layerModifier: "alt" });
+  });
 });

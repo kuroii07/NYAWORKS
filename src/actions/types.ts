@@ -1,3 +1,5 @@
+import type { LayerActionModifier } from "./layerActionTypes";
+
 export interface LocalizedActionText {
   zhCN: string;
   zhTW: string;
@@ -66,6 +68,7 @@ export interface ActionContextSnapshot {
 
 export interface ActionRunOptions {
   alignmentTarget?: "composition" | "selection";
+  layerModifier?: LayerActionModifier;
 }
 
 export type ActionExecutor = (
