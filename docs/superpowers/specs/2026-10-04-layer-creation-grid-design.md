@@ -1,7 +1,7 @@
 # NYAWORKS 新建图层九宫格开发规格
 
-日期：2026-10-04  
-状态：已确认，待实施  
+日期：2026-10-04
+状态：已确认，待实施
 范围：新建图层九宫格、通用图层 Action、摄像机控制器、预合成与解预合成
 
 ## 1. 设计目标
@@ -370,10 +370,12 @@ layer.unprecomposeSelected
 ```ts
 interface LayerActionPayload {
   actionId: string;
-  modifier: "none" | "alt" | "ctrl" | "shift" | "triple";
+  modifier: "none" | "alt" | "ctrl" | "shift";
   source: "layer-grid" | "home" | "composition" | "search" | "nya-pie";
 }
 ```
+
+`Alt + Ctrl + Shift` 只负责在 UI 打开该按钮的扩展菜单，不作为 Host modifier 传输；用户从菜单选择后，仍以单一 `alt`、`ctrl` 或 `shift` 变体进入同一 Action。
 
 React 只负责 UI、修饰键识别、Action 调度和结果展示。AE DOM、时间范围、图层插入、父子关系、效果控件和 Undo Group 全部放在 Host 层。
 
