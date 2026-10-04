@@ -183,6 +183,20 @@ describe("null controller host action", () => {
     });
     expect(created).toHaveLength(0);
   });
+
+  it("rejects already-parented selections instead of replacing their hierarchy", async () => {
+    const existingParent = createLayer("null");
+    const child = createLayer("shape", { parent: existingParent });
+    const { app, created } = createApp([child]);
+    const runLayerAction = await loadRunLayerAction(app);
+
+    expect(JSON.parse(runLayerAction(encoded("create-null")))).toMatchObject({
+      ok: false,
+      reason: "invalid-selection"
+    });
+    expect(child.parent).toBe(existingParent);
+    expect(created).toHaveLength(0);
+  });
 });
 
 describe("camera rig host action", () => {
@@ -230,5 +244,20 @@ describe("camera rig host action", () => {
     });
     expect(created.map((layer) => layer.kind)).toEqual(["camera"]);
     expect(created[0].parent).toBe(null);
+  });
+
+  it("places the camera controller at the selected-layer average", async () => {
+    const first = createLayer("shape", { position: [400, 300, 20] });
+    const second = createLayer("text", { position: [800, 500, 60] });
+    const { app, created } = createApp([first, second]);
+    const runLayerAction = await loadRunLayerAction(app);
+
+    expect(JSON.parse(runLayerAction(encoded("create-camera-rig"))).ok).toBe(true);
+    const controller = created.find((layer) => layer.kind === "null");
+    expect(controller.controls.slice(0, 3).map((control) => control.value.value)).toEqual([
+      600,
+      400,
+      40
+    ]);
   });
 });

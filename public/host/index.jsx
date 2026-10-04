@@ -1359,8 +1359,8 @@
   function validateControllerSelection(selection) {
     var index;
     for (index = 0; index < selection.length; index += 1) {
-      if (!selection[index] || selection[index].locked) {
-        return { ok: false, reason: "invalid-selection", detail: "locked-or-missing-layer" };
+      if (!selection[index] || selection[index].locked || selection[index].parent) {
+        return { ok: false, reason: "invalid-selection", detail: "locked-missing-or-parented-layer" };
       }
     }
     return { ok: true };
@@ -1419,21 +1419,21 @@
     return String(name || "").replace(/\\/g, "\\\\").replace(/"/g, '\\"');
   }
 
-  function addCameraControllerControls(controller, comp) {
-    var position = layerTransformProperty(controller, "ADBE Position");
+  function addCameraControllerControls(controller, position) {
+    var positionProperty = layerTransformProperty(controller, "ADBE Position");
     var rotateX = layerTransformProperty(controller, "ADBE Rotate X");
     var rotateY = layerTransformProperty(controller, "ADBE Rotate Y");
     var rotateZ = layerTransformProperty(controller, "ADBE Rotate Z");
-    addLayerControl(controller, "ADBE Slider Control", "Nya Position X", comp.width / 2);
-    addLayerControl(controller, "ADBE Slider Control", "Nya Position Y", comp.height / 2);
-    addLayerControl(controller, "ADBE Slider Control", "Nya Position Z", 0);
+    addLayerControl(controller, "ADBE Slider Control", "Nya Position X", position[0]);
+    addLayerControl(controller, "ADBE Slider Control", "Nya Position Y", position[1]);
+    addLayerControl(controller, "ADBE Slider Control", "Nya Position Z", position[2]);
     addLayerControl(controller, "ADBE Angle Control", "Nya Rotation X", 0);
     addLayerControl(controller, "ADBE Angle Control", "Nya Rotation Y", 0);
     addLayerControl(controller, "ADBE Angle Control", "Nya Rotation Z", 0);
     addLayerControl(controller, "ADBE Slider Control", "Nya Focal Length", 35);
     addLayerControl(controller, "ADBE Checkbox Control", "Nya Depth of Field", 0);
     addLayerControl(controller, "ADBE Checkbox Control", "Nya Focus to Point", 0);
-    setShapeExpression(position, '[effect("Nya Position X")(1),effect("Nya Position Y")(1),effect("Nya Position Z")(1)]');
+    setShapeExpression(positionProperty, '[effect("Nya Position X")(1),effect("Nya Position Y")(1),effect("Nya Position Z")(1)]');
     setShapeExpression(rotateX, 'effect("Nya Rotation X")(1)');
     setShapeExpression(rotateY, 'effect("Nya Rotation Y")(1)');
     setShapeExpression(rotateZ, 'effect("Nya Rotation Z")(1)');
@@ -1471,7 +1471,7 @@
     }
 
     controller = createGuideNull(context, center, true, "Nya Camera Controller");
-    addCameraControllerControls(controller, comp);
+    addCameraControllerControls(controller, center);
     camera.parent = controller;
     configureCameraFromController(camera, controller, comp);
     placeLayerAboveSelection(camera, context);
