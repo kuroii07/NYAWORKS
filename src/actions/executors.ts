@@ -15,6 +15,14 @@ import {
   createAlignmentHostBridge,
   type AlignmentHostBridge
 } from "../host/alignmentBridge";
+import {
+  createLayerHostBridge,
+  type LayerHostBridge
+} from "../host/layerBridge";
+import {
+  isLayerAction,
+  isLayerActionModifier
+} from "./layerActionTypes";
 
 export function createInternalExecutor(
   handlers: Readonly<Record<string, ActionExecutor>>
@@ -42,7 +50,8 @@ function encodePayload(value: unknown): string {
 export function createCepHostExecutor(
   environment?: CepEnvironment,
   anchorBridge: AnchorHostBridge = createAnchorHostBridge(environment),
-  alignmentBridge: AlignmentHostBridge = createAlignmentHostBridge(environment)
+  alignmentBridge: AlignmentHostBridge = createAlignmentHostBridge(environment),
+  layerBridge: LayerHostBridge = createLayerHostBridge(environment)
 ): ActionExecutor {
   return async (definition, context, runOptions) => {
     if (definition.execute.command === "setAnchorPoint") {
@@ -133,6 +142,49 @@ export function createCepHostExecutor(
       return {
         success: false,
         message: "Alignment action failed",
+        error: {
+          code: result.reason === "unavailable"
+            ? "host-unavailable"
+            : result.reason,
+          detail: result.detail
+        }
+      };
+    }
+
+    if (definition.execute.command === "runLayerAction") {
+      const action = (definition.execute.payload as { action?: unknown } | undefined)?.action;
+      if (!isLayerAction(action)) {
+        return {
+          success: false,
+          message: "Invalid layer action",
+          error: { code: "invalid-layer-action" }
+        };
+      }
+
+      const modifier = runOptions?.layerModifier ?? "none";
+      if (!isLayerActionModifier(modifier)) {
+        return {
+          success: false,
+          message: "Invalid layer action modifier",
+          error: { code: "invalid-layer-modifier" }
+        };
+      }
+
+      const result = await layerBridge.runLayerAction(action, modifier);
+      if (result.ok) {
+        return {
+          success: true,
+          message: "Layer action completed",
+          data: {
+            createdLayers: result.createdLayers,
+            updatedLayers: result.updatedLayers,
+            createdItems: result.createdItems
+          }
+        };
+      }
+      return {
+        success: false,
+        message: "Layer action failed",
         error: {
           code: result.reason === "unavailable"
             ? "host-unavailable"
