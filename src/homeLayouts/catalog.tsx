@@ -1,14 +1,12 @@
 import type { ComponentType } from "react";
 import type { IconProps } from "@phosphor-icons/react";
 import {
-  AnchorSimple,
   ArrowDown,
   ArrowUp,
   ArrowsClockwise,
   ArrowsLeftRight,
   ArrowsOut,
   BezierCurve,
-  BoundingBox,
   Camera,
   Circle,
   CopySimple,
@@ -34,13 +32,11 @@ import {
   SlidersHorizontal,
   Sparkle,
   Stack,
-  StackMinus,
   Star,
   Steps,
   TextAlignLeft,
   TextT,
   Trash,
-  VideoCamera,
   Waveform
 } from "@phosphor-icons/react";
 import type { ToolGroupId, ToolId, UiCopy } from "../i18n/types";
@@ -50,6 +46,16 @@ import type {
   HomeLayoutLabel
 } from "./types";
 import { HOME_GROUP_SLOT_COUNT } from "./types";
+import {
+  AdjustmentLayerIcon,
+  CameraLayerIcon,
+  NullObjectIcon,
+  PrecomposeIcon,
+  ShapeLayerIcon,
+  SolidLayerIcon,
+  TextLayerIcon,
+  UnprecomposeIcon
+} from "../icons/layerCreationIcons";
 
 export type HomeToolIcon = ComponentType<IconProps>;
 
@@ -61,23 +67,23 @@ export interface HomeToolDefinition {
 export const BUILT_IN_CREATIVE_LAYOUT_ID = "built-in:creative-general";
 
 export const HOME_TOOL_CATALOG: Readonly<Record<ToolId, HomeToolDefinition>> = {
-  textLayer: { id: "textLayer", icon: TextT },
-  solidLayer: { id: "solidLayer", icon: Rectangle },
-  shapeLayer: { id: "shapeLayer", icon: BoundingBox },
-  unprecompose: { id: "unprecompose", icon: StackMinus },
-  adjustmentLayer: { id: "adjustmentLayer", icon: SlidersHorizontal },
-  precompose: { id: "precompose", icon: ProjectorScreen },
-  camera: { id: "camera", icon: VideoCamera },
+  textLayer: { id: "textLayer", icon: TextLayerIcon },
+  solidLayer: { id: "solidLayer", icon: SolidLayerIcon },
+  shapeLayer: { id: "shapeLayer", icon: ShapeLayerIcon },
+  unprecompose: { id: "unprecompose", icon: UnprecomposeIcon },
+  adjustmentLayer: { id: "adjustmentLayer", icon: AdjustmentLayerIcon },
+  precompose: { id: "precompose", icon: PrecomposeIcon },
+  camera: { id: "camera", icon: CameraLayerIcon },
   light: { id: "light", icon: Lightbulb },
-  nullObject: { id: "nullObject", icon: AnchorSimple },
+  nullObject: { id: "nullObject", icon: NullObjectIcon },
   allLayers: { id: "allLayers", icon: SelectionAll },
-  textLayers: { id: "textLayers", icon: TextT },
-  solidLayers: { id: "solidLayers", icon: Rectangle },
-  shapeLayers: { id: "shapeLayers", icon: BoundingBox },
-  adjustmentLayers: { id: "adjustmentLayers", icon: SlidersHorizontal },
-  cameraLayers: { id: "cameraLayers", icon: VideoCamera },
+  textLayers: { id: "textLayers", icon: TextLayerIcon },
+  solidLayers: { id: "solidLayers", icon: SolidLayerIcon },
+  shapeLayers: { id: "shapeLayers", icon: ShapeLayerIcon },
+  adjustmentLayers: { id: "adjustmentLayers", icon: AdjustmentLayerIcon },
+  cameraLayers: { id: "cameraLayers", icon: CameraLayerIcon },
   lightLayers: { id: "lightLayers", icon: Lightbulb },
-  nullLayers: { id: "nullLayers", icon: AnchorSimple },
+  nullLayers: { id: "nullLayers", icon: NullObjectIcon },
   invertSelection: { id: "invertSelection", icon: SelectionBackground },
   newProjectFolder: { id: "newProjectFolder", icon: FolderSimplePlus },
   organizeProject: { id: "organizeProject", icon: Folders },

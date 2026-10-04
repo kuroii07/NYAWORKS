@@ -11,22 +11,14 @@ import {
 } from "react";
 import type { IconProps } from "@phosphor-icons/react";
 import {
-  AnchorSimple,
-  BoundingBox,
   Check,
   Lightbulb,
   PencilSimple,
   Plus,
-  ProjectorScreen,
-  Rectangle,
   SelectionAll,
   SelectionBackground,
-  SlidersHorizontal,
   Stack,
-  StackMinus,
-  TextT,
-  Trash,
-  VideoCamera
+  Trash
 } from "@phosphor-icons/react";
 import { AppDialog } from "../components/AppDialog";
 import { BannerWorkspace, type BannerToolId } from "../components/BannerWorkspace";
@@ -56,6 +48,16 @@ import { getLayerFailureMessage } from "../actions/layerFeedback";
 import { getAnchorActionId } from "../actions/definitions/anchorActions";
 import { getAlignmentActionId } from "../actions/definitions/alignmentActions";
 import { getLayerActionId } from "../actions/layerActionTypes";
+import {
+  AdjustmentLayerIcon,
+  CameraLayerIcon,
+  NullObjectIcon,
+  PrecomposeIcon,
+  ShapeLayerIcon,
+  SolidLayerIcon,
+  TextLayerIcon,
+  UnprecomposeIcon
+} from "../icons/layerCreationIcons";
 import type { AlignmentAction } from "../actions/alignmentTypes";
 import type {
   LayerAction,
@@ -102,26 +104,26 @@ const CREATE_TOOLS: readonly {
   action: LayerAction;
   modifiers: readonly LayerActionModifier[];
 }[] = [
-  { id: "textLayer", icon: TextT, action: "create-text", modifiers: ["none"] },
-  { id: "solidLayer", icon: Rectangle, action: "create-solid", modifiers: ["none"] },
-  { id: "shapeLayer", icon: BoundingBox, action: "create-shape", modifiers: ["none", "alt", "ctrl", "shift"] },
-  { id: "adjustmentLayer", icon: SlidersHorizontal, action: "create-adjustment", modifiers: ["none"] },
-  { id: "nullObject", icon: AnchorSimple, action: "create-null", modifiers: ["none", "alt", "shift"] },
-  { id: "camera", icon: VideoCamera, action: "create-camera-rig", modifiers: ["none", "alt"] },
+  { id: "textLayer", icon: TextLayerIcon, action: "create-text", modifiers: ["none"] },
+  { id: "solidLayer", icon: SolidLayerIcon, action: "create-solid", modifiers: ["none"] },
+  { id: "shapeLayer", icon: ShapeLayerIcon, action: "create-shape", modifiers: ["none", "alt", "ctrl", "shift"] },
+  { id: "adjustmentLayer", icon: AdjustmentLayerIcon, action: "create-adjustment", modifiers: ["none"] },
+  { id: "nullObject", icon: NullObjectIcon, action: "create-null", modifiers: ["none", "alt", "shift"] },
+  { id: "camera", icon: CameraLayerIcon, action: "create-camera-rig", modifiers: ["none", "alt"] },
   { id: "light", icon: Lightbulb, action: "create-light", modifiers: ["none", "alt", "ctrl", "shift"] },
-  { id: "precompose", icon: ProjectorScreen, action: "precompose-selected", modifiers: ["none", "alt", "ctrl"] },
-  { id: "unprecompose", icon: StackMinus, action: "unprecompose-selected", modifiers: ["none"] }
+  { id: "precompose", icon: PrecomposeIcon, action: "precompose-selected", modifiers: ["none", "alt", "ctrl"] },
+  { id: "unprecompose", icon: UnprecomposeIcon, action: "unprecompose-selected", modifiers: ["none"] }
 ] as const;
 
 const SELECT_TOOLS: readonly { id: ToolId; icon: ToolIcon }[] = [
   { id: "allLayers", icon: SelectionAll },
-  { id: "textLayers", icon: TextT },
-  { id: "solidLayers", icon: Rectangle },
-  { id: "shapeLayers", icon: BoundingBox },
-  { id: "adjustmentLayers", icon: SlidersHorizontal },
-  { id: "cameraLayers", icon: VideoCamera },
+  { id: "textLayers", icon: TextLayerIcon },
+  { id: "solidLayers", icon: SolidLayerIcon },
+  { id: "shapeLayers", icon: ShapeLayerIcon },
+  { id: "adjustmentLayers", icon: AdjustmentLayerIcon },
+  { id: "cameraLayers", icon: CameraLayerIcon },
   { id: "lightLayers", icon: Lightbulb },
-  { id: "nullLayers", icon: AnchorSimple },
+  { id: "nullLayers", icon: NullObjectIcon },
   { id: "invertSelection", icon: SelectionBackground }
 ] as const;
 

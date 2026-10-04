@@ -30,15 +30,15 @@ const DESCRIPTIONS: Record<LayerAction, NyaActionDefinition["title"]> = {
 };
 
 const ICONS: Record<LayerAction, string> = {
-  "create-text": "TextT",
-  "create-solid": "Rectangle",
-  "create-shape": "BoundingBox",
-  "create-adjustment": "SlidersHorizontal",
-  "create-null": "AnchorSimple",
-  "create-camera-rig": "VideoCamera",
+  "create-text": "Text",
+  "create-solid": "Square",
+  "create-shape": "MultiRectangle",
+  "create-adjustment": "Adjustment",
+  "create-null": "Anchor",
+  "create-camera-rig": "Camera",
   "create-light": "Lightbulb",
-  "precompose-selected": "ProjectorScreen",
-  "unprecompose-selected": "StackMinus"
+  "precompose-selected": "Layers",
+  "unprecompose-selected": "Ungroup"
 };
 
 export const LAYER_ACTION_DEFINITIONS: readonly NyaActionDefinition[] =

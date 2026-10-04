@@ -85,6 +85,7 @@ pnpm run dev:cep
 - 关于页已展示真实版本、扩展标识、更新渠道、本地数据状态与 GitHub 仓库入口；购买与授权、帮助与支持、诊断与信息采用独立全宽模块，避免不同内容量的卡片强制等高。
 - 飞书使用文档、问题反馈表单和版本更新记录草稿已放入 `docs/feishu/`；“使用文档”和“问题反馈”均已接入对应飞书地址。
 - 玄如意公开使用教程已整理为全部工具的长期参考基线；后续任何功能分类都先提炼真实 AE 场景，再通过 NYAWORKS 的 Action、安全、兼容和 UI 体系升级，不照抄功能或界面。参考见 [`docs/references/xuanruyi-feature-reference.md`](docs/references/xuanruyi-feature-reference.md)。
+- UI、面板、图标、动效和交互的长期参考标准已整理为 [`docs/references/ui-panel-icon-motion-interaction-standard.md`](docs/references/ui-panel-icon-motion-interaction-standard.md)：Adobe Spectrum Web Components 用于官方 UI 语义参考，IconPark 官方图标库用于新图标选型，其他资源仅作为场景、动效和交互灵感，不自动成为运行时依赖。
 - AI 设置页支持 OpenAI、Claude、Gemini、DeepSeek、通义千问、豆包、Kimi、智谱 GLM 八个内置平台，以及多个自定义 OpenAI Compatible 连接。
 - 模型字段既可以手动填写，也可以在填写 API Key 和接口地址后刷新平台模型列表；测试连接与保存配置互相独立。
 - 可以设置一个全局默认模型，并让普通对话、表达式和脚本分别继承或覆盖该默认模型。

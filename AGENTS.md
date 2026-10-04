@@ -237,6 +237,12 @@ NYAWORKS 对视觉质量要求较高。
 
 主题入口继续使用项目既定的三圆点 / 轨道式图标，不重新使用已弃用的调色盘图标。
 
+UI、面板、图标、动效和交互的长期参考标准见：
+
+`docs/references/ui-panel-icon-motion-interaction-standard.md`
+
+其中 Adobe Spectrum Web Components 用于官方 UI 语义和状态参考；IconPark 官方图标库是新功能图标的优先来源；React/CEP 项目不得因为参考 SWC 或 UXP 而未经评估迁移架构。第三方动效和组件资源只用于场景与交互参考，不自动成为运行时依赖。
+
 ### CEP 面板环境
 
 UI 修改需要考虑：
