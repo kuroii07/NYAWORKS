@@ -1309,6 +1309,177 @@
     return finishCreatedLayer(layer, context);
   }
 
+  function readLayerPositionForController(layer) {
+    var position = layerTransformProperty(layer, "ADBE Position");
+    var value = position && position.value;
+    if (!value || value.length < 2) return null;
+    return [
+      Number(value[0]) || 0,
+      Number(value[1]) || 0,
+      value.length > 2 ? Number(value[2]) || 0 : 0
+    ];
+  }
+
+  function averageControllerPosition(layers, comp) {
+    var total = [0, 0, 0];
+    var valid = 0;
+    var index;
+    var position;
+    for (index = 0; index < layers.length; index += 1) {
+      position = readLayerPositionForController(layers[index]);
+      if (position) {
+        total[0] += position[0];
+        total[1] += position[1];
+        total[2] += position[2];
+        valid += 1;
+      }
+    }
+    return valid > 0
+      ? [total[0] / valid, total[1] / valid, total[2] / valid]
+      : [comp.width / 2, comp.height / 2, 0];
+  }
+
+  function createGuideNull(context, position, isThreeD, name) {
+    var layer = context.comp.layers.addNull(context.comp.duration);
+    var anchor = [Number(layer.width || 100) / 2, Number(layer.height || 100) / 2];
+    var targetPosition = [position[0], position[1]];
+    layer.name = name || "Nya Controller";
+    layer.guideLayer = true;
+    layer.threeDLayer = !!isThreeD;
+    if (isThreeD) {
+      anchor.push(0);
+      targetPosition.push(position.length > 2 ? position[2] : 0);
+    }
+    layerTransformProperty(layer, "ADBE Anchor Point").setValue(anchor);
+    layerTransformProperty(layer, "ADBE Position").setValue(targetPosition);
+    applyLayerTiming(layer, context);
+    return layer;
+  }
+
+  function validateControllerSelection(selection) {
+    var index;
+    for (index = 0; index < selection.length; index += 1) {
+      if (!selection[index] || selection[index].locked) {
+        return { ok: false, reason: "invalid-selection", detail: "locked-or-missing-layer" };
+      }
+    }
+    return { ok: true };
+  }
+
+  function createNullLayer(context, modifier) {
+    var validation = validateControllerSelection(context.selection);
+    var controllers = [];
+    var controller;
+    var target;
+    var position;
+    var targetContext;
+    var index;
+    var isThreeD = modifier === "shift";
+    if (!validation.ok) return validation;
+
+    if (modifier === "alt" && context.selection.length > 0) {
+      for (index = 0; index < context.selection.length; index += 1) {
+        target = context.selection[index];
+        position = readLayerPositionForController(target) || [context.comp.width / 2, context.comp.height / 2, 0];
+        targetContext = {
+          comp: context.comp,
+          selection: [target],
+          start: Number(target.inPoint),
+          end: Number(target.outPoint),
+          insertionIndex: Number(target.index)
+        };
+        controller = createGuideNull(targetContext, position, !!target.threeDLayer, "Nya Controller");
+        placeLayerAboveSelection(controller, targetContext);
+        target.parent = controller;
+        controllers.push(controller);
+      }
+    } else {
+      for (index = 0; index < context.selection.length; index += 1) {
+        if (context.selection[index].threeDLayer) isThreeD = true;
+      }
+      position = averageControllerPosition(context.selection, context.comp);
+      controller = createGuideNull(context, position, isThreeD, "Nya Controller");
+      placeLayerAboveSelection(controller, context);
+      for (index = 0; index < context.selection.length; index += 1) {
+        context.selection[index].parent = controller;
+      }
+      controllers.push(controller);
+    }
+
+    selectOnlyLayers(controllers, context.comp);
+    return {
+      ok: true,
+      createdLayers: controllers.length,
+      updatedLayers: context.selection.length,
+      createdItems: 0
+    };
+  }
+
+  function expressionLayerName(name) {
+    return String(name || "").replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  }
+
+  function addCameraControllerControls(controller, comp) {
+    var position = layerTransformProperty(controller, "ADBE Position");
+    var rotateX = layerTransformProperty(controller, "ADBE Rotate X");
+    var rotateY = layerTransformProperty(controller, "ADBE Rotate Y");
+    var rotateZ = layerTransformProperty(controller, "ADBE Rotate Z");
+    addLayerControl(controller, "ADBE Slider Control", "Nya Position X", comp.width / 2);
+    addLayerControl(controller, "ADBE Slider Control", "Nya Position Y", comp.height / 2);
+    addLayerControl(controller, "ADBE Slider Control", "Nya Position Z", 0);
+    addLayerControl(controller, "ADBE Angle Control", "Nya Rotation X", 0);
+    addLayerControl(controller, "ADBE Angle Control", "Nya Rotation Y", 0);
+    addLayerControl(controller, "ADBE Angle Control", "Nya Rotation Z", 0);
+    addLayerControl(controller, "ADBE Slider Control", "Nya Focal Length", 35);
+    addLayerControl(controller, "ADBE Checkbox Control", "Nya Depth of Field", 0);
+    addLayerControl(controller, "ADBE Checkbox Control", "Nya Focus to Point", 0);
+    setShapeExpression(position, '[effect("Nya Position X")(1),effect("Nya Position Y")(1),effect("Nya Position Z")(1)]');
+    setShapeExpression(rotateX, 'effect("Nya Rotation X")(1)');
+    setShapeExpression(rotateY, 'effect("Nya Rotation Y")(1)');
+    setShapeExpression(rotateZ, 'effect("Nya Rotation Z")(1)');
+  }
+
+  function configureCameraFromController(camera, controller, comp) {
+    var options = camera.property("ADBE Camera Options Group");
+    var zoom = options && options.property("ADBE Camera Zoom");
+    var depth = options && options.property("ADBE Camera Depth of Field");
+    var focus = options && options.property("ADBE Camera Focus Distance");
+    var controllerName = expressionLayerName(controller.name);
+    if (zoom) setShapeExpression(zoom, 'thisComp.width*thisComp.layer("' + controllerName + '").effect("Nya Focal Length")(1)/36');
+    if (depth) setShapeExpression(depth, 'thisComp.layer("' + controllerName + '").effect("Nya Depth of Field")(1)>0?1:0');
+    if (focus) setShapeExpression(focus, 'thisComp.layer("' + controllerName + '").effect("Nya Focus to Point")(1)>0?length(transform.position,transform.pointOfInterest):value');
+  }
+
+  function setCamera35mm(camera, comp) {
+    var options = camera.property("ADBE Camera Options Group");
+    var zoom = options && options.property("ADBE Camera Zoom");
+    if (zoom) zoom.setValue(Number(comp.width) * 35 / 36);
+  }
+
+  function createCameraRig(context, modifier) {
+    var comp = context.comp;
+    var center = averageControllerPosition(context.selection, comp);
+    var camera = comp.layers.addCamera("Nya Camera", [center[0], center[1]]);
+    var controller;
+    setCamera35mm(camera, comp);
+    applyLayerTiming(camera, context);
+
+    if (modifier === "alt") {
+      placeLayerAboveSelection(camera, context);
+      selectOnlyLayers([camera], comp);
+      return { ok: true, createdLayers: 1, updatedLayers: 0, createdItems: 0 };
+    }
+
+    controller = createGuideNull(context, center, true, "Nya Camera Controller");
+    addCameraControllerControls(controller, comp);
+    camera.parent = controller;
+    configureCameraFromController(camera, controller, comp);
+    placeLayerAboveSelection(camera, context);
+    placeLayerAboveSelection(controller, context);
+    selectOnlyLayers([controller], comp);
+    return { ok: true, createdLayers: 2, updatedLayers: 0, createdItems: 0 };
+  }
+
   function createLightLayer(context, modifier) {
     var comp = context.comp;
     var layer = comp.layers.addLight("Nya Light", [comp.width / 2, comp.height / 2]);
@@ -1351,6 +1522,10 @@
         result = createShapeLayer(context, modifier);
       } else if (action === "create-adjustment") {
         result = createAdjustmentLayer(context, modifier);
+      } else if (action === "create-null") {
+        result = createNullLayer(context, modifier);
+      } else if (action === "create-camera-rig") {
+        result = createCameraRig(context, modifier);
       } else if (action === "create-light") {
         result = createLightLayer(context, modifier);
       } else {
