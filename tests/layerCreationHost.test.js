@@ -187,6 +187,43 @@ describe("basic layer creation host actions", () => {
     expect([created[0].width, created[0].height]).toEqual([1920, 1080]);
   });
 
+  it("places a created layer above the same selected layer after AE reindexes it", async () => {
+    const selected = createLayer("existing", { inPoint: 2, outPoint: 8 });
+    const { comp, created } = createComp([selected]);
+    Object.defineProperty(selected, "index", {
+      configurable: true,
+      get() { return created.length + 1; }
+    });
+    const host = await loadLayerHost({
+      project: { activeItem: comp },
+      beginUndoGroup() {},
+      endUndoGroup() {}
+    }, TestComp);
+
+    expect(JSON.parse(host.runLayerAction(payload("create-solid"))).ok).toBe(true);
+    expect(selected.index).toBe(2);
+    expect(created[0].movedBefore).toBe(selected);
+    expect(created[0].movedToBeginning).not.toBe(true);
+  });
+
+  it("rejects an unknown modifier before opening an undo group", async () => {
+    const { comp, created } = createComp([]);
+    const undo = [];
+    const host = await loadLayerHost({
+      project: { activeItem: comp },
+      beginUndoGroup: () => undo.push("begin"),
+      endUndoGroup: () => undo.push("end")
+    }, TestComp);
+
+    expect(JSON.parse(host.runLayerAction(payload("create-text", "meta")))).toEqual({
+      ok: false,
+      reason: "host-error",
+      detail: "invalid-modifier"
+    });
+    expect(created).toHaveLength(0);
+    expect(undo).toEqual([]);
+  });
+
   it.each([
     ["none", "POINT"],
     ["alt", "SPOT"],

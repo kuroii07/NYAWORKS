@@ -97,6 +97,13 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         unprecompose: "点击：安全解开单个预合成"
       },
       layerActionMenuDefault: "默认",
+      layerActionVariantLabels: {
+        shapeLayer: { none: "圆角矩形", alt: "圆形", ctrl: "三角形", shift: "星形" },
+        nullObject: { none: "单个控制器", alt: "逐层控制器", shift: "三维控制器" },
+        camera: { none: "摄像机与控制器", alt: "仅摄像机" },
+        light: { none: "点光源", alt: "聚光灯", ctrl: "平行光", shift: "环境光" },
+        precompose: { none: "移动全部属性", alt: "单层保留属性", ctrl: "强制移动全部属性" }
+      },
       layerFeedback: {
         noActiveComp: "请先打开一个 AE 合成",
         noSelectedLayer: "请先选择至少一个图层",
@@ -601,6 +608,13 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         unprecompose: "點擊：安全解開單一預合成"
       },
       layerActionMenuDefault: "預設",
+      layerActionVariantLabels: {
+        shapeLayer: { none: "圓角矩形", alt: "圓形", ctrl: "三角形", shift: "星形" },
+        nullObject: { none: "單一控制器", alt: "逐圖層控制器", shift: "3D 控制器" },
+        camera: { none: "攝影機與控制器", alt: "只新增攝影機" },
+        light: { none: "點光源", alt: "聚光燈", ctrl: "平行光", shift: "環境光" },
+        precompose: { none: "移動全部屬性", alt: "單層保留屬性", ctrl: "強制移動全部屬性" }
+      },
       layerFeedback: {
         noActiveComp: "請先開啟 AE 合成",
         noSelectedLayer: "請先選取至少一個圖層",
@@ -1099,6 +1113,13 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         unprecompose: "Click: Safely extract one precomp"
       },
       layerActionMenuDefault: "Default",
+      layerActionVariantLabels: {
+        shapeLayer: { none: "Rounded rectangle", alt: "Ellipse", ctrl: "Triangle", shift: "Star" },
+        nullObject: { none: "Single controller", alt: "Controller per layer", shift: "3D controller" },
+        camera: { none: "Camera with controller", alt: "Camera only" },
+        light: { none: "Point light", alt: "Spot light", ctrl: "Parallel light", shift: "Ambient light" },
+        precompose: { none: "Move all attributes", alt: "Leave single-layer attributes", ctrl: "Force move all attributes" }
+      },
       layerFeedback: {
         noActiveComp: "Open an After Effects composition first",
         noSelectedLayer: "Select at least one layer first",
@@ -1598,6 +1619,13 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         unprecompose: "クリック：単一プリコンポーズを安全に展開"
       },
       layerActionMenuDefault: "デフォルト",
+      layerActionVariantLabels: {
+        shapeLayer: { none: "角丸長方形", alt: "楕円", ctrl: "三角形", shift: "星形" },
+        nullObject: { none: "単一コントローラー", alt: "レイヤー別コントローラー", shift: "3D コントローラー" },
+        camera: { none: "カメラとコントローラー", alt: "カメラのみ" },
+        light: { none: "ポイントライト", alt: "スポットライト", ctrl: "平行ライト", shift: "アンビエントライト" },
+        precompose: { none: "すべての属性を移動", alt: "単一レイヤーの属性を保持", ctrl: "すべての属性を強制移動" }
+      },
       layerFeedback: {
         noActiveComp: "先に After Effects のコンポジションを開いてください",
         noSelectedLayer: "先にレイヤーを1つ以上選択してください",
@@ -2096,6 +2124,13 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         unprecompose: "클릭: 단일 프리컴프를 안전하게 해제"
       },
       layerActionMenuDefault: "기본",
+      layerActionVariantLabels: {
+        shapeLayer: { none: "둥근 사각형", alt: "원형", ctrl: "삼각형", shift: "별" },
+        nullObject: { none: "단일 컨트롤러", alt: "레이어별 컨트롤러", shift: "3D 컨트롤러" },
+        camera: { none: "카메라와 컨트롤러", alt: "카메라만" },
+        light: { none: "포인트 라이트", alt: "스포트 라이트", ctrl: "평행 라이트", shift: "앰비언트 라이트" },
+        precompose: { none: "모든 속성 이동", alt: "단일 레이어 속성 유지", ctrl: "모든 속성 강제 이동" }
+      },
       layerFeedback: {
         noActiveComp: "먼저 After Effects 컴포지션을 여세요",
         noSelectedLayer: "먼저 하나 이상의 레이어를 선택하세요",

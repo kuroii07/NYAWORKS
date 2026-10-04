@@ -28,7 +28,7 @@ describe("buildActionSearchItems", () => {
   it("does not expose P0 compatibility actions as product search results", () => {
     const items = buildActionSearchItems(coreActionRegistry, "zhCN");
 
-    expect(items).toHaveLength(18);
+    expect(items).toHaveLength(27);
     expect(items.map((item) => item.actionId)).toEqual(expect.arrayContaining([
       "layer.anchor.top-left",
       "layer.align.left",
@@ -39,7 +39,16 @@ describe("buildActionSearchItems", () => {
       "layer.align.bottom",
       "text.paragraph.left",
       "text.paragraph.center",
-      "text.paragraph.right"
+      "text.paragraph.right",
+      "layer.createText",
+      "layer.createSolid",
+      "layer.createShape",
+      "layer.createAdjustment",
+      "layer.createNull",
+      "layer.createCameraRig",
+      "layer.createLight",
+      "layer.precomposeSelected",
+      "layer.unprecomposeSelected"
     ]));
     expect(items.every((item) => (item.order ?? 0) >= 500)).toBe(true);
   });

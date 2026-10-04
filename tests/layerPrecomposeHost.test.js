@@ -31,6 +31,15 @@ function defaultOuter(source, overrides = {}) {
     startTime: 2,
     stretch: 100,
     timeRemapEnabled: false,
+    enabled: true,
+    audioEnabled: true,
+    blendingMode: "NORMAL",
+    guideLayer: false,
+    adjustmentLayer: false,
+    solo: false,
+    motionBlur: false,
+    frameBlending: false,
+    preserveTransparency: false,
     threeDLayer: false,
     collapseTransformation: false,
     parent: null,
@@ -198,6 +207,10 @@ describe("safe unprecompose host action", () => {
         parent: null,
         hasTrackMatte: false,
         isTrackMatte: false,
+        trackMatteType: "NO_TRACK_MATTE",
+        locked: false,
+        numProperties: 0,
+        property() { return null; },
         startTime: index,
         inPoint: index,
         outPoint: index + 4,
@@ -254,7 +267,19 @@ describe("safe unprecompose host action", () => {
     ["3D outer layer", { threeDLayer: true }],
     ["collapsed transformations", { collapseTransformation: true }],
     ["parented outer layer", { parent: {} }],
-    ["track matte dependency", { hasTrackMatte: true }]
+    ["track matte dependency", { hasTrackMatte: true }],
+    ["legacy track matte dependency", { trackMatteType: "ALPHA" }],
+    ["disabled outer layer", { enabled: false }],
+    ["muted outer audio", { audioEnabled: false }],
+    ["non-normal blending", { blendingMode: "MULTIPLY" }],
+    ["guide outer layer", { guideLayer: true }],
+    ["adjustment outer layer", { adjustmentLayer: true }],
+    ["solo outer layer", { solo: true }],
+    ["outer motion blur", { motionBlur: true }],
+    ["outer frame blending", { frameBlending: true }],
+    ["outer preserve transparency", { preserveTransparency: true }],
+    ["trimmed outer in point", { inPoint: 3 }],
+    ["trimmed outer out point", { outPoint: 7 }]
   ])("rejects %s without mutating the parent comp", async (_label, overrides) => {
     const source = createSafeSource();
     const base = defaultOuter(source);
@@ -294,5 +319,131 @@ describe("safe unprecompose host action", () => {
     expect(brokenSetup.outer.removed).toBe(false);
     expect(brokenSetup.comp._layers.filter((layer) => layer !== brokenSetup.outer)).toHaveLength(1);
     expect(brokenSetup.comp._layers.find((layer) => layer !== brokenSetup.outer).removed).toBe(true);
+  });
+
+  it("rejects expressions and legacy track mattes inside the source comp", async () => {
+    const expressionSource = createSafeSource(1);
+    expressionSource.layer(1).numProperties = 1;
+    expressionSource.layer(1).property = () => ({
+      numProperties: 0,
+      expressionEnabled: true,
+      expression: "thisComp.width"
+    });
+    const expressionSetup = makeUnprecompose(expressionSource);
+    const expressionRun = await loadRunLayerAction(createApp(expressionSetup.comp).app);
+    expect(JSON.parse(expressionRun(encoded("unprecompose-selected")))).toMatchObject({
+      ok: false,
+      reason: "unsafe-unprecompose"
+    });
+    expect(expressionSetup.outer.removed).toBe(false);
+
+    const matteSource = createSafeSource(1);
+    matteSource.layer(1).trackMatteType = "ALPHA";
+    const matteSetup = makeUnprecompose(matteSource);
+    const matteRun = await loadRunLayerAction(createApp(matteSetup.comp).app);
+    expect(JSON.parse(matteRun(encoded("unprecompose-selected")))).toMatchObject({
+      ok: false,
+      reason: "unsafe-unprecompose"
+    });
+    expect(matteSetup.outer.removed).toBe(false);
+  });
+
+  it("rejects outer layer styles that would be lost during extraction", async () => {
+    const source = createSafeSource(1);
+    const setup = makeUnprecompose(source);
+    const originalProperty = setup.outer.property;
+    setup.outer.property = (name) => name === "ADBE Layer Styles"
+      ? { numProperties: 1 }
+      : originalProperty(name);
+    const run = await loadRunLayerAction(createApp(setup.comp).app);
+
+    expect(JSON.parse(run(encoded("unprecompose-selected")))).toMatchObject({
+      ok: false,
+      reason: "unsafe-unprecompose"
+    });
+    expect(setup.outer.removed).toBe(false);
+  });
+
+  it("rolls back a copied layer when timing adjustment fails", async () => {
+    const source = createSafeSource(1);
+    source.layer(1).copyToComp = (targetComp) => {
+      const copy = {
+        name: "Locked copy",
+        inPoint: 0,
+        outPoint: 4,
+        selected: false,
+        removed: false,
+        moveBefore() {},
+        remove() { this.removed = true; }
+      };
+      Object.defineProperty(copy, "startTime", {
+        get() { return 0; },
+        set() { throw new Error("timing failed"); }
+      });
+      targetComp._layers.unshift(copy);
+    };
+    const setup = makeUnprecompose(source);
+    const run = await loadRunLayerAction(createApp(setup.comp).app);
+
+    expect(JSON.parse(run(encoded("unprecompose-selected")))).toMatchObject({
+      ok: false,
+      reason: "host-error"
+    });
+    const copy = setup.comp._layers.find((layer) => layer !== setup.outer);
+    expect(copy.removed).toBe(true);
+    expect(setup.outer.removed).toBe(false);
+  });
+
+  it("rolls back a partial copy when copyToComp throws after insertion", async () => {
+    const source = createSafeSource(1);
+    source.layer(1).copyToComp = (targetComp) => {
+      const copy = {
+        name: "Partial copy",
+        removed: false,
+        remove() { this.removed = true; }
+      };
+      targetComp._layers.unshift(copy);
+      throw new Error("copy failed after insertion");
+    };
+    const setup = makeUnprecompose(source);
+    const run = await loadRunLayerAction(createApp(setup.comp).app);
+
+    expect(JSON.parse(run(encoded("unprecompose-selected")))).toMatchObject({
+      ok: false,
+      reason: "host-error"
+    });
+    const partial = setup.comp._layers.find((layer) => layer !== setup.outer);
+    expect(partial.removed).toBe(true);
+    expect(setup.outer.removed).toBe(false);
+  });
+
+  it("keeps the original precomp when selecting the copies fails", async () => {
+    const source = createSafeSource(1);
+    source.layer(1).copyToComp = (targetComp) => {
+      let selected = false;
+      const copy = {
+        name: "Selection failure",
+        startTime: 0,
+        inPoint: 0,
+        outPoint: 4,
+        removed: false,
+        moveBefore() {},
+        remove() { this.removed = true; },
+        get selected() { return selected; },
+        set selected(value) {
+          if (value) throw new Error("selection failed");
+          selected = value;
+        }
+      };
+      targetComp._layers.unshift(copy);
+    };
+    const setup = makeUnprecompose(source);
+    const run = await loadRunLayerAction(createApp(setup.comp).app);
+
+    expect(JSON.parse(run(encoded("unprecompose-selected")))).toMatchObject({
+      ok: false,
+      reason: "host-error"
+    });
+    expect(setup.outer.removed).toBe(false);
   });
 });

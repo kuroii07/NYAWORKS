@@ -8,6 +8,7 @@ import type {
   ResourceCommandFailureReason,
   ResourceCommandLabelKey
 } from "../resources/resourceCommands";
+import type { LayerActionModifier } from "../actions/layerActionTypes";
 
 export type LayerToolId =
   | "textLayer"
@@ -254,6 +255,9 @@ export interface UiCopy {
     plannedTitleSuffix: string;
     layerActionTooltips: Record<LayerToolId, string>;
     layerActionMenuDefault: string;
+    layerActionVariantLabels: Partial<
+      Record<LayerToolId, Partial<Record<LayerActionModifier, string>>>
+    >;
     layerFeedback: {
       noActiveComp: string;
       noSelectedLayer: string;

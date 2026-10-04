@@ -362,7 +362,8 @@ function CreateToolGrid({
               const menuItems: readonly CompactActionMenuItem[] = createTool.modifiers.map((modifier) => ({
                 id: modifier,
                 label: `${copy.toolLabels[createTool.id]} · ${
-                  modifier === "none" ? copy.layerActionMenuDefault : modifier.toUpperCase()
+                  copy.layerActionVariantLabels[createTool.id]?.[modifier] ??
+                  (modifier === "none" ? copy.layerActionMenuDefault : modifier.toUpperCase())
                 }`,
                 icon: createTool.icon,
                 onSelect: () => onLayerAction(createTool.action, modifier)
@@ -376,7 +377,12 @@ function CreateToolGrid({
                     title={copy.layerActionTooltips[createTool.id]}
                     tabIndex={active ? undefined : -1}
                     onClick={(event) => {
-                      if (event.altKey && event.ctrlKey && event.shiftKey) {
+                      if (
+                        event.altKey &&
+                        event.ctrlKey &&
+                        event.shiftKey &&
+                        createTool.modifiers.length > 1
+                      ) {
                         setVariantMenu(createTool.id);
                         return;
                       }

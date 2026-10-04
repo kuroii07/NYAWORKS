@@ -276,4 +276,40 @@ describe("GlobalSearchProvider", () => {
       { actionId: "layer.align.left", options: undefined }
     ]);
   });
+
+  it("discovers all nine layer actions by localized title and reuses the action service", async () => {
+    const storage = new MemoryStorage();
+    const runs: Array<{ actionId: string; options: unknown }> = [];
+    const value = await renderProviders(createSearchBridge(), storage, {
+      run: async (actionId, options) => {
+        runs.push({ actionId, options });
+        return { success: true, message: "ok" };
+      }
+    });
+    const expected = [
+      ["新建文字层", "layer.createText"],
+      ["新建纯色层", "layer.createSolid"],
+      ["新建形状层", "layer.createShape"],
+      ["新建调整层", "layer.createAdjustment"],
+      ["新建空对象", "layer.createNull"],
+      ["新建摄像机", "layer.createCameraRig"],
+      ["新建灯光", "layer.createLight"],
+      ["预合成", "layer.precomposeSelected"],
+      ["解预合成", "layer.unprecomposeSelected"]
+    ] as const;
+
+    for (const [query, actionId] of expected) {
+      expect(value.search(query).some((item) => item.actionId === actionId)).toBe(true);
+    }
+
+    for (const actionId of ["layer.precomposeSelected", "layer.unprecomposeSelected"]) {
+      const item = value.index.items.find((candidate) => candidate.actionId === actionId);
+      expect(item).toBeDefined();
+      await act(async () => { await value.executeItem(item!); });
+    }
+    expect(runs).toEqual([
+      { actionId: "layer.precomposeSelected", options: undefined },
+      { actionId: "layer.unprecomposeSelected", options: undefined }
+    ]);
+  });
 });

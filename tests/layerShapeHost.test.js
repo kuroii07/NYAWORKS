@@ -143,7 +143,26 @@ describe("shape layer host action", () => {
     const path = layer.vectors.find((vector) => vector.matchName === "ADBE Vector Shape - Group");
     expect(path.values["ADBE Vector Shape"].expressionEnabled).toBe(true);
     expect(path.values["ADBE Vector Shape"].expression).toContain('effect("Nya Corner TL")(1)');
-    expect(path.values["ADBE Vector Shape"].expression).toContain("createPath");
+    const expression = path.values["ADBE Vector Shape"].expression;
+    const evaluated = Function(
+      "effect",
+      "createPath",
+      `${expression.replace("createPath(points,ins,outs,true);", "return createPath(points,ins,outs,true);")}`
+    )(
+      (name) => () => ({
+        "Nya Width": 500,
+        "Nya Height": 500,
+        "Nya Roundness": 50,
+        "Nya Separate Corners": 0,
+        "Nya Corner TL": 100,
+        "Nya Corner TR": 100,
+        "Nya Corner BR": 100,
+        "Nya Corner BL": 100
+      })[name],
+      (points, ins, outs, closed) => ({ points, ins, outs, closed })
+    );
+    expect(evaluated.ins[0]).toEqual([-0.5522847498 * 50, 0]);
+    expect(evaluated.closed).toBe(true);
   });
 
   it.each([

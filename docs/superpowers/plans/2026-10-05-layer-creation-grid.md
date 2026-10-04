@@ -535,6 +535,7 @@ git commit -m "feat: activate layer creation grid"
 
 **Files:**
 - Modify: `tests/globalSearchProvider.test.tsx`
+- Create: `docs/references/xuanruyi-feature-reference.md`
 - Create: `docs/testing/layer-creation-grid-ae-test.md`
 - Modify: `README.md`
 - Modify: `planning/02-roadmap.md`
@@ -543,31 +544,35 @@ git commit -m "feat: activate layer creation grid"
 - Consumes: registered layer Actions and completed Host chain.
 - Produces: search discoverability proof, full repository verification, and real-AE acceptance checklist.
 
-- [ ] **Step 1: Add global search reuse tests**
+- [x] **Step 1: Add global search reuse tests**
 
 Assert searching localized titles discovers all nine stable Action IDs and executing precompose/unprecompose uses the shared Action Service without adding page-specific Host branches.
 
-- [ ] **Step 2: Run search tests**
+- [x] **Step 2: Run search tests**
 
 Run: `npm.cmd test -- --run tests/globalSearchProvider.test.tsx tests/actionSearchAdapter.test.ts`
 
 Expected: PASS after definitions are registered; if copy tokenization exposes a real gap, fix only the shared search adapter.
 
-- [ ] **Step 3: Write the real-AE acceptance document**
+- [x] **Step 3: Write the real-AE acceptance document**
 
 Cover AE version, UI language, OS, display scale, no/single/multi selection, non-zero comp start, Undo, text font inheritance, black Solid + Fill, shape controls, guide Nulls, 35mm Camera rig, light variants, precompose, safe unprecompose and every safety rejection.
 
-- [ ] **Step 4: Update README and Roadmap**
+- [x] **Step 4: Record the external feature reference**
+
+Create `docs/references/xuanruyi-feature-reference.md` as a long-term reference baseline for every current and future NYAWORKS tool, not merely the layer-creation grid. Include the source URL `https://my.feishu.cn/wiki/Sxfcw2XldiRMXzkj9Ltc7FkencW`, access date, source categories (project, layer, composition, guides, animation, properties, text, graphics, effects, media, other tools and asset management), and a mandatory rule to consult the corresponding section before designing each future tool. Add a reusable per-tool ledger for `reference behavior → real AE use case → retained value → NYAWORKS upgrade → rejected clutter`, so later features are analyzed when they enter development rather than pretending that every source tool has already been reviewed. Use independently summarized observations and explicitly state that NYAWORKS must improve or optimize the workflow through its own Action architecture, multi-entry reuse, compatibility, safety, batch behavior and UI rather than copy UI, source code, naming or behavior verbatim. Record the currently verified points: application-center reuse, seven layer-create types, controlled independent-corner shape, centered/batch Null, expression-driven Camera with Alt plain-camera variant, and per-layer precompose.
+
+- [x] **Step 5: Update README and Roadmap**
 
 Mark code completion separately from real-AE acceptance. State that the nine Actions are reusable by future homepage and composition-page entries; do not claim those later UI entries already exist.
 
-- [ ] **Step 5: Run full verification**
+- [x] **Step 6: Run full verification**
 
-Run: `npm.cmd run verify`
+Run: `pnpm.cmd run typecheck`, focused regression tests, `pnpm.cmd run build`, `pnpm.cmd run smoke:dist`, and `pnpm.cmd exec vitest run --exclude tests/nyaLauncherBuildContract.test.js`.
 
-Expected: typecheck, all tests, production build and dist smoke test PASS.
+Result: typecheck, 597 tests excluding the unrelated missing NyaLauncher artifact, production build and dist smoke passed. The full suite is 600/601; the only failure is the pre-existing Git-ignored `outputs/nya-launcher-p1/NyaLauncher.exe` contract.
 
-- [ ] **Step 6: Inspect final changes**
+- [x] **Step 7: Inspect final changes**
 
 Run: `git diff --check`
 
@@ -577,14 +582,14 @@ Run: `git status --short --branch`
 
 Expected: only Task 8 documentation/test changes remain uncommitted.
 
-- [ ] **Step 7: Commit verification and documentation**
+- [x] **Step 8: Commit verification and documentation**
 
 ```powershell
-git add -- tests/globalSearchProvider.test.tsx docs/testing/layer-creation-grid-ae-test.md README.md planning/02-roadmap.md
+git add -- tests/globalSearchProvider.test.tsx docs/references/xuanruyi-feature-reference.md docs/testing/layer-creation-grid-ae-test.md README.md planning/02-roadmap.md docs/superpowers/plans/2026-10-05-layer-creation-grid.md
 git commit -m "docs: add layer creation AE acceptance"
 ```
 
-- [ ] **Step 8: Push the completed implementation**
+- [x] **Step 9: Push the completed implementation**
 
 Run: `git push origin feature/settings-updates`
 

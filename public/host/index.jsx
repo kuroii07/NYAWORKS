@@ -1079,6 +1079,7 @@
     var start;
     var end;
     var insertionIndex = null;
+    var insertionLayer = null;
     var index;
     var layer;
 
@@ -1091,11 +1092,15 @@
       start = Number(selection[0].inPoint);
       end = Number(selection[0].outPoint);
       insertionIndex = Number(selection[0].index);
+      insertionLayer = selection[0];
       for (index = 1; index < selection.length; index += 1) {
         layer = selection[index];
         if (Number(layer.inPoint) < start) start = Number(layer.inPoint);
         if (Number(layer.outPoint) > end) end = Number(layer.outPoint);
-        if (Number(layer.index) < insertionIndex) insertionIndex = Number(layer.index);
+        if (Number(layer.index) < insertionIndex) {
+          insertionIndex = Number(layer.index);
+          insertionLayer = layer;
+        }
       }
     }
 
@@ -1104,7 +1109,8 @@
       selection: selection,
       start: start,
       end: end,
-      insertionIndex: insertionIndex
+      insertionIndex: insertionIndex,
+      insertionLayer: insertionLayer
     };
   }
 
@@ -1115,16 +1121,7 @@
   }
 
   function placeLayerAboveSelection(layer, context) {
-    var target = null;
-    var index;
-    if (context.insertionIndex !== null) {
-      for (index = 0; index < context.selection.length; index += 1) {
-        if (Number(context.selection[index].index) === context.insertionIndex) {
-          target = context.selection[index];
-          break;
-        }
-      }
-    }
+    var target = context.insertionLayer || null;
     if (target && typeof layer.moveBefore === "function") {
       layer.moveBefore(target);
     } else if (typeof layer.moveToBeginning === "function") {
@@ -1242,7 +1239,7 @@
       'bl=Math.min(limit,round*(separate?Math.max(0,effect("Nya Corner BL")(1))/100:1));',
       'hw=w/2;hh=h/2;k=0.5522847498;',
       'points=[[-hw+tl,-hh],[hw-tr,-hh],[hw,-hh+tr],[hw,hh-br],[hw-br,hh],[-hw+bl,hh],[-hw,hh-bl],[-hw,-hh+tl]];',
-      'ins=[[0,-k*tl],[-k*tr,0],[0,-k*tr],[0,-k*br],[k*br,0],[k*bl,0],[0,k*bl],[0,k*tl]];',
+      'ins=[[-k*tl,0],[-k*tr,0],[0,-k*tr],[0,-k*br],[k*br,0],[k*bl,0],[0,k*bl],[0,k*tl]];',
       'outs=[[0,0],[k*tr,0],[0,0],[0,k*br],[0,0],[-k*bl,0],[0,0],[0,-k*tl]];',
       'createPath(points,ins,outs,true);'
     ].join("\n"));
@@ -1310,8 +1307,29 @@
   }
 
   function readLayerPositionForController(layer) {
+    var anchor = layerTransformProperty(layer, "ADBE Anchor Point");
     var position = layerTransformProperty(layer, "ADBE Position");
     var value = position && position.value;
+    var compPoint;
+    if (layer && layer.parent && anchor) {
+      try {
+        if (typeof layer.sourcePointToComp === "function") {
+          compPoint = layer.sourcePointToComp(anchor.value || [0, 0]);
+        }
+      } catch (ignoreControllerSourcePoint) {}
+      try {
+        if (!compPoint && typeof layer.toComp === "function") {
+          compPoint = layer.toComp(anchor.value || [0, 0, 0]);
+        }
+      } catch (ignoreControllerToComp) {}
+      if (compPoint && compPoint.length >= 2) {
+        return [
+          Number(compPoint[0]) || 0,
+          Number(compPoint[1]) || 0,
+          compPoint.length > 2 ? Number(compPoint[2]) || 0 : 0
+        ];
+      }
+    }
     if (!value || value.length < 2) return null;
     return [
       Number(value[0]) || 0,
@@ -1386,7 +1404,8 @@
           selection: [target],
           start: Number(target.inPoint),
           end: Number(target.outPoint),
-          insertionIndex: Number(target.index)
+          insertionIndex: Number(target.index),
+          insertionLayer: target
         };
         controller = createGuideNull(targetContext, position, !!target.threeDLayer, "Nya Controller");
         placeLayerAboveSelection(controller, targetContext);
@@ -1563,24 +1582,109 @@
     return Math.abs(Number(value) - Number(expected)) <= 0.0001;
   }
 
+  function numbersAreClose(first, second) {
+    return Math.abs(Number(first) - Number(second)) <= 0.0001;
+  }
+
+  function layerHasTrackMatteDependency(layer) {
+    var matteType;
+    var normalized;
+    try {
+      if (layer && (layer.hasTrackMatte || layer.isTrackMatte)) return true;
+    } catch (ignoreModernTrackMatte) {}
+    try {
+      matteType = layer && layer.trackMatteType;
+      if (typeof matteType === "undefined" || matteType === null) return false;
+      if (typeof TrackMatteType !== "undefined") {
+        return matteType !== TrackMatteType.NO_TRACK_MATTE;
+      }
+      normalized = String(matteType).toUpperCase();
+      return normalized !== "NO_TRACK_MATTE" &&
+        normalized !== "TRACKMATTETYPE.NO_TRACK_MATTE" &&
+        normalized !== "0";
+    } catch (ignoreLegacyTrackMatte) {
+      return true;
+    }
+  }
+
+  function layerUsesNormalBlending(layer) {
+    var mode;
+    try {
+      mode = layer && layer.blendingMode;
+      if (typeof mode === "undefined" || mode === null) return true;
+      if (typeof BlendingMode !== "undefined") return mode === BlendingMode.NORMAL;
+      mode = String(mode).toUpperCase();
+      return mode === "NORMAL" || mode === "BLENDINGMODE.NORMAL";
+    } catch (ignoreBlendingMode) {
+      return false;
+    }
+  }
+
+  function propertyTreeHasExpression(property) {
+    var count;
+    var index;
+    var child;
+    if (!property) return false;
+    try {
+      if (property.expressionEnabled || property.expression) return true;
+    } catch (ignoreExpressionRead) {}
+    try {
+      count = Number(property.numProperties || 0);
+      for (index = 1; index <= count; index += 1) {
+        child = property.property(index);
+        if (propertyTreeHasExpression(child)) return true;
+      }
+    } catch (ignorePropertyTraversal) {
+      return true;
+    }
+    return false;
+  }
+
   function validateUnprecomposeOuter(layer, comp) {
     var source = layer && layer.source;
     var transform;
     var effects;
     var masks;
+    var layerStyles;
     if (!layer || !source || !(source instanceof CompItem)) {
       return { ok: false, reason: "unsupported-precomp", detail: "select-one-precomp-layer" };
     }
-    if (layer.threeDLayer || layer.collapseTransformation || layer.parent || layer.hasTrackMatte || layer.isTrackMatte) {
+    if (
+      layer.threeDLayer ||
+      layer.collapseTransformation ||
+      layer.parent ||
+      layer.locked ||
+      layer.enabled === false ||
+      layer.audioEnabled === false ||
+      layer.guideLayer ||
+      layer.adjustmentLayer ||
+      layer.solo ||
+      layer.motionBlur ||
+      layer.frameBlending ||
+      layer.preserveTransparency ||
+      layerHasTrackMatteDependency(layer) ||
+      !layerUsesNormalBlending(layer)
+    ) {
       return { ok: false, reason: "unsafe-unprecompose", detail: "outer-layer-dependency" };
     }
     if (layer.timeRemapEnabled || Number(layer.stretch) !== 100) {
       return { ok: false, reason: "unsafe-unprecompose", detail: "outer-time-modification" };
     }
+    if (
+      !numbersAreClose(layer.inPoint, layer.startTime) ||
+      !numbersAreClose(layer.outPoint, Number(layer.startTime) + Number(source.duration))
+    ) {
+      return { ok: false, reason: "unsafe-unprecompose", detail: "outer-time-trimmed" };
+    }
     effects = layer.property("ADBE Effect Parade");
     masks = layer.property("ADBE Mask Parade");
-    if ((effects && effects.numProperties > 0) || (masks && masks.numProperties > 0)) {
-      return { ok: false, reason: "unsafe-unprecompose", detail: "outer-effects-or-masks" };
+    layerStyles = layer.property("ADBE Layer Styles");
+    if (
+      (effects && effects.numProperties > 0) ||
+      (masks && masks.numProperties > 0) ||
+      (layerStyles && layerStyles.numProperties > 0)
+    ) {
+      return { ok: false, reason: "unsafe-unprecompose", detail: "outer-effects-masks-or-styles" };
     }
     transform = layer.property("ADBE Transform Group");
     if (
@@ -1605,8 +1709,11 @@
       if (layer.matchName === "ADBE Camera Layer" || layer.matchName === "ADBE Light Layer") {
         return { ok: false, reason: "unsafe-unprecompose", detail: "camera-or-light-content" };
       }
-      if (layer.parent || layer.hasTrackMatte || layer.isTrackMatte) {
+      if (layer.parent || layer.locked || layerHasTrackMatteDependency(layer)) {
         return { ok: false, reason: "unsafe-unprecompose", detail: "cross-layer-dependency" };
+      }
+      if (propertyTreeHasExpression(layer)) {
+        return { ok: false, reason: "unsafe-unprecompose", detail: "source-expression" };
       }
     }
     return { ok: true };
@@ -1619,6 +1726,7 @@
     var source;
     var copies = [];
     var copy;
+    var beforeCopy;
     var index;
     var delta;
     var anchor;
@@ -1637,25 +1745,34 @@
 
     try {
       for (index = source.numLayers; index >= 1; index -= 1) {
-        source.layer(index).copyToComp(context.comp);
+        beforeCopy = context.comp.layer(1);
+        try {
+          source.layer(index).copyToComp(context.comp);
+        } catch (copyError) {
+          copy = context.comp.layer(1);
+          if (copy && copy !== beforeCopy) copies.push(copy);
+          throw copyError;
+        }
         copy = context.comp.layer(1);
+        if (!copy) throw new Error("copy-not-found");
+        copies.push(copy);
         copy.startTime = Number(copy.startTime) + delta;
         copy.inPoint = Number(copy.inPoint) + delta;
         copy.outPoint = Number(copy.outPoint) + delta;
-        copies.push(copy);
       }
       anchor = outer;
       for (index = 0; index < copies.length; index += 1) {
         copies[index].moveBefore(anchor);
         anchor = copies[index];
       }
-      outer.remove();
       selectOnlyLayers(copies, context.comp);
+      outer.remove();
       return { ok: true, createdLayers: copies.length, updatedLayers: 0, createdItems: 0 };
     } catch (error) {
       for (index = 0; index < copies.length; index += 1) {
         try { copies[index].remove(); } catch (ignoreCopyRemoval) {}
       }
+      try { outer.selected = true; } catch (ignoreOuterSelectionRestore) {}
       return {
         ok: false,
         reason: "host-error",
@@ -1689,9 +1806,16 @@
       return JSON.stringify({ ok: false, reason: "host-error", detail: "invalid-payload" });
     }
     action = payload.action;
-    modifier = payload.modifier === "alt" || payload.modifier === "ctrl" || payload.modifier === "shift"
-      ? payload.modifier
-      : "none";
+    if (
+      typeof payload.modifier !== "undefined" &&
+      payload.modifier !== "none" &&
+      payload.modifier !== "alt" &&
+      payload.modifier !== "ctrl" &&
+      payload.modifier !== "shift"
+    ) {
+      return JSON.stringify({ ok: false, reason: "host-error", detail: "invalid-modifier" });
+    }
+    modifier = payload.modifier || "none";
     context = getLayerCreationContext();
     if (!context) return JSON.stringify({ ok: false, reason: "no-active-comp" });
     if ((action === "precompose-selected" || action === "unprecompose-selected") && context.selection.length === 0) {

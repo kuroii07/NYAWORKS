@@ -260,4 +260,24 @@ describe("camera rig host action", () => {
       40
     ]);
   });
+
+  it("uses comp-space coordinates for a parented camera target", async () => {
+    const parent = createLayer("null");
+    const child = createLayer("shape", {
+      parent,
+      position: [100, 120, 30],
+      threeDLayer: true
+    });
+    child.sourcePointToComp = () => [720, 460, 15];
+    const { app, created } = createApp([child]);
+    const runLayerAction = await loadRunLayerAction(app);
+
+    expect(JSON.parse(runLayerAction(encoded("create-camera-rig"))).ok).toBe(true);
+    const controller = created.find((layer) => layer.kind === "null");
+    expect(controller.controls.slice(0, 3).map((control) => control.value.value)).toEqual([
+      720,
+      460,
+      15
+    ]);
+  });
 });
