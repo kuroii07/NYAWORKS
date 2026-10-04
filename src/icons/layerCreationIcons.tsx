@@ -3,19 +3,22 @@ import type { IconProps as PhosphorIconProps } from "@phosphor-icons/react";
 import {
   Adjustment,
   Anchor,
-  Camera,
-  Layers,
-  MultiRectangle,
-  Square,
+  EditMovie,
+  Film,
+  RectangleOne,
   Text,
-  Ungroup
+  Videocamera
 } from "@icon-park/react";
 
 export type LayerCreationIcon = ComponentType<PhosphorIconProps>;
 
 type IconParkLayerIcon = typeof Text;
+type IconParkTheme = "outline" | "filled";
 
-function createLayerCreationIcon(Icon: IconParkLayerIcon): LayerCreationIcon {
+function createLayerCreationIcon(
+  Icon: IconParkLayerIcon,
+  theme: IconParkTheme = "outline"
+): LayerCreationIcon {
   return function LayerCreationIconAdapter({
     size,
     color,
@@ -31,17 +34,17 @@ function createLayerCreationIcon(Icon: IconParkLayerIcon): LayerCreationIcon {
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={4}
-        theme="outline"
+        theme={theme}
       />
     );
   };
 }
 
 export const TextLayerIcon = createLayerCreationIcon(Text);
-export const SolidLayerIcon = createLayerCreationIcon(Square);
-export const ShapeLayerIcon = createLayerCreationIcon(MultiRectangle);
+export const SolidLayerIcon = createLayerCreationIcon(RectangleOne, "filled");
+export const ShapeLayerIcon = createLayerCreationIcon(RectangleOne);
 export const AdjustmentLayerIcon = createLayerCreationIcon(Adjustment);
 export const NullObjectIcon = createLayerCreationIcon(Anchor);
-export const CameraLayerIcon = createLayerCreationIcon(Camera);
-export const PrecomposeIcon = createLayerCreationIcon(Layers);
-export const UnprecomposeIcon = createLayerCreationIcon(Ungroup);
+export const CameraLayerIcon = createLayerCreationIcon(Videocamera);
+export const PrecomposeIcon = createLayerCreationIcon(Film);
+export const UnprecomposeIcon = createLayerCreationIcon(EditMovie);
