@@ -417,6 +417,89 @@
     }
   }
 
+  var TEXT_EDITOR_APPEARANCE_SECTION = "NYAWORKS";
+  var TEXT_EDITOR_APPEARANCE_KEY = "textEditorAppearance";
+
+  function isSupportedTextEditorTheme(themeId) {
+    return themeId === "obsidian-cyan" ||
+      themeId === "nebula-violet" ||
+      themeId === "molten-amber" ||
+      themeId === "deep-emerald" ||
+      themeId === "sakura-night-pink";
+  }
+
+  function isSupportedTextEditorLanguage(languageId) {
+    return languageId === "zh-CN" ||
+      languageId === "zh-TW" ||
+      languageId === "en" ||
+      languageId === "ja" ||
+      languageId === "ko";
+  }
+
+  function normalizeTextEditorAppearance(value) {
+    if (!value ||
+      !isSupportedTextEditorTheme(value.themeId) ||
+      !isSupportedTextEditorLanguage(value.languageId)) {
+      return null;
+    }
+    return {
+      themeId: String(value.themeId),
+      languageId: String(value.languageId)
+    };
+  }
+
+  function setTextEditorAppearance(encodedPayload) {
+    var appearance;
+    try {
+      appearance = normalizeTextEditorAppearance(
+        JSON.parse(decodeURIComponent(encodedPayload || ""))
+      );
+      if (!appearance) {
+        return JSON.stringify({ ok: false, reason: "invalid-appearance" });
+      }
+      app.settings.saveSetting(
+        TEXT_EDITOR_APPEARANCE_SECTION,
+        TEXT_EDITOR_APPEARANCE_KEY,
+        JSON.stringify(appearance)
+      );
+      return JSON.stringify({ ok: true });
+    } catch (error) {
+      return JSON.stringify({
+        ok: false,
+        reason: "host-error",
+        detail: error && error.toString ? error.toString() : "unknown"
+      });
+    }
+  }
+
+  function getTextEditorAppearance() {
+    var stored;
+    var appearance;
+    try {
+      if (!app.settings.haveSetting(
+        TEXT_EDITOR_APPEARANCE_SECTION,
+        TEXT_EDITOR_APPEARANCE_KEY
+      )) {
+        return JSON.stringify({ ok: false, reason: "not-set" });
+      }
+      stored = app.settings.getSetting(
+        TEXT_EDITOR_APPEARANCE_SECTION,
+        TEXT_EDITOR_APPEARANCE_KEY
+      );
+      appearance = normalizeTextEditorAppearance(JSON.parse(stored));
+      if (!appearance) {
+        return JSON.stringify({ ok: false, reason: "invalid-appearance" });
+      }
+      return JSON.stringify({ ok: true, appearance: appearance });
+    } catch (error) {
+      return JSON.stringify({
+        ok: false,
+        reason: "host-error",
+        detail: error && error.toString ? error.toString() : "unknown"
+      });
+    }
+  }
+
   function decodeSearchPayload(encodedPayload) {
     return JSON.parse(decodeURIComponent(encodedPayload));
   }
@@ -1365,19 +1448,133 @@
     };
   }
 
-  function createTextLayer(context, modifier) {
+  function getTextDocumentProperty(layer) {
+    var textGroup = layer && layer.property("ADBE Text Properties");
+    return textGroup && textGroup.property("ADBE Text Document");
+  }
+
+  function updateTextLayerContent(layer, text) {
+    var textDocumentProperty = getTextDocumentProperty(layer);
+    var textDocument = textDocumentProperty && textDocumentProperty.value;
+    if (!textDocumentProperty || !textDocument) {
+      throw new Error("not-a-text-layer");
+    }
+    textDocument.text = text;
+    textDocumentProperty.setValue(textDocument);
+  }
+
+  function createTextLayer(context, text) {
     var comp = context.comp;
     var layer;
     // 文字层只保留一个稳定入口；不主动设置字体，让 AE 沿用当前“最近使用字体”。
     // 旧版本传入 ctrl 时也回退到同一个点文字行为，避免历史布局产生另一套逻辑。
-    layer = comp.layers.addText("text");
-    layer.name = uniqueLayerName(comp, "Nya 文字", layer);
+    layer = comp.layers.addText(text);
     var rect = layer.sourceRectAtTime(context.start, false);
     setLayerCentered(layer, comp, [
       Number(rect.left) + Number(rect.width) / 2,
       Number(rect.top) + Number(rect.height) / 2
     ]);
     return finishCreatedLayer(layer, context);
+  }
+
+  function readSelectedTextLayer() {
+    var comp = app.project ? app.project.activeItem : null;
+    var selection;
+    var layer;
+    var textDocumentProperty;
+    var textDocument;
+    var token;
+    if (!comp || !(comp instanceof CompItem)) {
+      return JSON.stringify({ ok: false, reason: "no-active-comp" });
+    }
+    selection = comp.selectedLayers || [];
+    if (selection.length !== 1) {
+      return JSON.stringify({ ok: false, reason: "invalid-selection" });
+    }
+    layer = selection[0];
+    textDocumentProperty = getTextDocumentProperty(layer);
+    textDocument = textDocumentProperty && textDocumentProperty.value;
+    if (!textDocument) {
+      return JSON.stringify({ ok: false, reason: "unsupported-layer-type" });
+    }
+    token = "nya-text-" + String(new Date().getTime()) + "-" + String(Math.random());
+    $.global.NYAWORKS_TEXT_LAYER_EDITOR_TARGET = {
+      token: token,
+      comp: comp,
+      layer: layer
+    };
+    return JSON.stringify({
+      ok: true,
+      text: String(textDocument.text),
+      layerName: String(layer.name || ""),
+      targetId: token
+    });
+  }
+
+  function applyTextLayerEdit(encodedPayload) {
+    var payload = decodeLayerActionPayload(encodedPayload);
+    var target = $.global.NYAWORKS_TEXT_LAYER_EDITOR_TARGET;
+    var activeComp = app.project ? app.project.activeItem : null;
+    var resolvedLayer;
+    var undoStarted = false;
+    if (!payload || typeof payload.targetId !== "string" || typeof payload.text !== "string") {
+      return JSON.stringify({ ok: false, reason: "host-error", detail: "invalid-payload" });
+    }
+    if (!payload.text.length) {
+      return JSON.stringify({ ok: false, reason: "empty-text" });
+    }
+    if (!target || target.token !== payload.targetId || activeComp !== target.comp) {
+      return JSON.stringify({ ok: false, reason: "invalid-target" });
+    }
+    try {
+      resolvedLayer = target.comp.layer(target.layer.index);
+      if (resolvedLayer !== target.layer || !getTextDocumentProperty(target.layer)) {
+        return JSON.stringify({ ok: false, reason: "invalid-target" });
+      }
+      app.beginUndoGroup("NYAWORKS Apply Text");
+      undoStarted = true;
+      updateTextLayerContent(target.layer, payload.text);
+      return JSON.stringify({ ok: true, createdLayers: 0, updatedLayers: 1 });
+    } catch (error) {
+      return JSON.stringify({
+        ok: false,
+        reason: "invalid-target",
+        detail: error && error.toString ? error.toString() : "target-unavailable"
+      });
+    } finally {
+      if (undoStarted) app.endUndoGroup();
+    }
+  }
+
+  function createTextLayerFromEditor(encodedPayload) {
+    var payload = decodeLayerActionPayload(encodedPayload);
+    var context;
+    var result;
+    var undoStarted = false;
+    if (!payload || typeof payload.text !== "string") {
+      return JSON.stringify({ ok: false, reason: "host-error", detail: "invalid-payload" });
+    }
+    if (!payload.text.length) {
+      return JSON.stringify({ ok: false, reason: "empty-text" });
+    }
+    context = getLayerCreationContext();
+    if (!context) {
+      return JSON.stringify({ ok: false, reason: "no-active-comp" });
+    }
+    try {
+      app.beginUndoGroup("NYAWORKS Create Text");
+      undoStarted = true;
+      result = createTextLayer(context, payload.text);
+      return JSON.stringify(result);
+    } catch (error) {
+      return JSON.stringify({
+        ok: false,
+        reason: "host-error",
+        detail: error && error.toString ? error.toString() : "create-text-failed"
+      });
+    } finally {
+      if (undoStarted) app.endUndoGroup();
+    }
   }
 
   function createSolidLayer(context, modifier) {
@@ -2381,6 +2578,9 @@
       return JSON.stringify({ ok: false, reason: "host-error", detail: "invalid-modifier" });
     }
     modifier = payload.modifier || "none";
+    if (action === "create-text" && modifier === "alt") {
+      return JSON.stringify({ ok: false, reason: "host-error", detail: "text-editor-ui-required" });
+    }
     context = getLayerCreationContext();
     if (!context) return JSON.stringify({ ok: false, reason: "no-active-comp" });
     if ((action === "precompose-selected" || action === "unprecompose-selected") && context.selection.length === 0) {
@@ -2396,7 +2596,7 @@
       );
       undoStarted = true;
       if (action === "create-text") {
-        result = createTextLayer(context, modifier);
+        result = createTextLayer(context, "text");
       } else if (action === "create-solid") {
         result = createSolidLayer(context, modifier);
       } else if (action === "create-shape") {
@@ -3236,6 +3436,8 @@
     ,revealResourceFile: revealResourceFile
     ,openResourceFile: openResourceFile
     ,reloadHostScript: reloadHostScript
+    ,setTextEditorAppearance: setTextEditorAppearance
+    ,getTextEditorAppearance: getTextEditorAppearance
     ,getCurrentEffects: getCurrentEffects
     ,runSearchScript: runSearchScript
     ,applySearchPreset: applySearchPreset
@@ -3244,6 +3446,9 @@
     ,setAnchorPoint: setAnchorPoint
     ,getActionContext: getActionContext
     ,runLayerAction: runLayerAction
+    ,readSelectedTextLayer: readSelectedTextLayer
+    ,applyTextLayerEdit: applyTextLayerEdit
+    ,createTextLayerFromEditor: createTextLayerFromEditor
     ,setAlignment: setAlignment
     ,runP0TestAction: runP0TestAction
   };

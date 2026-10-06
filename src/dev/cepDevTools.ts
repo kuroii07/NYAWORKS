@@ -11,6 +11,32 @@ type ReloadableCepEnvironment = {
   };
 };
 
+export function reloadCepHostScript(
+  environment: ReloadableCepEnvironment =
+    typeof window === "undefined"
+      ? {}
+      : (window as unknown as ReloadableCepEnvironment)
+): Promise<boolean> {
+  const runtime = environment.__adobe_cep__;
+  if (!runtime?.evalScript) {
+    return Promise.resolve(false);
+  }
+
+  return new Promise((resolve) => {
+    try {
+      runtime.evalScript("NYAWORKS.reloadHostScript()", (result) => {
+        try {
+          resolve((JSON.parse(result) as { ok?: unknown }).ok === true);
+        } catch {
+          resolve(false);
+        }
+      });
+    } catch {
+      resolve(false);
+    }
+  });
+}
+
 export function reloadCepPanel(
   locationLike: ReloadableLocation = window.location,
   environment: ReloadableCepEnvironment =

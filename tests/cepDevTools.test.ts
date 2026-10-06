@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { isCepDevBuild, reloadCepPanel } from "../src/dev/cepDevTools";
+import {
+  isCepDevBuild,
+  reloadCepHostScript,
+  reloadCepPanel
+} from "../src/dev/cepDevTools";
 
 describe("CEP development tools", () => {
   it("keeps the development-only controls disabled in the test build", () => {
@@ -25,5 +29,19 @@ describe("CEP development tools", () => {
       expect.any(Function)
     );
     expect(reload).toHaveBeenCalledOnce();
+  });
+
+  it("can refresh the host script without reloading the panel", async () => {
+    const evalScript = vi.fn((_script: string, callback: (result: string) => void) => {
+      callback(JSON.stringify({ ok: true }));
+    });
+
+    await expect(
+      reloadCepHostScript({ __adobe_cep__: { evalScript } })
+    ).resolves.toBe(true);
+    expect(evalScript).toHaveBeenCalledWith(
+      "NYAWORKS.reloadHostScript()",
+      expect.any(Function)
+    );
   });
 });

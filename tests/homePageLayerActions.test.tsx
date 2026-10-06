@@ -2,12 +2,13 @@
 
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ActionServiceProvider } from "../src/actions/ActionServiceProvider";
 import type { ActionRunOptions } from "../src/actions/types";
 import { LanguageProvider } from "../src/i18n/LanguageProvider";
 import { HomePage } from "../src/pages/HomePage";
 import { SettingsProvider } from "../src/settings/SettingsProvider";
+import { TEXT_LAYER_EDITOR_EXTENSION_ID } from "../src/textLayerEditor/cepLauncher";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
@@ -54,6 +55,7 @@ afterEach(() => {
   act(() => root?.unmount());
   container?.remove();
   document.querySelectorAll(".compact-action-menu").forEach((node) => node.remove());
+  delete (window as Window & { __adobe_cep__?: unknown }).__adobe_cep__;
   root = null;
   container = null;
 });
@@ -81,6 +83,10 @@ describe("HomePage layer actions", () => {
 
   it("routes supported modifiers and falls back to default for unsupported ones", async () => {
     const runs: Array<{ actionId: string; options?: ActionRunOptions }> = [];
+    const requestOpenExtension = vi.fn();
+    (window as Window & { __adobe_cep__?: unknown }).__adobe_cep__ = {
+      requestOpenExtension
+    };
     const buttons = await renderGrid(runs);
     await act(async () => {
       buttons[2].dispatchEvent(new MouseEvent("click", { bubbles: true, altKey: true }));
@@ -91,9 +97,12 @@ describe("HomePage layer actions", () => {
     expect(runs).toEqual([
       { actionId: "layer.createShape", options: { layerModifier: "alt" } },
       { actionId: "layer.createLight", options: { layerModifier: "ctrl" } },
-      { actionId: "layer.createNull", options: { layerModifier: "shift" } },
-      { actionId: "layer.createText", options: { layerModifier: "none" } }
+      { actionId: "layer.createNull", options: { layerModifier: "shift" } }
     ]);
+    expect(requestOpenExtension).toHaveBeenCalledWith(
+      TEXT_LAYER_EDITOR_EXTENSION_ID,
+      ""
+    );
   });
 
   it("uses Alt+Ctrl+Shift only for precompose settings and never opens a variant menu", async () => {
@@ -132,6 +141,8 @@ describe("HomePage layer actions", () => {
     expect(buttons[2].title).toContain("Alt");
     expect(buttons[2].title).toContain("Ctrl");
     expect(buttons[2].title).toContain("Shift");
+    expect(buttons[0].title).toContain("Alt");
+    expect(buttons[0].title.split("\n")).toHaveLength(2);
     expect(buttons[0].title).not.toContain("Ctrl");
     expect(buttons[1].title).not.toContain("Alt");
     expect(buttons[1].title).not.toContain("Ctrl");

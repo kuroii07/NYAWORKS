@@ -4146,6 +4146,7 @@ html[data-reordering="true"] * {
   text-align: center;
   pointer-events: none;
   transform: translateX(-50%);
+  white-space: pre-line;
 }
 
 .global-tooltip[data-single-line="true"] {

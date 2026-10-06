@@ -23,7 +23,8 @@ describe("Nya Pie P0 CEP manifest", () => {
     );
     expect(ids).toEqual([
       "com.kuroii.nyaworks.panel",
-      "com.kuroii.nyaworks.nyapie.p0"
+      "com.kuroii.nyaworks.nyapie.p0",
+      "com.kuroii.nyaworks.text-editor"
     ]);
     expect(runtime?.querySelector("UI > Type")?.textContent).toBe("Modeless");
     expect(runtime?.querySelector("Resources > MainPath")?.textContent).toBe(

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PRODUCT_VERSION } from "./about/productInfo";
 import { GlobalTooltip } from "./components/GlobalTooltip";
 import { ToastProvider } from "./notifications/ToastProvider";
@@ -11,6 +11,8 @@ import { ResourcesPage } from "./pages/ResourcesPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { useSettings } from "./settings/SettingsProvider";
 import { useLanguage } from "./i18n/LanguageProvider";
+import { useTheme } from "./theme/ThemeProvider";
+import { startTextEditorAppearancePublisher } from "./textLayerEditor/appearanceSync";
 import {
   resolveStartupPage,
   writeStoredLastPage
@@ -19,9 +21,14 @@ import type { SettingsTabId } from "./settings/types";
 import type { PageId } from "./types/navigation";
 import { CURRENT_RELEASE_NOTES } from "./updates/releaseNotes";
 import { useUpdates } from "./updates/UpdatesProvider";
+import {
+  isCepDevBuild,
+  reloadCepHostScript
+} from "./dev/cepDevTools";
 
 export default function App() {
   const { copy, languageId } = useLanguage();
+  const { themeId } = useTheme();
   const { generalSettings } = useSettings();
   const {
     isWhatsNewOpen,
@@ -45,6 +52,17 @@ export default function App() {
     tab: "general",
     editHome: false
   });
+
+  useEffect(() => {
+    if (isCepDevBuild) {
+      void reloadCepHostScript();
+    }
+  }, []);
+
+  useEffect(
+    () => startTextEditorAppearancePublisher({ themeId, languageId }),
+    [languageId, themeId]
+  );
 
   function handlePageChange(pageId: PageId) {
     setActivePage(pageId);

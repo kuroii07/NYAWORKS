@@ -27,7 +27,7 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: false,
     rollupOptions: {
-      input: ["index.html", "nya-pie-runtime.html"]
+      input: ["index.html", "nya-pie-runtime.html", "text-layer-editor.html"]
     }
   }
 });

@@ -7,6 +7,7 @@
   <ExtensionList>
     <Extension Id="com.kuroii.nyaworks.panel" Version="0.1.0" />
     <Extension Id="com.kuroii.nyaworks.nyapie.p0" Version="0.1.0" />
+    <Extension Id="com.kuroii.nyaworks.text-editor" Version="0.1.0" />
   </ExtensionList>
   <ExecutionEnvironment>
     <HostList>
@@ -81,6 +82,38 @@
             <MaxSize>
               <Width>220</Width>
               <Height>220</Height>
+            </MaxSize>
+          </Geometry>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+    <Extension Id="com.kuroii.nyaworks.text-editor">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./text-layer-editor.html</MainPath>
+          <ScriptPath>./host/index.jsx</ScriptPath>
+          <CEFCommandLine>
+            <Parameter>--allow-file-access-from-files</Parameter>
+            <Parameter>--allow-file-access</Parameter>
+          </CEFCommandLine>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>Modeless</Type>
+          <Geometry>
+            <Size>
+              <Width>420</Width>
+              <Height>340</Height>
+            </Size>
+            <MinSize>
+              <Width>320</Width>
+              <Height>260</Height>
+            </MinSize>
+            <MaxSize>
+              <Width>760</Width>
+              <Height>720</Height>
             </MaxSize>
           </Geometry>
         </UI>

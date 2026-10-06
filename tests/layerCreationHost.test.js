@@ -12,17 +12,54 @@ async function loadLayerHost(app, CompItem, LightType = {}) {
     "app",
     "CompItem",
     "LightType",
+    "Window",
+    "$",
     "JSON",
     "decodeURIComponent",
     `${source.slice(start, end)}
 return {
   getLayerCreationContext: getLayerCreationContext,
-  runLayerAction: runLayerAction
+  runLayerAction: runLayerAction,
+  readSelectedTextLayer: readSelectedTextLayer,
+  applyTextLayerEdit: applyTextLayerEdit,
+  createTextLayerFromEditor: createTextLayerFromEditor
 };`
-  )(app, CompItem, LightType, JSON, decodeURIComponent);
+  )(app, CompItem, LightType, FakeScriptUIWindow, { global: {} }, JSON, decodeURIComponent);
 }
 
 class TestComp {}
+
+class FakeScriptUIWindow {
+  static last = null;
+
+  constructor(type, title) {
+    this.type = type;
+    this.title = title;
+    this.controls = {};
+    FakeScriptUIWindow.last = this;
+  }
+
+  add(type, _bounds, text, options) {
+    if (type === "group") {
+      return {
+        add: (childType, bounds, childText, childOptions) =>
+          this.add(childType, bounds, childText, childOptions)
+      };
+    }
+
+    const control = {
+      type,
+      text: text ?? "",
+      options,
+      onClick: null
+    };
+    this.controls[type === "edittext" ? "input" : text] = control;
+    return control;
+  }
+
+  center() {}
+  show() { this.shown = true; }
+}
 
 function property(value) {
   return {
@@ -32,6 +69,8 @@ function property(value) {
 }
 
 function createLayer(kind, options = {}) {
+  let layerName = options.name ?? "";
+  let nameSetCount = 0;
   const transform = {
     "ADBE Anchor Point": property([0, 0]),
     "ADBE Position": property([0, 0]),
@@ -51,8 +90,17 @@ function createLayer(kind, options = {}) {
       return effect;
     }
   };
+  const textDocument = options.textDocument
+    ? property(options.textDocument)
+    : null;
   return {
     kind,
+    get name() { return layerName; },
+    set name(value) {
+      layerName = value;
+      nameSetCount += 1;
+    },
+    get nameSetCount() { return nameSetCount; },
     index: options.index ?? 1,
     inPoint: options.inPoint ?? 0,
     outPoint: options.outPoint ?? 10,
@@ -63,12 +111,20 @@ function createLayer(kind, options = {}) {
     moveBefore(target) { this.movedBefore = target; },
     moveToBeginning() { this.movedToBeginning = true; },
     property(name) {
+      if (name === "ADBE Text Properties") {
+        return {
+          property(child) {
+            return child === "ADBE Text Document" ? textDocument : null;
+          }
+        };
+      }
       if (name === "ADBE Transform Group") {
         return { property: (child) => transform[child] };
       }
       if (name === "ADBE Effect Parade") return effects;
       return null;
     },
+    textDocument,
     transform,
     effects
   };
@@ -88,7 +144,7 @@ function createComp(selectedLayers = []) {
   });
   comp.layers = {
     addText(text) {
-      const layer = createLayer("text");
+      const layer = createLayer("text", { name: text });
       layer.text = text;
       created.unshift(layer);
       return layer;
@@ -109,8 +165,8 @@ function createComp(selectedLayers = []) {
   return { comp, created };
 }
 
-function payload(action, modifier = "none") {
-  return encodeURIComponent(JSON.stringify({ action, modifier }));
+function payload(action, modifier = "none", textDialogLabels) {
+  return encodeURIComponent(JSON.stringify({ action, modifier, textDialogLabels }));
 }
 
 describe("layer creation host context", () => {
@@ -119,6 +175,15 @@ describe("layer creation host context", () => {
     expect(JSON.parse(host.runLayerAction(payload("create-text")))).toEqual({
       ok: false,
       reason: "no-active-comp"
+    });
+  });
+
+  it("routes Alt text editing to the dedicated CEP editor", async () => {
+    const host = await loadLayerHost({ project: { activeItem: {} } }, TestComp);
+    expect(JSON.parse(host.runLayerAction(payload("create-text", "alt")))).toEqual({
+      ok: false,
+      reason: "host-error",
+      detail: "text-editor-ui-required"
     });
   });
 
@@ -145,7 +210,7 @@ describe("layer creation host context", () => {
 });
 
 describe("basic layer creation host actions", () => {
-  it("creates centered text without assigning a font", async () => {
+  it("creates centered text named after its actual source text without assigning a font", async () => {
     const { comp, created } = createComp([]);
     const undo = [];
     const host = await loadLayerHost({
@@ -159,6 +224,8 @@ describe("basic layer creation host actions", () => {
       createdLayers: 1
     });
     expect(created[0].text).toBe("text");
+    expect(created[0].name).toBe("text");
+    expect(created[0].nameSetCount).toBe(0);
     expect(created[0].transform["ADBE Anchor Point"].value).toEqual([0, 0]);
     expect(created[0].transform["ADBE Position"].value).toEqual([960, 540]);
     expect(created[0]).not.toHaveProperty("font");
@@ -177,9 +244,73 @@ describe("basic layer creation host actions", () => {
     expect(created[0]).toMatchObject({
       kind: "text",
       text: "text",
-      name: "Nya 文字"
+      name: "text"
     });
     expect(created[0]).not.toHaveProperty("font");
+  });
+
+  it("creates entered text from the dedicated editor without assigning a layer name", async () => {
+    const { comp, created } = createComp([]);
+    const app = {
+      project: { activeItem: comp },
+      beginUndoGroup() {},
+      endUndoGroup() {}
+    };
+    const host = await loadLayerHost(app, TestComp);
+    const result = JSON.parse(host.createTextLayerFromEditor(
+      encodeURIComponent(JSON.stringify({ text: "A multiline\nNya title" }))
+    ));
+
+    expect(result).toMatchObject({ ok: true, createdLayers: 1 });
+    expect(created[0].text).toBe("A multiline\nNya title");
+    expect(created[0].name).toBe("A multiline\nNya title");
+    expect(created[0].nameSetCount).toBe(0);
+  });
+
+  it("reads one selected text layer and applies source text while preserving its style", async () => {
+    const style = { text: "Existing text", fontSize: 84, fillColor: [1, 0, 0] };
+    const selected = createLayer("text", { textDocument: style, name: "Existing text" });
+    const { comp } = createComp([selected]);
+    const host = await loadLayerHost({
+      project: { activeItem: comp },
+      beginUndoGroup() {},
+      endUndoGroup() {}
+    }, TestComp);
+    const read = JSON.parse(host.readSelectedTextLayer());
+    expect(read).toMatchObject({ ok: true, text: "Existing text" });
+    const applied = JSON.parse(host.applyTextLayerEdit(
+      encodeURIComponent(JSON.stringify({
+        targetId: read.targetId,
+        text: "Updated text"
+      }))
+    ));
+
+    expect(applied).toMatchObject({ ok: true, updatedLayers: 1 });
+    expect(selected.textDocument.value).toEqual({
+      text: "Updated text",
+      fontSize: 84,
+      fillColor: [1, 0, 0]
+    });
+    expect(selected.nameSetCount).toBe(0);
+  });
+
+  it("always creates a new layer after reading instead of changing the target", async () => {
+    const style = { text: "Existing text", fontSize: 42 };
+    const selected = createLayer("text", { textDocument: style, name: "Existing text" });
+    const { comp, created } = createComp([selected]);
+    const host = await loadLayerHost({
+      project: { activeItem: comp },
+      beginUndoGroup() {},
+      endUndoGroup() {}
+    }, TestComp);
+
+    expect(JSON.parse(host.readSelectedTextLayer()).ok).toBe(true);
+    expect(JSON.parse(host.createTextLayerFromEditor(
+      encodeURIComponent(JSON.stringify({ text: "New layer" }))
+    )).ok).toBe(true);
+
+    expect(created[0].text).toBe("New layer");
+    expect(selected.textDocument.value.text).toBe("Existing text");
   });
 
   it("creates a timed black solid with only a Fill effect and a full-comp adjustment layer", async () => {

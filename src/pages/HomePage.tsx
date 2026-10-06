@@ -75,6 +75,7 @@ import type {
   UiCopy
 } from "../i18n/types";
 import type { GlobalSearchItem } from "../search/types";
+import { openTextLayerEditor } from "../textLayerEditor/cepLauncher";
 
 interface HomeToolDrag {
   pointerId: number;
@@ -104,7 +105,7 @@ const CREATE_TOOLS: readonly {
   action: LayerAction;
   modifiers: readonly LayerActionModifier[];
 }[] = [
-  { id: "textLayer", icon: TextLayerIcon, action: "create-text", modifiers: ["none"] },
+  { id: "textLayer", icon: TextLayerIcon, action: "create-text", modifiers: ["none", "alt"] },
   { id: "solidLayer", icon: SolidLayerIcon, action: "create-solid", modifiers: ["none"] },
   { id: "shapeLayer", icon: ShapeLayerIcon, action: "create-shape", modifiers: ["none", "alt", "ctrl", "shift"] },
   { id: "adjustmentLayer", icon: AdjustmentLayerIcon, action: "create-adjustment", modifiers: ["none"] },
@@ -556,6 +557,13 @@ export function HomePage({
     action: LayerAction,
     modifier: LayerActionModifier
   ) {
+    if (action === "create-text" && modifier === "alt") {
+      if (!openTextLayerEditor()) {
+        toast.error(home.layerFeedback.unavailable);
+      }
+      return;
+    }
+
     const result = await actionService.run(getLayerActionId(action), {
       layerModifier: modifier
     });

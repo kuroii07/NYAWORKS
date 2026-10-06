@@ -257,6 +257,28 @@ export interface UiCopy {
     plannedAriaSuffix: string;
     plannedTitleSuffix: string;
     layerActionTooltips: Record<LayerToolId, string>;
+    textLayerDialog: {
+      title: string;
+      read: string;
+      apply: string;
+      create: string;
+      close: string;
+      placeholder: string;
+      idleStatus: string;
+      noTarget: string;
+      targetLabel: string;
+      readSuccess: string;
+      applySuccess: string;
+      createSuccess: string;
+      processing: string;
+      emptyText: string;
+      noActiveComp: string;
+      selectOneLayer: string;
+      selectTextLayer: string;
+      invalidTarget: string;
+      unavailable: string;
+      hostError: string;
+    };
     layerActionMenuDefault: string;
     layerActionVariantLabels: Partial<
       Record<LayerToolId, Partial<Record<LayerActionModifier, string>>>

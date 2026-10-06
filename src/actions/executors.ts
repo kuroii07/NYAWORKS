@@ -170,7 +170,10 @@ export function createCepHostExecutor(
         };
       }
 
-      const result = await layerBridge.runLayerAction(action, modifier);
+      const result = await layerBridge.runLayerAction(
+        action,
+        modifier
+      );
       if (result.ok) {
         return {
           success: true,
