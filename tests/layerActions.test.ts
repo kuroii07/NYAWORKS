@@ -47,7 +47,7 @@ describe("layer action definitions", () => {
     );
     expect(LAYER_ACTIONS.every(isLayerAction)).toBe(true);
     expect(isLayerAction("create-comp")).toBe(false);
-    expect(["none", "alt", "ctrl", "shift"].every(isLayerActionModifier)).toBe(true);
+    expect(["none", "alt", "ctrl", "shift", "settings"].every(isLayerActionModifier)).toBe(true);
     expect(isLayerActionModifier("triple")).toBe(false);
   });
 });

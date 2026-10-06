@@ -85,7 +85,9 @@ function makeComp(selection = []) {
         displayStartTime: 0,
         duration: 10,
         numLayers: 0,
-        layer() { return null; }
+        opened: false,
+        layer() { return null; },
+        openInViewer() { this.opened = true; }
       });
       const layer = defaultOuter(source, { name, index: 1 });
       layers.unshift(layer);
@@ -146,8 +148,8 @@ describe("precompose host action", () => {
 
   it("sorts selected indices and precomposes with a unique name", async () => {
     const selection = [
-      { name: "Bottom", index: 7, inPoint: 0, outPoint: 10 },
-      { name: "Hero", index: 2, inPoint: 0, outPoint: 10 }
+      { name: "Bottom", index: 7, inPoint: 4, outPoint: 7 },
+      { name: "Hero", index: 2, inPoint: 2, outPoint: 8 }
     ];
     const { comp, calls } = makeComp(selection);
     const setup = createApp(comp, [{ name: "Hero Precomp" }]);
@@ -164,25 +166,61 @@ describe("precompose host action", () => {
       moveAllAttributes: true
     }]);
     expect(comp.selectedLayers[0].selected).toBe(true);
+    expect(comp.selectedLayers[0].source.duration).toBe(6);
+    expect([
+      comp.selectedLayers[0].startTime,
+      comp.selectedLayers[0].inPoint,
+      comp.selectedLayers[0].outPoint
+    ]).toEqual([2, 2, 8]);
   });
 
-  it("allows Alt to keep attributes only for a single layer", async () => {
-    const single = makeComp([{ name: "Hero", index: 3, inPoint: 0, outPoint: 10 }]);
-    const singleSetup = createApp(single.comp);
-    const singleRun = await loadRunLayerAction(singleSetup.app);
-    expect(JSON.parse(singleRun(encoded("precompose-selected", "alt"))).ok).toBe(true);
-    expect(single.calls[0].moveAllAttributes).toBe(false);
-
-    const multi = makeComp([
-      { name: "A", index: 1, inPoint: 0, outPoint: 10 },
-      { name: "B", index: 2, inPoint: 0, outPoint: 10 }
+  it("uses Alt to crop one or more layers to their visual bounds", async () => {
+    function visualLayer(name, index, position) {
+      const transform = {
+        "ADBE Anchor Point": prop([50, 25]),
+        "ADBE Position": prop(position),
+        "ADBE Scale": prop([100, 100]),
+        "ADBE Rotate Z": prop(0)
+      };
+      return {
+        name,
+        index,
+        inPoint: 1,
+        outPoint: 9,
+        parent: null,
+        threeDLayer: false,
+        sourceRectAtTime: () => ({ left: 0, top: 0, width: 100, height: 50 }),
+        property(group) {
+          return group === "ADBE Transform Group"
+            ? { property: (child) => transform[child] }
+            : null;
+        }
+      };
+    }
+    const setup = makeComp([
+      visualLayer("A", 1, [200, 300]),
+      visualLayer("B", 2, [500, 400])
     ]);
-    const multiRun = await loadRunLayerAction(createApp(multi.comp).app);
-    expect(JSON.parse(multiRun(encoded("precompose-selected", "alt")))).toMatchObject({
-      ok: false,
-      reason: "invalid-selection"
-    });
-    expect(multi.calls).toEqual([]);
+    const run = await loadRunLayerAction(createApp(setup.comp).app);
+
+    const result = JSON.parse(run(encoded("precompose-selected", "alt")));
+    expect(result).toEqual({ ok: true, createdLayers: 1, updatedLayers: 0, createdItems: 1 });
+    expect(setup.calls[0].moveAllAttributes).toBe(true);
+    expect([setup.comp.selectedLayers[0].source.width, setup.comp.selectedLayers[0].source.height]).toEqual([400, 150]);
+    expect(setup.comp.selectedLayers[0].transform["ADBE Position"].value).toEqual([350, 350]);
+  });
+
+  it("opens the created precomp settings for the three-key settings action", async () => {
+    const setup = makeComp([{ name: "Hero", index: 1, inPoint: 1, outPoint: 5 }]);
+    const appSetup = createApp(setup.comp);
+    const commands = [];
+    appSetup.app.findMenuCommandId = (name) => name === "Composition Settings..." ? 777 : 0;
+    appSetup.app.executeCommand = (id) => commands.push(id);
+    const run = await loadRunLayerAction(appSetup.app);
+
+    expect(JSON.parse(run(encoded("precompose-selected", "settings"))).ok).toBe(true);
+    expect(setup.comp.selectedLayers[0].source.opened).toBe(true);
+    expect(commands).toEqual([777]);
   });
 });
 
@@ -215,6 +253,9 @@ describe("safe unprecompose host action", () => {
         inPoint: index,
         outPoint: index + 4,
         copyToComp(targetComp) {
+          const transform = {
+            "ADBE Position": prop([20, 30])
+          };
           const copy = {
             name: this.name,
             startTime: this.startTime,
@@ -222,6 +263,12 @@ describe("safe unprecompose host action", () => {
             outPoint: this.outPoint,
             selected: false,
             removed: false,
+            property(name) {
+              return name === "ADBE Transform Group"
+                ? { property: (child) => transform[child] }
+                : null;
+            },
+            transform,
             moveBefore(target) { this.before = target; },
             remove() { this.removed = true; }
           };
@@ -259,6 +306,22 @@ describe("safe unprecompose host action", () => {
       [3, 3, 7]
     ]);
     expect(copies.every((layer) => layer.selected)).toBe(true);
+  });
+
+  it("restores the spatial offset of a cropped precomp", async () => {
+    const source = createSafeSource(1);
+    source.width = 100;
+    source.height = 50;
+    const setup = makeUnprecompose(source);
+    setup.outer.transform["ADBE Position"].setValue([200, 150]);
+    const run = await loadRunLayerAction(createApp(setup.comp).app);
+
+    expect(JSON.parse(run(encoded("unprecompose-selected")))).toMatchObject({
+      ok: true,
+      createdLayers: 1
+    });
+    const copy = setup.comp._layers.find((layer) => layer !== setup.outer);
+    expect(copy.transform["ADBE Position"].value).toEqual([170, 155]);
   });
 
   it.each([
@@ -353,7 +416,7 @@ describe("safe unprecompose host action", () => {
     const setup = makeUnprecompose(source);
     const originalProperty = setup.outer.property;
     setup.outer.property = (name) => name === "ADBE Layer Styles"
-      ? { numProperties: 1 }
+      ? { numProperties: 1, property: () => ({ enabled: true }) }
       : originalProperty(name);
     const run = await loadRunLayerAction(createApp(setup.comp).app);
 
@@ -362,6 +425,44 @@ describe("safe unprecompose host action", () => {
       reason: "unsafe-unprecompose"
     });
     expect(setup.outer.removed).toBe(false);
+  });
+
+  it("ignores AE's default disabled Layer Styles groups", async () => {
+    const source = createSafeSource(1);
+    const setup = makeUnprecompose(source);
+    const originalProperty = setup.outer.property;
+    setup.outer.property = (name) => name === "ADBE Layer Styles"
+      ? { numProperties: 8, property: () => ({ enabled: false }) }
+      : originalProperty(name);
+    const run = await loadRunLayerAction(createApp(setup.comp).app);
+
+    expect(JSON.parse(run(encoded("unprecompose-selected")))).toMatchObject({
+      ok: true,
+      createdLayers: 1
+    });
+    expect(setup.outer.removed).toBe(true);
+  });
+
+  it("ignores inactive default effect and mask groups", async () => {
+    const source = createSafeSource(1);
+    const setup = makeUnprecompose(source);
+    const originalProperty = setup.outer.property;
+    setup.outer.property = (name) => {
+      if (name === "ADBE Effect Parade") {
+        return { numProperties: 1, property: () => ({ enabled: false }) };
+      }
+      if (name === "ADBE Mask Parade") {
+        return { numProperties: 1, property: () => ({}) };
+      }
+      return originalProperty(name);
+    };
+    const run = await loadRunLayerAction(createApp(setup.comp).app);
+
+    expect(JSON.parse(run(encoded("unprecompose-selected")))).toMatchObject({
+      ok: true,
+      createdLayers: 1
+    });
+    expect(setup.outer.removed).toBe(true);
   });
 
   it("rolls back a copied layer when timing adjustment fails", async () => {

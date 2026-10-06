@@ -19,7 +19,7 @@ const TITLES: Record<LayerAction, NyaActionDefinition["title"]> = {
 
 const DESCRIPTIONS: Record<LayerAction, NyaActionDefinition["title"]> = {
   "create-text": { zhCN: "创建居中的 text 文字层", zhTW: "建立置中的 text 文字圖層", en: "Create a centered text layer", ja: "中央にテキストレイヤーを作成", ko: "중앙에 텍스트 레이어 만들기" },
-  "create-solid": { zhCN: "创建黑色纯色层并添加填充效果", zhTW: "建立黑色純色圖層並加入填色效果", en: "Create a black solid with Fill", ja: "塗りエフェクト付きの黒い平面を作成", ko: "채우기 효과가 있는 검은 단색 만들기" },
+  "create-solid": { zhCN: "创建黑色纯色层并添加 Fill 效果", zhTW: "建立黑色純色圖層並加入 Fill 效果", en: "Create a black solid with a Fill effect", ja: "Fill エフェクト付きの黒い平面を作成", ko: "Fill 효과가 있는 검은 단색 만들기" },
   "create-shape": { zhCN: "创建带参数控制的形状层", zhTW: "建立具有參數控制的形狀圖層", en: "Create a parameterized shape", ja: "パラメーター付きシェイプを作成", ko: "매개변수 도형 만들기" },
   "create-adjustment": { zhCN: "创建调整图层", zhTW: "建立調整圖層", en: "Create an adjustment layer", ja: "調整レイヤーを作成", ko: "조정 레이어 만들기" },
   "create-null": { zhCN: "创建参考线空对象并可绑定选中图层", zhTW: "建立參考線空物件並可綁定選取圖層", en: "Create a guide Null controller", ja: "ガイドヌルコントローラーを作成", ko: "가이드 널 컨트롤러 만들기" },

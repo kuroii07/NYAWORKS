@@ -16,6 +16,7 @@ import { ActionServiceProvider } from "../src/actions/ActionServiceProvider";
 import type { ActionService } from "../src/actions/service";
 import type { ResourceSettings } from "../src/resources/types";
 import { writeStoredResourceSettings } from "../src/resources/resourceStorage";
+import { readSearchHistory } from "../src/search/searchHistory";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
@@ -158,6 +159,66 @@ describe("GlobalSearchProvider", () => {
     expect(calls).toEqual(["effects"]);
     await act(async () => { await value.refreshEffects(); });
     expect(calls).toEqual(["effects", "effects"]);
+  });
+
+  it("reports an error when refreshing AE effects rejects", async () => {
+    const storage = new MemoryStorage();
+    let reads = 0;
+    const value = await renderProviders(createSearchBridge({
+      readCurrentAeEffects: async () => {
+        reads += 1;
+        if (reads > 1) throw new Error("CEP bridge rejected");
+        return { status: "connected", effects: [], isDevelopmentFixture: false };
+      }
+    }), storage);
+
+    expect(value.effectsStatus).toBe("connected");
+    await act(async () => { await value.refreshEffects(); });
+    expect(context?.effectsStatus).toBe("error");
+  });
+
+  it("finds localized action names while the interface language stays Chinese", async () => {
+    const storage = new MemoryStorage();
+    const value = await renderProviders(createSearchBridge(), storage);
+
+    expect(value.search("Create Text Layer").some((item) =>
+      item.actionId === "layer.createText"
+    )).toBe(true);
+    expect(value.search("テキストレイヤーを作成").some((item) =>
+      item.actionId === "layer.createText"
+    )).toBe(true);
+    expect(value.search("텍스트 레이어 만들기").some((item) =>
+      item.actionId === "layer.createText"
+    )).toBe(true);
+  });
+
+  it("does not expose planned home placeholders as executable tool results", async () => {
+    const storage = new MemoryStorage();
+    const value = await renderProviders(createSearchBridge(), storage);
+
+    expect(value.search("项目整理")).toEqual([]);
+    expect(value.search("调节").some((item) =>
+      item.kind === "tool" && item.toolId === "adjust" && item.opensBanner
+    )).toBe(true);
+  });
+
+  it("promotes a successfully executed result into recent search order", async () => {
+    const storage = new MemoryStorage();
+    const value = await renderProviders(createSearchBridge(), storage, {
+      run: async () => ({ success: true, message: "ok" })
+    });
+    const item = value.search("新建文字层").find((candidate) =>
+      candidate.actionId === "layer.createText"
+    );
+    expect(item).toBeDefined();
+
+    await act(async () => {
+      await value.executeItem(item!);
+    });
+
+    expect(readSearchHistory()[0]).toBe(item?.id);
+    expect(context?.index.items.find((candidate) => candidate.id === item?.id)?.recentRank).toBe(0);
+    expect(context?.search("")[0]?.id).toBe(item?.id);
   });
 
   it("delegates indexed script execution through the shared resource command", async () => {

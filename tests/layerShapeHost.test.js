@@ -130,19 +130,20 @@ describe("shape layer host action", () => {
     const layer = created[0];
     expect(layer.anchor.value).toEqual([0, 0]);
     expect(layer.position.value).toEqual([960, 540]);
+    expect(layer.name).toBe("Nya 圆角矩形");
     expect(layer.controls.map((control) => [control.matchName, control.name, control.value.value])).toEqual([
-      ["ADBE Slider Control", "Nya Width", 500],
-      ["ADBE Slider Control", "Nya Height", 500],
-      ["ADBE Slider Control", "Nya Roundness", 50],
-      ["ADBE Checkbox Control", "Nya Separate Corners", 0],
-      ["ADBE Slider Control", "Nya Corner TL", 100],
-      ["ADBE Slider Control", "Nya Corner TR", 100],
-      ["ADBE Slider Control", "Nya Corner BR", 100],
-      ["ADBE Slider Control", "Nya Corner BL", 100]
+      ["ADBE Slider Control", "Nya 宽度", 500],
+      ["ADBE Slider Control", "Nya 高度", 500],
+      ["ADBE Slider Control", "Nya 圆角", 50],
+      ["ADBE Checkbox Control", "Nya 分离圆角", 0],
+      ["ADBE Slider Control", "Nya 左上圆角", 50],
+      ["ADBE Slider Control", "Nya 右上圆角", 50],
+      ["ADBE Slider Control", "Nya 右下圆角", 50],
+      ["ADBE Slider Control", "Nya 左下圆角", 50]
     ]);
     const path = layer.vectors.find((vector) => vector.matchName === "ADBE Vector Shape - Group");
     expect(path.values["ADBE Vector Shape"].expressionEnabled).toBe(true);
-    expect(path.values["ADBE Vector Shape"].expression).toContain('effect("Nya Corner TL")(1)');
+    expect(path.values["ADBE Vector Shape"].expression).toContain('effect("Nya 左上圆角")(1)');
     const expression = path.values["ADBE Vector Shape"].expression;
     const evaluated = Function(
       "effect",
@@ -150,30 +151,34 @@ describe("shape layer host action", () => {
       `${expression.replace("createPath(points,ins,outs,true);", "return createPath(points,ins,outs,true);")}`
     )(
       (name) => () => ({
-        "Nya Width": 500,
-        "Nya Height": 500,
-        "Nya Roundness": 50,
-        "Nya Separate Corners": 0,
-        "Nya Corner TL": 100,
-        "Nya Corner TR": 100,
-        "Nya Corner BR": 100,
-        "Nya Corner BL": 100
+        "Nya 宽度": 500,
+        "Nya 高度": 500,
+        "Nya 圆角": 50,
+        "Nya 分离圆角": 0,
+        "Nya 左上圆角": 50,
+        "Nya 右上圆角": 50,
+        "Nya 右下圆角": 50,
+        "Nya 左下圆角": 50
       })[name],
       (points, ins, outs, closed) => ({ points, ins, outs, closed })
     );
     expect(evaluated.ins[0]).toEqual([-0.5522847498 * 50, 0]);
+    expect(evaluated.outs[7]).toEqual([0, -0.5522847498 * 50]);
+    expect(evaluated.outs[1]).toEqual([0.5522847498 * 50, 0]);
+    expect(evaluated.ins[2]).toEqual([0, -0.5522847498 * 50]);
     expect(evaluated.closed).toBe(true);
   });
 
   it.each([
-    ["alt", "ADBE Vector Shape - Ellipse", ["Nya Width", "Nya Height"]],
-    ["ctrl", "ADBE Vector Shape - Star", ["Nya Size"]],
-    ["shift", "ADBE Vector Shape - Star", ["Nya Size", "Nya Inner Size"]]
-  ])("creates the %s modifier variant with only useful controls", async (modifier, matchName, controlNames) => {
+    ["alt", "Nya 圆", "ADBE Vector Shape - Ellipse", ["Nya 半径"]],
+    ["ctrl", "Nya 三角形", "ADBE Vector Shape - Star", ["Nya 半径", "Nya 旋转", "Nya 圆角"]],
+    ["shift", "Nya 星形", "ADBE Vector Shape - Star", ["Nya 角数", "Nya 外半径", "Nya 内半径", "Nya 旋转", "Nya 外圆角", "Nya 内圆角"]]
+  ])("creates the %s modifier variant with only useful controls", async (modifier, layerName, matchName, controlNames) => {
     const { app, created } = createApp();
     const runLayerAction = await loadRunLayerAction(app);
 
     expect(JSON.parse(runLayerAction(encoded(modifier))).ok).toBe(true);
+    expect(created[0].name).toBe(layerName);
     expect(created[0].vectors.some((vector) => vector.matchName === matchName)).toBe(true);
     expect(created[0].controls.map((control) => control.name)).toEqual(controlNames);
   });

@@ -221,6 +221,9 @@ export interface UiCopy {
     searchAria: string;
     searchEmpty: string;
     searchNoResults: string;
+    searchEffectsLoading: string;
+    searchEffectsUnavailable: string;
+    searchRefreshEffects: string;
     searchKindLabels: {
       tool: string;
       script: string;

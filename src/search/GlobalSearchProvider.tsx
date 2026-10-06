@@ -24,6 +24,11 @@ import {
   searchGlobalItems
 } from "./searchOperations";
 import type { GlobalSearchIndex, GlobalSearchItem } from "./types";
+import {
+  buildRecentRanks,
+  readSearchHistory,
+  recordSearchHistory
+} from "./searchHistory";
 
 export interface GlobalSearchContextValue {
   index: GlobalSearchIndex;
@@ -58,12 +63,17 @@ export function GlobalSearchProvider({
   const { resources, runResourceCommand } = useResources();
   const [effects, setEffects] = useState<Awaited<ReturnType<GlobalSearchHostBridge["readCurrentAeEffects"]>> | null>(null);
   const [effectsStatus, setEffectsStatus] = useState<GlobalSearchContextValue["effectsStatus"]>("loading");
+  const [recentIds, setRecentIds] = useState<string[]>(() => readSearchHistory());
 
   const refreshEffects = useCallback(async () => {
     setEffectsStatus("loading");
-    const snapshot = await bridge.readCurrentAeEffects();
-    setEffects(snapshot);
-    setEffectsStatus(snapshot.status);
+    try {
+      const snapshot = await bridge.readCurrentAeEffects();
+      setEffects(snapshot);
+      setEffectsStatus(snapshot.status);
+    } catch {
+      setEffectsStatus("error");
+    }
   }, [bridge]);
 
   useEffect(() => {
@@ -71,6 +81,7 @@ export function GlobalSearchProvider({
   }, [refreshEffects]);
 
   const index = useMemo(() => {
+    const recentRanks = buildRecentRanks(recentIds);
     const toolItems = buildToolSearchItems(copy.home);
     const actionLanguage = languageId === "zh-CN"
       ? "zhCN"
@@ -111,28 +122,47 @@ export function GlobalSearchProvider({
       requiresHost: true,
       order: 2000 + index
     }));
-    return buildGlobalSearchIndex({ items: [...toolItems, ...actionItems, ...resourceItems, ...effectItems] });
-  }, [copy.home, effects, languageId, resources]);
+    return buildGlobalSearchIndex({
+      items: [...toolItems, ...actionItems, ...resourceItems, ...effectItems].map((item) => ({
+        ...item,
+        ...(recentRanks.has(item.id)
+          ? { recentRank: recentRanks.get(item.id) }
+          : {})
+      }))
+    });
+  }, [copy.home, effects, languageId, recentIds, resources]);
+
+  const rememberItem = useCallback((item: GlobalSearchItem) => {
+    setRecentIds(recordSearchHistory(item.id));
+  }, []);
 
   const executeItem = useCallback(async (item: GlobalSearchItem): Promise<GlobalSearchActionResult> => {
+    let result: GlobalSearchActionResult;
     if (item.action === "execute-action" && item.actionId) {
-      const result = await actionService.run(item.actionId);
-      return result.success
+      const actionResult = await actionService.run(item.actionId);
+      result = actionResult.success
         ? { ok: true }
-        : { ok: false, reason: result.error?.code ?? "host-error", detail: result.error?.detail };
-    }
-    if (item.kind === "tool") return { ok: true };
-    if (item.resourceId) {
-      const result = await runResourceCommand("resource.use", item.resourceId);
-      return result.ok
+        : { ok: false, reason: actionResult.error?.code ?? "host-error", detail: actionResult.error?.detail };
+    } else if (item.action === "execute-tool" && item.opensBanner && item.toolId) {
+      result = { ok: true };
+    } else if (item.action === "execute-tool") {
+      result = { ok: false, reason: "unsupported-tool" };
+    } else if (item.resourceId) {
+      const resourceResult = await runResourceCommand("resource.use", item.resourceId);
+      result = resourceResult.ok
         ? { ok: true }
-        : { ok: false, reason: result.reason, detail: result.detail };
+        : { ok: false, reason: resourceResult.reason, detail: resourceResult.detail };
+    } else if (item.action === "add-effect") {
+      result = await bridge.executeGlobalSearchAction({
+        action: "add-effect",
+        matchName: item.sourceId ?? item.id
+      });
+    } else {
+      result = { ok: false, reason: "invalid-resource" };
     }
-    if (item.action === "add-effect") {
-      return bridge.executeGlobalSearchAction({ action: "add-effect", matchName: item.sourceId ?? item.id });
-    }
-    return { ok: false, reason: "invalid-resource" };
-  }, [actionService, bridge, runResourceCommand]);
+    if (result.ok) rememberItem(item);
+    return result;
+  }, [actionService, bridge, rememberItem, runResourceCommand]);
 
   const value = useMemo<GlobalSearchContextValue>(() => ({
     index,

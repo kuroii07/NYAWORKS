@@ -440,6 +440,11 @@
   function getCurrentEffects() {
     var effects = [];
     var seen = {};
+    var installed;
+    var installedCount;
+    var installedEffect;
+    var installedMatchName;
+    var installedName;
     var matchNames = [
       "ADBE Gaussian Blur 2",
       "ADBE Fill",
@@ -447,7 +452,34 @@
       "ADBE Tint"
     ];
     var names = ["Gaussian Blur", "Fill", "Drop Shadow", "Tint"];
+    var aliases = [
+      ["高斯模糊", "高斯模糊 2", "gaussian blur"],
+      ["填充", "纯色填充", "填充效果"],
+      ["投影", "阴影", "drop shadow"],
+      ["色调", "色调映射", "tint"]
+    ];
     var index;
+
+    try {
+      installed = app && app.effects;
+      installedCount = Number(installed && (installed.numItems || installed.length) || 0);
+      for (index = 1; index <= installedCount; index += 1) {
+        installedEffect = installed.item
+          ? installed.item(index)
+          : installed[index - 1];
+        if (!installedEffect) continue;
+        installedMatchName = String(installedEffect.matchName || "");
+        installedName = String(installedEffect.displayName || installedEffect.name || "");
+        if (!installedMatchName || !installedName || seen[installedMatchName]) continue;
+        seen[installedMatchName] = true;
+        effects.push({
+          id: "effect:" + installedMatchName,
+          name: installedName,
+          matchName: installedMatchName,
+          aliases: []
+        });
+      }
+    } catch (ignoreInstalledEffects) {}
 
     for (index = 0; index < matchNames.length; index += 1) {
       if (!seen[matchNames[index]]) {
@@ -456,7 +488,7 @@
           id: "effect:" + matchNames[index],
           name: names[index],
           matchName: matchNames[index],
-          aliases: []
+          aliases: aliases[index]
         });
       }
     }
@@ -1155,6 +1187,172 @@
     if (positionProperty) positionProperty.setValue([comp.width / 2, comp.height / 2]);
   }
 
+  function layerNameExists(comp, name, ignoredLayer) {
+    var index;
+    var layer;
+    for (index = 1; index <= Number(comp && comp.numLayers || 0); index += 1) {
+      layer = comp.layer(index);
+      if (layer && layer !== ignoredLayer && String(layer.name || "") === name) return true;
+    }
+    try {
+      for (index = 0; index < Number(comp.selectedLayers && comp.selectedLayers.length || 0); index += 1) {
+        layer = comp.selectedLayers[index];
+        if (layer && layer !== ignoredLayer && String(layer.name || "") === name) return true;
+      }
+    } catch (ignoreSelectedNameLookup) {}
+    return false;
+  }
+
+  function uniqueLayerName(comp, baseName, ignoredLayer) {
+    var candidate = baseName;
+    var suffix = 2;
+    while (layerNameExists(comp, candidate, ignoredLayer)) {
+      candidate = baseName + " " + suffix;
+      suffix += 1;
+    }
+    return candidate;
+  }
+
+  function readCreationCompBounds(layer, time) {
+    var rect;
+    var source;
+    var transform;
+    var anchorProperty;
+    var positionProperty;
+    var scaleProperty;
+    var rotationProperty;
+    var anchor;
+    var position;
+    var scale;
+    var rotation;
+    var points;
+    var compPoints = [];
+    var index;
+    var localX;
+    var localY;
+    var radians;
+    var cos;
+    var sin;
+    var x;
+    var y;
+    var minX = Infinity;
+    var minY = Infinity;
+    var maxX = -Infinity;
+    var maxY = -Infinity;
+    try {
+      if (layer.sourceRectAtTime) rect = layer.sourceRectAtTime(time, false);
+    } catch (ignoreCreationSourceRect) {}
+    if (!rect) {
+      source = layer.source;
+      if (source && Number(source.width) >= 0 && Number(source.height) >= 0) {
+        rect = { left: 0, top: 0, width: Number(source.width), height: Number(source.height) };
+      } else if (Number(layer.width) >= 0 && Number(layer.height) >= 0) {
+        rect = { left: 0, top: 0, width: Number(layer.width), height: Number(layer.height) };
+      }
+    }
+    if (!rect) return null;
+    points = [
+      [Number(rect.left), Number(rect.top)],
+      [Number(rect.left) + Number(rect.width), Number(rect.top)],
+      [Number(rect.left) + Number(rect.width), Number(rect.top) + Number(rect.height)],
+      [Number(rect.left), Number(rect.top) + Number(rect.height)]
+    ];
+    try {
+      if (typeof layer.sourcePointToComp === "function") {
+        for (index = 0; index < points.length; index += 1) {
+          compPoints.push(layer.sourcePointToComp(points[index]));
+        }
+      }
+    } catch (ignoreCreationPointConversion) {
+      compPoints = [];
+    }
+    if (compPoints.length === points.length) {
+      for (index = 0; index < compPoints.length; index += 1) {
+        if (!compPoints[index] || !isFinite(Number(compPoints[index][0])) || !isFinite(Number(compPoints[index][1]))) {
+          compPoints = [];
+          break;
+        }
+      }
+    }
+    if (compPoints.length !== points.length) {
+      if (layer.parent || layer.threeDLayer) return null;
+      transform = layer.property("ADBE Transform Group");
+      anchorProperty = transform && transform.property("ADBE Anchor Point");
+      positionProperty = transform && transform.property("ADBE Position");
+      scaleProperty = transform && transform.property("ADBE Scale");
+      rotationProperty = transform && (transform.property("ADBE Rotate Z") || transform.property("ADBE Rotation"));
+      anchor = anchorProperty && anchorProperty.value;
+      position = positionProperty && positionProperty.value;
+      scale = scaleProperty && scaleProperty.value || [100, 100];
+      rotation = Number(rotationProperty && rotationProperty.value || 0);
+      if (!anchor || !position || anchor.length < 2 || position.length < 2) return null;
+      radians = rotation * Math.PI / 180;
+      cos = Math.cos(radians);
+      sin = Math.sin(radians);
+      for (index = 0; index < points.length; index += 1) {
+        localX = (points[index][0] - Number(anchor[0])) * Number(scale[0]) / 100;
+        localY = (points[index][1] - Number(anchor[1])) * Number(scale[1]) / 100;
+        compPoints.push([
+          Number(position[0]) + localX * cos - localY * sin,
+          Number(position[1]) + localX * sin + localY * cos
+        ]);
+      }
+    }
+    for (index = 0; index < compPoints.length; index += 1) {
+      if (!compPoints[index] || !isFinite(Number(compPoints[index][0])) || !isFinite(Number(compPoints[index][1]))) {
+        return null;
+      }
+      x = Number(compPoints[index][0]);
+      y = Number(compPoints[index][1]);
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+    return { left: minX, top: minY, right: maxX, bottom: maxY };
+  }
+
+  function selectionCompBounds(context) {
+    var result = { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity };
+    var time = Number(context.comp.time);
+    var index;
+    var current;
+    if (!context.selection.length) return null;
+    if (!isFinite(time)) time = Number(context.start) || 0;
+    for (index = 0; index < context.selection.length; index += 1) {
+      current = readCreationCompBounds(context.selection[index], time);
+      if (!current) return null;
+      result.left = Math.min(result.left, current.left);
+      result.top = Math.min(result.top, current.top);
+      result.right = Math.max(result.right, current.right);
+      result.bottom = Math.max(result.bottom, current.bottom);
+    }
+    return result;
+  }
+
+  function findLocalizedMenuCommand(candidates) {
+    var index;
+    var commandId;
+    if (!app || typeof app.findMenuCommandId !== "function") return 0;
+    for (index = 0; index < candidates.length; index += 1) {
+      try {
+        commandId = Number(app.findMenuCommandId(candidates[index])) || 0;
+        if (commandId > 0) return commandId;
+      } catch (ignoreMenuLookup) {}
+    }
+    return 0;
+  }
+
+  function executeMenuCommand(commandId) {
+    if (!commandId || !app || typeof app.executeCommand !== "function") return false;
+    try {
+      app.executeCommand(commandId);
+      return true;
+    } catch (ignoreMenuExecution) {
+      return false;
+    }
+  }
+
   function finishCreatedLayer(layer, context) {
     applyLayerTiming(layer, context);
     placeLayerAboveSelection(layer, context);
@@ -1167,46 +1365,75 @@
     };
   }
 
-  function createTextLayer(context) {
-    var layer = context.comp.layers.addText("text");
+  function createTextLayer(context, modifier) {
+    var comp = context.comp;
+    var layer;
+    // 文字层只保留一个稳定入口；不主动设置字体，让 AE 沿用当前“最近使用字体”。
+    // 旧版本传入 ctrl 时也回退到同一个点文字行为，避免历史布局产生另一套逻辑。
+    layer = comp.layers.addText("text");
+    layer.name = uniqueLayerName(comp, "Nya 文字", layer);
     var rect = layer.sourceRectAtTime(context.start, false);
-    setLayerCentered(layer, context.comp, [
+    setLayerCentered(layer, comp, [
       Number(rect.left) + Number(rect.width) / 2,
       Number(rect.top) + Number(rect.height) / 2
     ]);
     return finishCreatedLayer(layer, context);
   }
 
-  function createSolidLayer(context) {
+  function createSolidLayer(context, modifier) {
     var comp = context.comp;
+    var width;
+    var height;
+    // 纯色层不再承载修饰键扩展：始终创建 AE 原生黑色全合成 Solid，
+    // 颜色直接由效果控件中的 Fill 效果控制，避免额外的“颜色控制”重复入口。
+    width = comp.width;
+    height = comp.height;
     var layer = comp.layers.addSolid(
       [0, 0, 0],
-      "Nya Solid",
-      comp.width,
-      comp.height,
+      uniqueLayerName(comp, "Nya 纯色", null),
+      width,
+      height,
       comp.pixelAspect,
       comp.duration
     );
     var effects = layer.property("ADBE Effect Parade");
     var fill = effects && effects.addProperty("ADBE Fill");
     var color = fill && fill.property("ADBE Fill-0002");
-    if (color) color.setValue([0, 0, 0]);
+    if (color) {
+      color.setValue([0, 0, 0]);
+    }
     return finishCreatedLayer(layer, context);
   }
 
   function addLayerControl(layer, matchName, name, value) {
     var effects = layer.property("ADBE Effect Parade");
-    var control = effects.addProperty(matchName);
+    var control;
     var property;
+    if (!effects || typeof effects.addProperty !== "function") return null;
+    try {
+      control = effects.addProperty(matchName);
+    } catch (ignoreControlCreation) {
+      return null;
+    }
+    if (!control) return null;
     control.name = name;
     property = control.property(1);
-    property.setValue(value);
+    if (property && typeof property.setValue === "function" && typeof value !== "undefined") {
+      try {
+        property.setValue(value);
+      } catch (ignoreControlValue) {
+        // Layer Control 的“无目标”在不同 AE 版本中可能不接受数值 0。
+        // 控件本身仍然保留，让用户可以在效果控件中手动指定目标图层。
+      }
+    }
     return property;
   }
 
   function setShapeExpression(property, expression) {
+    if (!property) return false;
     property.expression = expression;
     property.expressionEnabled = true;
+    return true;
   }
 
   function addShapeFill(contents) {
@@ -1218,28 +1445,28 @@
   function createRoundedRectangleShape(layer, contents) {
     var path = contents.addProperty("ADBE Vector Shape - Group");
     var pathProperty = path.property("ADBE Vector Shape");
-    path.name = "Nya Rounded Rectangle";
-    addLayerControl(layer, "ADBE Slider Control", "Nya Width", 500);
-    addLayerControl(layer, "ADBE Slider Control", "Nya Height", 500);
-    addLayerControl(layer, "ADBE Slider Control", "Nya Roundness", 50);
-    addLayerControl(layer, "ADBE Checkbox Control", "Nya Separate Corners", 0);
-    addLayerControl(layer, "ADBE Slider Control", "Nya Corner TL", 100);
-    addLayerControl(layer, "ADBE Slider Control", "Nya Corner TR", 100);
-    addLayerControl(layer, "ADBE Slider Control", "Nya Corner BR", 100);
-    addLayerControl(layer, "ADBE Slider Control", "Nya Corner BL", 100);
+    path.name = "Nya 圆角矩形";
+    addLayerControl(layer, "ADBE Slider Control", "Nya 宽度", 500);
+    addLayerControl(layer, "ADBE Slider Control", "Nya 高度", 500);
+    addLayerControl(layer, "ADBE Slider Control", "Nya 圆角", 50);
+    addLayerControl(layer, "ADBE Checkbox Control", "Nya 分离圆角", 0);
+    addLayerControl(layer, "ADBE Slider Control", "Nya 左上圆角", 50);
+    addLayerControl(layer, "ADBE Slider Control", "Nya 右上圆角", 50);
+    addLayerControl(layer, "ADBE Slider Control", "Nya 右下圆角", 50);
+    addLayerControl(layer, "ADBE Slider Control", "Nya 左下圆角", 50);
     setShapeExpression(pathProperty, [
-      'w=Math.max(0,effect("Nya Width")(1));',
-      'h=Math.max(0,effect("Nya Height")(1));',
-      'round=Math.max(0,effect("Nya Roundness")(1));',
-      'separate=effect("Nya Separate Corners")(1)>0;',
+      'w=Math.max(0,effect("Nya 宽度")(1));',
+      'h=Math.max(0,effect("Nya 高度")(1));',
+      'round=Math.max(0,effect("Nya 圆角")(1));',
+      'separate=effect("Nya 分离圆角")(1)>0;',
       'limit=Math.min(w,h)/2;',
-      'tl=Math.min(limit,round*(separate?Math.max(0,effect("Nya Corner TL")(1))/100:1));',
-      'tr=Math.min(limit,round*(separate?Math.max(0,effect("Nya Corner TR")(1))/100:1));',
-      'br=Math.min(limit,round*(separate?Math.max(0,effect("Nya Corner BR")(1))/100:1));',
-      'bl=Math.min(limit,round*(separate?Math.max(0,effect("Nya Corner BL")(1))/100:1));',
+      'tl=Math.min(limit,separate?Math.max(0,effect("Nya 左上圆角")(1)):round);',
+      'tr=Math.min(limit,separate?Math.max(0,effect("Nya 右上圆角")(1)):round);',
+      'br=Math.min(limit,separate?Math.max(0,effect("Nya 右下圆角")(1)):round);',
+      'bl=Math.min(limit,separate?Math.max(0,effect("Nya 左下圆角")(1)):round);',
       'hw=w/2;hh=h/2;k=0.5522847498;',
       'points=[[-hw+tl,-hh],[hw-tr,-hh],[hw,-hh+tr],[hw,hh-br],[hw-br,hh],[-hw+bl,hh],[-hw,hh-bl],[-hw,-hh+tl]];',
-      'ins=[[-k*tl,0],[-k*tr,0],[0,-k*tr],[0,-k*br],[k*br,0],[k*bl,0],[0,k*bl],[0,k*tl]];',
+      'ins=[[-k*tl,0],[0,0],[0,-k*tr],[0,0],[k*br,0],[0,0],[0,k*bl],[0,0]];',
       'outs=[[0,0],[k*tr,0],[0,0],[0,k*br],[0,0],[-k*bl,0],[0,0],[0,-k*tl]];',
       'createPath(points,ins,outs,true);'
     ].join("\n"));
@@ -1248,10 +1475,9 @@
   function createEllipseShape(layer, contents) {
     var ellipse = contents.addProperty("ADBE Vector Shape - Ellipse");
     var size = ellipse.property("ADBE Vector Ellipse Size");
-    ellipse.name = "Nya Ellipse";
-    addLayerControl(layer, "ADBE Slider Control", "Nya Width", 500);
-    addLayerControl(layer, "ADBE Slider Control", "Nya Height", 500);
-    setShapeExpression(size, '[Math.max(0,effect("Nya Width")(1)),Math.max(0,effect("Nya Height")(1))]');
+    ellipse.name = "Nya 圆";
+    addLayerControl(layer, "ADBE Slider Control", "Nya 半径", 250);
+    setShapeExpression(size, 'r=Math.max(0,effect("Nya 半径")(1));[r*2,r*2]');
   }
 
   function createPolygonShape(layer, contents, isStar) {
@@ -1259,16 +1485,37 @@
     var type = star.property("ADBE Vector Star Type");
     var points = star.property("ADBE Vector Star Points");
     var outerRadius = star.property("ADBE Vector Star Outer Radius");
+    var rotation = star.property("ADBE Vector Star Rotation");
+    var outerRoundness = star.property("ADBE Vector Star Outer Roundness") ||
+      star.property("ADBE Vector Star Outer Roundess");
     var innerRadius;
-    star.name = isStar ? "Nya Star" : "Nya Triangle";
-    type.setValue(isStar ? 1 : 2);
-    points.setValue(isStar ? 5 : 3);
-    addLayerControl(layer, "ADBE Slider Control", "Nya Size", 500);
-    setShapeExpression(outerRadius, 'Math.max(0,effect("Nya Size")(1))/2');
+    var innerRoundness;
+    star.name = isStar ? "Nya 星形" : "Nya 三角形";
+    if (type && typeof type.setValue === "function") type.setValue(isStar ? 1 : 2);
+    if (points && typeof points.setValue === "function") points.setValue(isStar ? 5 : 3);
     if (isStar) {
-      addLayerControl(layer, "ADBE Slider Control", "Nya Inner Size", 250);
+      addLayerControl(layer, "ADBE Slider Control", "Nya 角数", 5);
+      addLayerControl(layer, "ADBE Slider Control", "Nya 外半径", 250);
+      addLayerControl(layer, "ADBE Slider Control", "Nya 内半径", 125);
+      addLayerControl(layer, "ADBE Angle Control", "Nya 旋转", 0);
+      addLayerControl(layer, "ADBE Slider Control", "Nya 外圆角", 0);
+      addLayerControl(layer, "ADBE Slider Control", "Nya 内圆角", 0);
       innerRadius = star.property("ADBE Vector Star Inner Radius");
-      setShapeExpression(innerRadius, 'Math.max(0,effect("Nya Inner Size")(1))/2');
+      innerRoundness = star.property("ADBE Vector Star Inner Roundness") ||
+        star.property("ADBE Vector Star Inner Roundess");
+      setShapeExpression(points, 'Math.max(2,Math.round(effect("Nya 角数")(1)))');
+      setShapeExpression(outerRadius, 'Math.max(0,effect("Nya 外半径")(1))');
+      setShapeExpression(innerRadius, 'Math.max(0,Math.min(effect("Nya 内半径")(1),effect("Nya 外半径")(1)))');
+      setShapeExpression(rotation, 'effect("Nya 旋转")(1)');
+      setShapeExpression(outerRoundness, 'Math.max(0,Math.min(100,effect("Nya 外圆角")(1)))');
+      setShapeExpression(innerRoundness, 'Math.max(0,Math.min(100,effect("Nya 内圆角")(1)))');
+    } else {
+      addLayerControl(layer, "ADBE Slider Control", "Nya 半径", 250);
+      addLayerControl(layer, "ADBE Angle Control", "Nya 旋转", 0);
+      addLayerControl(layer, "ADBE Slider Control", "Nya 圆角", 0);
+      setShapeExpression(outerRadius, 'Math.max(0,effect("Nya 半径")(1))');
+      setShapeExpression(rotation, 'effect("Nya 旋转")(1)');
+      setShapeExpression(outerRoundness, 'Math.max(0,Math.min(100,effect("Nya 圆角")(1)))');
     }
   }
 
@@ -1277,7 +1524,14 @@
     var root = layer.property("ADBE Root Vectors Group");
     var group = root.addProperty("ADBE Vector Group");
     var contents = group.property("ADBE Vectors Group");
-    group.name = "Nya Shape";
+    var names = {
+      none: "Nya 圆角矩形",
+      alt: "Nya 圆",
+      ctrl: "Nya 三角形",
+      shift: "Nya 星形"
+    };
+    layer.name = uniqueLayerName(context.comp, names[modifier] || names.none, layer);
+    group.name = layer.name;
     if (modifier === "alt") {
       createEllipseShape(layer, contents);
     } else if (modifier === "ctrl") {
@@ -1361,7 +1615,7 @@
     var layer = context.comp.layers.addNull(context.comp.duration);
     var anchor = [Number(layer.width || 100) / 2, Number(layer.height || 100) / 2];
     var targetPosition = [position[0], position[1]];
-    layer.name = name || "Nya Controller";
+    layer.name = uniqueLayerName(context.comp, name || "Nya 控制", layer);
     layer.guideLayer = true;
     layer.threeDLayer = !!isThreeD;
     if (isThreeD) {
@@ -1407,7 +1661,7 @@
           insertionIndex: Number(target.index),
           insertionLayer: target
         };
-        controller = createGuideNull(targetContext, position, !!target.threeDLayer, "Nya Controller");
+        controller = createGuideNull(targetContext, position, !!target.threeDLayer, "Nya 控制");
         placeLayerAboveSelection(controller, targetContext);
         target.parent = controller;
         controllers.push(controller);
@@ -1417,7 +1671,7 @@
         if (context.selection[index].threeDLayer) isThreeD = true;
       }
       position = averageControllerPosition(context.selection, context.comp);
-      controller = createGuideNull(context, position, isThreeD, "Nya Controller");
+      controller = createGuideNull(context, position, isThreeD, "Nya 控制");
       placeLayerAboveSelection(controller, context);
       for (index = 0; index < context.selection.length; index += 1) {
         context.selection[index].parent = controller;
@@ -1443,19 +1697,33 @@
     var rotateX = layerTransformProperty(controller, "ADBE Rotate X");
     var rotateY = layerTransformProperty(controller, "ADBE Rotate Y");
     var rotateZ = layerTransformProperty(controller, "ADBE Rotate Z");
-    addLayerControl(controller, "ADBE Slider Control", "Nya Position X", position[0]);
-    addLayerControl(controller, "ADBE Slider Control", "Nya Position Y", position[1]);
-    addLayerControl(controller, "ADBE Slider Control", "Nya Position Z", position[2]);
-    addLayerControl(controller, "ADBE Angle Control", "Nya Rotation X", 0);
-    addLayerControl(controller, "ADBE Angle Control", "Nya Rotation Y", 0);
-    addLayerControl(controller, "ADBE Angle Control", "Nya Rotation Z", 0);
-    addLayerControl(controller, "ADBE Slider Control", "Nya Focal Length", 35);
-    addLayerControl(controller, "ADBE Checkbox Control", "Nya Depth of Field", 0);
-    addLayerControl(controller, "ADBE Checkbox Control", "Nya Focus to Point", 0);
-    setShapeExpression(positionProperty, '[effect("Nya Position X")(1),effect("Nya Position Y")(1),effect("Nya Position Z")(1)]');
-    setShapeExpression(rotateX, 'effect("Nya Rotation X")(1)');
-    setShapeExpression(rotateY, 'effect("Nya Rotation Y")(1)');
-    setShapeExpression(rotateZ, 'effect("Nya Rotation Z")(1)');
+    addLayerControl(controller, "ADBE Layer Control", "Nya 目标图层", 0);
+    addLayerControl(controller, "ADBE Slider Control", "Nya 相机位置 X", position[0]);
+    addLayerControl(controller, "ADBE Slider Control", "Nya 相机位置 Y", position[1]);
+    addLayerControl(controller, "ADBE Slider Control", "Nya 相机位置 Z", position[2]);
+    addLayerControl(controller, "ADBE Angle Control", "Nya 相机旋转 X", 0);
+    addLayerControl(controller, "ADBE Angle Control", "Nya 相机旋转 Y", 0);
+    addLayerControl(controller, "ADBE Angle Control", "Nya 相机旋转 Z", 0);
+    addLayerControl(controller, "ADBE Checkbox Control", "Nya 自动移动", 0);
+    addLayerControl(controller, "ADBE Slider Control", "Nya 移动速度", 0);
+    addLayerControl(controller, "ADBE Slider Control", "Nya 镜头焦距", 35);
+    addLayerControl(controller, "ADBE Checkbox Control", "Nya 镜头景深", 0);
+    addLayerControl(controller, "ADBE Checkbox Control", "Nya 焦点自动", 0);
+    addLayerControl(controller, "ADBE Slider Control", "Nya 焦点距离", 1000);
+    addLayerControl(controller, "ADBE Slider Control", "Nya 抖动强度", 0);
+    addLayerControl(controller, "ADBE Slider Control", "Nya 抖动频率", 2);
+    setShapeExpression(positionProperty, [
+      'base=[effect("Nya 相机位置 X")(1),effect("Nya 相机位置 Y")(1),effect("Nya 相机位置 Z")(1)];',
+      'moving=effect("Nya 自动移动")(1)>0;',
+      'speed=effect("Nya 移动速度")(1);',
+      'amount=Math.max(0,effect("Nya 抖动强度")(1));',
+      'frequency=Math.max(0,effect("Nya 抖动频率")(1));',
+      'result=base+[0,0,moving?time*speed:0];',
+      'amount>0?result+(wiggle(frequency,amount)-value):result;'
+    ].join("\n"));
+    setShapeExpression(rotateX, 'effect("Nya 相机旋转 X")(1)');
+    setShapeExpression(rotateY, 'effect("Nya 相机旋转 Y")(1)');
+    setShapeExpression(rotateZ, 'effect("Nya 相机旋转 Z")(1)');
   }
 
   function configureCameraFromController(camera, controller, comp) {
@@ -1463,10 +1731,21 @@
     var zoom = options && options.property("ADBE Camera Zoom");
     var depth = options && options.property("ADBE Camera Depth of Field");
     var focus = options && options.property("ADBE Camera Focus Distance");
+    var pointOfInterest = layerTransformProperty(camera, "ADBE Point of Interest");
     var controllerName = expressionLayerName(controller.name);
-    if (zoom) setShapeExpression(zoom, 'thisComp.width*thisComp.layer("' + controllerName + '").effect("Nya Focal Length")(1)/36');
-    if (depth) setShapeExpression(depth, 'thisComp.layer("' + controllerName + '").effect("Nya Depth of Field")(1)>0?1:0');
-    if (focus) setShapeExpression(focus, 'thisComp.layer("' + controllerName + '").effect("Nya Focus to Point")(1)>0?length(transform.position,transform.pointOfInterest):value');
+    if (zoom) setShapeExpression(zoom, 'thisComp.width*thisComp.layer("' + controllerName + '").effect("Nya 镜头焦距")(1)/36');
+    if (depth) setShapeExpression(depth, 'thisComp.layer("' + controllerName + '").effect("Nya 镜头景深")(1)>0?1:0');
+    if (focus) setShapeExpression(focus, [
+      'ctrl=thisComp.layer("' + controllerName + '");',
+      'target=ctrl.effect("Nya 目标图层")(1);',
+      'autoFocus=ctrl.effect("Nya 焦点自动")(1)>0;',
+      'autoFocus&&target?length(toWorld([0,0,0]),target.toWorld(target.anchorPoint)):ctrl.effect("Nya 焦点距离")(1);'
+    ].join("\n"));
+    if (pointOfInterest) setShapeExpression(pointOfInterest, [
+      'ctrl=thisComp.layer("' + controllerName + '");',
+      'target=ctrl.effect("Nya 目标图层")(1);',
+      'target?fromWorld(target.toWorld(target.anchorPoint)):value;'
+    ].join("\n"));
   }
 
   function setCamera35mm(camera, comp) {
@@ -1478,25 +1757,44 @@
   function createCameraRig(context, modifier) {
     var comp = context.comp;
     var center = averageControllerPosition(context.selection, comp);
-    var camera = comp.layers.addCamera("Nya Camera", [center[0], center[1]]);
+    var commandId = 0;
+    var camera;
     var controller;
+    var result;
+    if (modifier === "ctrl") {
+      commandId = findLocalizedMenuCommand([
+        "Camera Settings...", "Camera Settings…",
+        "摄像机设置...", "摄像机设置…", "相机设置...", "相机设置…",
+        "攝影機設定...", "攝影機設定…",
+        "カメラ設定...", "カメラ設定…", "카메라 설정...", "카메라 설정…"
+      ]);
+      if (!commandId) return { ok: false, reason: "host-error", detail: "camera-settings-unavailable" };
+    }
+    camera = comp.layers.addCamera(uniqueLayerName(comp, "Nya 摄像机", null), [center[0], center[1]]);
     setCamera35mm(camera, comp);
     applyLayerTiming(camera, context);
-
-    if (modifier === "alt") {
-      placeLayerAboveSelection(camera, context);
-      selectOnlyLayers([camera], comp);
-      return { ok: true, createdLayers: 1, updatedLayers: 0, createdItems: 0 };
-    }
-
-    controller = createGuideNull(context, center, true, "Nya Camera Controller");
+    controller = createGuideNull(context, center, true, "Nya 摄像机控制");
     addCameraControllerControls(controller, center);
     camera.parent = controller;
+    // Parent 后重新写入局部坐标，确保控制器位于合成中心时摄像机仍在
+    // 控制器前方，而不是因为 AE 保留世界坐标造成位置偏移。
+    var localPosition = layerTransformProperty(camera, "ADBE Position");
+    var localPointOfInterest = layerTransformProperty(camera, "ADBE Point of Interest");
+    if (localPosition) localPosition.setValue([0, 0, -1000]);
+    if (localPointOfInterest) localPointOfInterest.setValue([0, 0, 0]);
     configureCameraFromController(camera, controller, comp);
     placeLayerAboveSelection(camera, context);
-    placeLayerAboveSelection(controller, context);
+    if (typeof controller.moveBefore === "function") controller.moveBefore(camera);
     selectOnlyLayers([controller], comp);
-    return { ok: true, createdLayers: 2, updatedLayers: 0, createdItems: 0 };
+    result = { ok: true, createdLayers: 2, updatedLayers: 0, createdItems: 0 };
+    if (commandId) {
+      selectOnlyLayers([camera], comp);
+      if (!executeMenuCommand(commandId)) {
+        return { ok: false, reason: "host-error", detail: "camera-settings-unavailable" };
+      }
+      selectOnlyLayers([controller], comp);
+    }
+    return result;
   }
 
   function projectItemNameExists(name) {
@@ -1541,6 +1839,116 @@
       : null;
   }
 
+  function shiftPropertyForCrop(property, offsetX, offsetY) {
+    var value;
+    var index;
+    if (!property || property.expressionEnabled || property.expression) return false;
+    try {
+      if (Number(property.numKeys || 0) > 0) {
+        for (index = 1; index <= property.numKeys; index += 1) {
+          value = property.keyValue(index);
+          if (!value || value.length < 2) return false;
+          value = value.slice(0);
+          value[0] = Number(value[0]) - offsetX;
+          value[1] = Number(value[1]) - offsetY;
+          property.setValueAtKey(index, value);
+        }
+        return true;
+      }
+      value = property.value;
+      if (!value || value.length < 2) return false;
+      value = value.slice(0);
+      value[0] = Number(value[0]) - offsetX;
+      value[1] = Number(value[1]) - offsetY;
+      property.setValue(value);
+      return true;
+    } catch (ignoreCropPosition) {
+      return false;
+    }
+  }
+
+  function selectionContainsLayer(selection, target) {
+    var index;
+    for (index = 0; index < selection.length; index += 1) {
+      if (selection[index] === target) return true;
+    }
+    return false;
+  }
+
+  function canCropSelection(selection) {
+    var index;
+    var layer;
+    var position;
+    var value;
+    for (index = 0; index < selection.length; index += 1) {
+      layer = selection[index];
+      if (layer.parent && selectionContainsLayer(selection, layer.parent)) continue;
+      if (layer.parent) return false;
+      position = layerTransformProperty(layer, "ADBE Position");
+      if (!position || position.expressionEnabled || position.expression) return false;
+      try {
+        if (Number(position.numKeys || 0) > 0) {
+          if (typeof position.keyValue !== "function" || typeof position.setValueAtKey !== "function") return false;
+          value = position.keyValue(1);
+        } else {
+          if (typeof position.setValue !== "function") return false;
+          value = position.value;
+        }
+      } catch (ignoreCropPreflight) {
+        return false;
+      }
+      if (!value || value.length < 2) return false;
+    }
+    return true;
+  }
+
+  function trimPrecompTiming(source, layer, start, end) {
+    var duration = Math.max(0.001, Number(end) - Number(start));
+    var index;
+    var child;
+    for (index = 1; index <= Number(source.numLayers || 0); index += 1) {
+      child = source.layer(index);
+      if (!child) continue;
+      child.startTime = Number(child.startTime) - Number(start);
+      child.inPoint = Math.max(0, Math.min(duration, Number(child.inPoint) - Number(start)));
+      child.outPoint = Math.max(
+        child.inPoint,
+        Math.min(duration, Number(child.outPoint) - Number(start))
+      );
+    }
+    source.displayStartTime = 0;
+    source.duration = duration;
+    layer.startTime = Number(start);
+    layer.inPoint = Number(start);
+    layer.outPoint = Number(end);
+  }
+
+  function cropPrecompToBounds(source, layer, bounds) {
+    var left = Math.floor(Number(bounds.left));
+    var top = Math.floor(Number(bounds.top));
+    var right = Math.ceil(Number(bounds.right));
+    var bottom = Math.ceil(Number(bounds.bottom));
+    var width = Math.max(1, right - left);
+    var height = Math.max(1, bottom - top);
+    var index;
+    var child;
+    var position;
+    for (index = 1; index <= Number(source.numLayers || 0); index += 1) {
+      child = source.layer(index);
+      if (!child || child.parent) continue;
+      position = layerTransformProperty(child, "ADBE Position");
+      if (!shiftPropertyForCrop(position, left, top)) return false;
+    }
+    source.width = width;
+    source.height = height;
+    layerTransformProperty(layer, "ADBE Anchor Point").setValue([width / 2, height / 2]);
+    layerTransformProperty(layer, "ADBE Position").setValue([
+      left + width / 2,
+      top + height / 2
+    ]);
+    return true;
+  }
+
   function precomposeSelected(context, modifier) {
     var selection = context.selection;
     var topLayer = selection[0];
@@ -1549,19 +1957,47 @@
     var name;
     var source;
     var layer;
+    var bounds = null;
+    var commandId = 0;
     if (!selection.length) return { ok: false, reason: "no-selected-layer" };
-    if (modifier === "alt" && selection.length !== 1) {
-      return { ok: false, reason: "invalid-selection", detail: "alt-requires-single-layer" };
+    if (modifier === "alt") {
+      bounds = selectionCompBounds(context);
+      if (!bounds || !canCropSelection(selection)) {
+        return { ok: false, reason: "invalid-selection", detail: "precomp-bounds-unavailable" };
+      }
+    }
+    if (modifier === "settings") {
+      commandId = findLocalizedMenuCommand([
+        "Composition Settings...", "Composition Settings…",
+        "合成设置...", "合成设置…",
+        "合成設定...", "合成設定…",
+        "コンポジション設定...", "コンポジション設定…",
+        "컴포지션 설정...", "컴포지션 설정…"
+      ]);
+      if (!commandId) return { ok: false, reason: "host-error", detail: "composition-settings-unavailable" };
     }
     for (index = 1; index < selection.length; index += 1) {
       if (Number(selection[index].index) < Number(topLayer.index)) topLayer = selection[index];
     }
     indices = selectedLayerIndices(selection);
     name = uniqueProjectItemName(String(topLayer.name || "Layer") + " Precomp");
-    source = context.comp.layers.precompose(indices, name, modifier !== "alt");
+    source = context.comp.layers.precompose(indices, name, true);
     layer = findLayerForSource(context.comp, source);
     if (!layer) return { ok: false, reason: "host-error", detail: "precomp-layer-not-found" };
+    trimPrecompTiming(source, layer, context.start, context.end);
+    if (bounds && !cropPrecompToBounds(source, layer, bounds)) {
+      return { ok: false, reason: "invalid-selection", detail: "precomp-bounds-unsupported" };
+    }
     selectOnlyLayers([layer], context.comp);
+    if (commandId) {
+      if (typeof source.openInViewer !== "function") {
+        return { ok: false, reason: "host-error", detail: "composition-viewer-unavailable" };
+      }
+      source.openInViewer();
+      if (!executeMenuCommand(commandId)) {
+        return { ok: false, reason: "host-error", detail: "composition-settings-unavailable" };
+      }
+    }
     return { ok: true, createdLayers: 1, updatedLayers: 0, createdItems: 1 };
   }
 
@@ -1620,21 +2056,94 @@
     }
   }
 
-  function propertyTreeHasExpression(property) {
+  function propertyTreeHasUnsafeExpression(property) {
     var count;
     var index;
     var child;
+    var expression;
     if (!property) return false;
     try {
-      if (property.expressionEnabled || property.expression) return true;
+      expression = String(property.expression || "");
+      if (property.expressionEnabled && expression) {
+        // thisComp / comp() 在解开后会指向不同的合成；其余常见表达式
+        // 通过 copyToComp 可以原样保留，不应阻塞普通解预合成。
+        if (/\bthisComp\b|\bcomp\s*\(/.test(expression)) return true;
+      }
     } catch (ignoreExpressionRead) {}
     try {
       count = Number(property.numProperties || 0);
       for (index = 1; index <= count; index += 1) {
         child = property.property(index);
-        if (propertyTreeHasExpression(child)) return true;
+        if (propertyTreeHasUnsafeExpression(child)) return true;
       }
     } catch (ignorePropertyTraversal) {
+      return false;
+    }
+    return false;
+  }
+
+  function layerStylesAreActive(layerStyles) {
+    var count;
+    var index;
+    var style;
+    var propertyCount;
+    var propertyIndex;
+    var candidate;
+    var matchName;
+    if (!layerStyles) return false;
+    try {
+      count = Number(layerStyles.numProperties || 0);
+      for (index = 1; index <= count; index += 1) {
+        style = layerStyles.property(index);
+        if (!style) continue;
+        try {
+          if (style.enabled === true) return true;
+          if (style.enabled === false) continue;
+        } catch (ignoreStyleEnabled) {}
+        propertyCount = Number(style.numProperties || 0);
+        for (propertyIndex = 1; propertyIndex <= propertyCount; propertyIndex += 1) {
+          candidate = style.property(propertyIndex);
+          if (!candidate) continue;
+          matchName = String(candidate.matchName || candidate.name || "").toLowerCase();
+          if (matchName.indexOf("enable") >= 0 && Number(candidate.value) !== 0) return true;
+        }
+      }
+    } catch (ignoreLayerStyleTraversal) {
+      return false;
+    }
+    return false;
+  }
+
+  function sourceContainsLayer(source, target) {
+    var index;
+    if (!source || !target) return false;
+    for (index = 1; index <= Number(source.numLayers || 0); index += 1) {
+      if (source.layer(index) === target) return true;
+    }
+    return false;
+  }
+
+  function propertyGroupHasActiveItems(group, requireExplicitEnabled) {
+    var count;
+    var index;
+    var item;
+    var enabled;
+    if (!group) return false;
+    try {
+      count = Number(group.numProperties || 0);
+      for (index = 1; index <= count; index += 1) {
+        item = group.property(index);
+        if (!item) continue;
+        try {
+          enabled = item.enabled;
+          if (enabled === false) continue;
+          if (requireExplicitEnabled && enabled !== true) continue;
+        } catch (ignoreItemEnabled) {}
+        if (requireExplicitEnabled) continue;
+        return true;
+      }
+    } catch (ignoreActiveGroupTraversal) {
+      // 无法读取组内容时宁可保守拒绝，避免静默丢失效果或遮罩。
       return true;
     }
     return false;
@@ -1646,6 +2155,9 @@
     var effects;
     var masks;
     var layerStyles;
+    var anchorProperty;
+    var positionProperty;
+    var positionValue;
     if (!layer || !source || !(source instanceof CompItem)) {
       return { ok: false, reason: "unsupported-precomp", detail: "select-one-precomp-layer" };
     }
@@ -1680,16 +2192,17 @@
     masks = layer.property("ADBE Mask Parade");
     layerStyles = layer.property("ADBE Layer Styles");
     if (
-      (effects && effects.numProperties > 0) ||
-      (masks && masks.numProperties > 0) ||
-      (layerStyles && layerStyles.numProperties > 0)
+      propertyGroupHasActiveItems(effects, true) ||
+      propertyGroupHasActiveItems(masks, true) ||
+      layerStylesAreActive(layerStyles)
     ) {
       return { ok: false, reason: "unsafe-unprecompose", detail: "outer-effects-masks-or-styles" };
     }
     transform = layer.property("ADBE Transform Group");
+    anchorProperty = transform && transform.property("ADBE Anchor Point");
+    positionProperty = transform && transform.property("ADBE Position");
     if (
-      !propertyIsDefault(transform && transform.property("ADBE Anchor Point"), [source.width / 2, source.height / 2]) ||
-      !propertyIsDefault(transform && transform.property("ADBE Position"), [comp.width / 2, comp.height / 2]) ||
+      !propertyIsDefault(anchorProperty, [source.width / 2, source.height / 2]) ||
       !propertyIsDefault(transform && transform.property("ADBE Scale"), [100, 100]) ||
       !propertyIsDefault(transform && (transform.property("ADBE Rotate Z") || transform.property("ADBE Rotation")), 0) ||
       !propertyIsDefault(transform && transform.property("ADBE Orientation"), [0, 0, 0]) ||
@@ -1697,7 +2210,19 @@
     ) {
       return { ok: false, reason: "unsafe-unprecompose", detail: "outer-transform-not-default" };
     }
-    return { ok: true, source: source };
+    if (!positionProperty || Number(positionProperty.numKeys || 0) > 0 || positionProperty.expressionEnabled || positionProperty.expression) {
+      return { ok: false, reason: "unsafe-unprecompose", detail: "outer-transform-not-default" };
+    }
+    positionValue = positionProperty.value;
+    if (!positionValue || positionValue.length < 2) {
+      return { ok: false, reason: "unsafe-unprecompose", detail: "outer-transform-not-default" };
+    }
+    return {
+      ok: true,
+      source: source,
+      offsetX: Number(positionValue[0]) - Number(source.width) / 2,
+      offsetY: Number(positionValue[1]) - Number(source.height) / 2
+    };
   }
 
   function validateUnprecomposeSource(source) {
@@ -1709,10 +2234,13 @@
       if (layer.matchName === "ADBE Camera Layer" || layer.matchName === "ADBE Light Layer") {
         return { ok: false, reason: "unsafe-unprecompose", detail: "camera-or-light-content" };
       }
-      if (layer.parent || layer.locked || layerHasTrackMatteDependency(layer)) {
+      if (layer.locked || layerHasTrackMatteDependency(layer)) {
         return { ok: false, reason: "unsafe-unprecompose", detail: "cross-layer-dependency" };
       }
-      if (propertyTreeHasExpression(layer)) {
+      if (layer.parent && !sourceContainsLayer(source, layer.parent)) {
+        return { ok: false, reason: "unsafe-unprecompose", detail: "cross-layer-dependency" };
+      }
+      if (propertyTreeHasUnsafeExpression(layer)) {
         return { ok: false, reason: "unsafe-unprecompose", detail: "source-expression" };
       }
     }
@@ -1725,10 +2253,16 @@
     var sourceValidation;
     var source;
     var copies = [];
+    var pairs = [];
     var copy;
     var beforeCopy;
     var index;
+    var pairIndex;
+    var parentSource;
+    var parentCopy;
     var delta;
+    var offsetX;
+    var offsetY;
     var anchor;
     if (context.selection.length !== 1) {
       return {
@@ -1739,6 +2273,8 @@
     outerValidation = validateUnprecomposeOuter(outer, context.comp);
     if (!outerValidation.ok) return outerValidation;
     source = outerValidation.source;
+    offsetX = Number(outerValidation.offsetX) || 0;
+    offsetY = Number(outerValidation.offsetY) || 0;
     sourceValidation = validateUnprecomposeSource(source);
     if (!sourceValidation.ok) return sourceValidation;
     delta = Number(outer.startTime) - Number(source.displayStartTime || 0);
@@ -1756,9 +2292,30 @@
         copy = context.comp.layer(1);
         if (!copy) throw new Error("copy-not-found");
         copies.push(copy);
+        pairs.push({ sourceLayer: source.layer(index), copy: copy });
         copy.startTime = Number(copy.startTime) + delta;
         copy.inPoint = Number(copy.inPoint) + delta;
         copy.outPoint = Number(copy.outPoint) + delta;
+        if ((offsetX !== 0 || offsetY !== 0) && !shiftPropertyForCrop(
+          layerTransformProperty(copy, "ADBE Position"),
+          -offsetX,
+          -offsetY
+        )) {
+          throw new Error("position-restore-failed");
+        }
+      }
+      for (pairIndex = 0; pairIndex < pairs.length; pairIndex += 1) {
+        parentSource = pairs[pairIndex].sourceLayer && pairs[pairIndex].sourceLayer.parent;
+        if (!parentSource) continue;
+        parentCopy = null;
+        for (index = 0; index < pairs.length; index += 1) {
+          if (pairs[index].sourceLayer === parentSource) {
+            parentCopy = pairs[index].copy;
+            break;
+          }
+        }
+        if (!parentCopy) throw new Error("parent-restore-failed");
+        pairs[pairIndex].copy.parent = parentCopy;
       }
       anchor = outer;
       for (index = 0; index < copies.length; index += 1) {
@@ -1783,7 +2340,8 @@
 
   function createLightLayer(context, modifier) {
     var comp = context.comp;
-    var layer = comp.layers.addLight("Nya Light", [comp.width / 2, comp.height / 2]);
+    var center = [comp.width / 2, comp.height / 2, 0];
+    var layer = comp.layers.addLight(uniqueLayerName(comp, "Nya 灯光", null), [center[0], center[1]]);
     var lightTypes = {
       none: LightType.POINT,
       alt: LightType.SPOT,
@@ -1791,6 +2349,12 @@
       shift: LightType.AMBIENT
     };
     layer.lightType = lightTypes[modifier];
+    var position = layerTransformProperty(layer, "ADBE Position");
+    var pointOfInterest = layerTransformProperty(layer, "ADBE Point of Interest");
+    if (position) {
+      position.setValue(center);
+    }
+    if (pointOfInterest) pointOfInterest.setValue(center);
     return finishCreatedLayer(layer, context);
   }
 
@@ -1811,7 +2375,8 @@
       payload.modifier !== "none" &&
       payload.modifier !== "alt" &&
       payload.modifier !== "ctrl" &&
-      payload.modifier !== "shift"
+      payload.modifier !== "shift" &&
+      payload.modifier !== "settings"
     ) {
       return JSON.stringify({ ok: false, reason: "host-error", detail: "invalid-modifier" });
     }
@@ -1821,10 +2386,6 @@
     if ((action === "precompose-selected" || action === "unprecompose-selected") && context.selection.length === 0) {
       return JSON.stringify({ ok: false, reason: "no-selected-layer" });
     }
-    if (action === "precompose-selected" && modifier === "alt" && context.selection.length !== 1) {
-      return JSON.stringify({ ok: false, reason: "invalid-selection", detail: "alt-requires-single-layer" });
-    }
-
     try {
       app.beginUndoGroup(
         action === "precompose-selected"

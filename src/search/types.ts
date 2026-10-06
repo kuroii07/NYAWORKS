@@ -33,6 +33,7 @@ export interface GlobalSearchItem {
   opensBanner?: boolean;
   displaySuffix?: string;
   displayName?: string;
+  phoneticTerms?: string[];
   order?: number;
   recentRank?: number;
 }

@@ -16,6 +16,7 @@ function createLayer(kind, options = {}) {
   const transform = {
     "ADBE Anchor Point": prop(options.anchor ?? [0, 0]),
     "ADBE Position": prop(options.position ?? [0, 0]),
+    "ADBE Point of Interest": prop([0, 0, 0]),
     "ADBE Rotate X": prop(0),
     "ADBE Rotate Y": prop(0),
     "ADBE Rotate Z": prop(0)
@@ -136,13 +137,22 @@ describe("null controller host action", () => {
       createdLayers: 1
     });
     expect(created[0]).toMatchObject({
-      name: "Nya Controller",
+      name: "Nya 控制",
       guideLayer: true,
       threeDLayer: false,
       selected: true
     });
     expect(created[0].transform["ADBE Anchor Point"].value).toEqual([50, 50]);
     expect(created[0].transform["ADBE Position"].value).toEqual([960, 540]);
+  });
+
+  it("adds a numeric suffix when the controller name already exists", async () => {
+    const existing = createLayer("null", { name: "Nya 控制" });
+    const { app, created } = createApp([existing]);
+    const runLayerAction = await loadRunLayerAction(app);
+
+    expect(JSON.parse(runLayerAction(encoded("create-null"))).ok).toBe(true);
+    expect(created[0].name).toBe("Nya 控制 2");
   });
 
   it("parents selected layers to one controller without changing their positions", async () => {
@@ -211,39 +221,52 @@ describe("camera rig host action", () => {
     const camera = created.find((layer) => layer.kind === "camera");
     const controller = created.find((layer) => layer.kind === "null");
     expect(controller).toMatchObject({
-      name: "Nya Camera Controller",
+      name: "Nya 摄像机控制",
       guideLayer: true,
       threeDLayer: true,
       selected: true
     });
-    expect(camera.name).toBe("Nya Camera");
+    expect(camera.name).toBe("Nya 摄像机");
     expect(camera.parent).toBe(controller);
+    expect(camera.transform["ADBE Position"].value).toEqual([0, 0, -1000]);
+    expect(camera.transform["ADBE Point of Interest"].value).toEqual([0, 0, 0]);
     expect(camera.selected).toBe(false);
     expect(controller.controls.map((control) => [control.matchName, control.name])).toEqual([
-      ["ADBE Slider Control", "Nya Position X"],
-      ["ADBE Slider Control", "Nya Position Y"],
-      ["ADBE Slider Control", "Nya Position Z"],
-      ["ADBE Angle Control", "Nya Rotation X"],
-      ["ADBE Angle Control", "Nya Rotation Y"],
-      ["ADBE Angle Control", "Nya Rotation Z"],
-      ["ADBE Slider Control", "Nya Focal Length"],
-      ["ADBE Checkbox Control", "Nya Depth of Field"],
-      ["ADBE Checkbox Control", "Nya Focus to Point"]
+      ["ADBE Layer Control", "Nya 目标图层"],
+      ["ADBE Slider Control", "Nya 相机位置 X"],
+      ["ADBE Slider Control", "Nya 相机位置 Y"],
+      ["ADBE Slider Control", "Nya 相机位置 Z"],
+      ["ADBE Angle Control", "Nya 相机旋转 X"],
+      ["ADBE Angle Control", "Nya 相机旋转 Y"],
+      ["ADBE Angle Control", "Nya 相机旋转 Z"],
+      ["ADBE Checkbox Control", "Nya 自动移动"],
+      ["ADBE Slider Control", "Nya 移动速度"],
+      ["ADBE Slider Control", "Nya 镜头焦距"],
+      ["ADBE Checkbox Control", "Nya 镜头景深"],
+      ["ADBE Checkbox Control", "Nya 焦点自动"],
+      ["ADBE Slider Control", "Nya 焦点距离"],
+      ["ADBE Slider Control", "Nya 抖动强度"],
+      ["ADBE Slider Control", "Nya 抖动频率"]
     ]);
-    expect(camera.cameraOptions["ADBE Camera Zoom"].expression).toContain("Nya Focal Length");
-    expect(camera.cameraOptions["ADBE Camera Depth of Field"].expression).toContain("Nya Depth of Field");
+    expect(camera.cameraOptions["ADBE Camera Zoom"].expression).toContain("Nya 镜头焦距");
+    expect(camera.cameraOptions["ADBE Camera Depth of Field"].expression).toContain("Nya 镜头景深");
+    expect(camera.transform["ADBE Point of Interest"].expression).toContain("Nya 目标图层");
+    expect(controller.movedBefore).toBe(camera);
   });
 
-  it("creates a camera without a controller for Alt", async () => {
+  it("opens the native camera settings for Ctrl and keeps the controller", async () => {
     const { app, created } = createApp();
+    const commands = [];
+    app.findMenuCommandId = (name) => name === "Camera Settings..." ? 501 : 0;
+    app.executeCommand = (commandId) => commands.push(commandId);
     const runLayerAction = await loadRunLayerAction(app);
 
-    expect(JSON.parse(runLayerAction(encoded("create-camera-rig", "alt")))).toMatchObject({
+    expect(JSON.parse(runLayerAction(encoded("create-camera-rig", "ctrl")))).toMatchObject({
       ok: true,
-      createdLayers: 1
+      createdLayers: 2
     });
-    expect(created.map((layer) => layer.kind)).toEqual(["camera"]);
-    expect(created[0].parent).toBe(null);
+    expect(created.map((layer) => layer.kind).sort()).toEqual(["camera", "null"]);
+    expect(commands).toEqual([501]);
   });
 
   it("places the camera controller at the selected-layer average", async () => {
@@ -254,7 +277,7 @@ describe("camera rig host action", () => {
 
     expect(JSON.parse(runLayerAction(encoded("create-camera-rig"))).ok).toBe(true);
     const controller = created.find((layer) => layer.kind === "null");
-    expect(controller.controls.slice(0, 3).map((control) => control.value.value)).toEqual([
+    expect(controller.controls.filter((control) => control.name.indexOf("Nya 相机位置") === 0).map((control) => control.value.value)).toEqual([
       600,
       400,
       40
@@ -274,7 +297,7 @@ describe("camera rig host action", () => {
 
     expect(JSON.parse(runLayerAction(encoded("create-camera-rig"))).ok).toBe(true);
     const controller = created.find((layer) => layer.kind === "null");
-    expect(controller.controls.slice(0, 3).map((control) => control.value.value)).toEqual([
+    expect(controller.controls.filter((control) => control.name.indexOf("Nya 相机位置") === 0).map((control) => control.value.value)).toEqual([
       720,
       460,
       15

@@ -57,6 +57,19 @@ describe("AE default resource source discovery", () => {
 });
 
 describe("AE resource execution paths", () => {
+  it("exposes Chinese aliases for built-in effects used by global search", async () => {
+    const source = await readFile("public/host/index.jsx", "utf8");
+    const start = source.indexOf("  function getCurrentEffects() {");
+    const end = source.indexOf("  function runSearchScript(encodedPayload) {", start);
+    const getCurrentEffects = Function(
+      "JSON",
+      `${source.slice(start, end)}\nreturn getCurrentEffects;`
+    )(JSON);
+    const result = JSON.parse(getCurrentEffects());
+    const gaussianBlur = result.effects.find((effect) => effect.matchName === "ADBE Gaussian Blur 2");
+    expect(gaussianBlur.aliases).toContain("高斯模糊");
+  });
+
   it("indexes preset and expression files from custom directories", async () => {
     const source = await readFile("public/host/index.jsx", "utf8");
     const start = source.indexOf("  function hasAllowedExtension(filename, resourceType) {");

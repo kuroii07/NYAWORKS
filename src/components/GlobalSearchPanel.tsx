@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowClockwise,
   BracketsCurly,
   FileCode,
   MagicWand,
@@ -19,6 +20,22 @@ import { isAlignmentActionId } from "../actions/definitions/alignmentActions";
 
 const SEARCH_IDLE_CLOSE_MS = 4000;
 
+function searchFailureMessage(
+  reason: string | undefined,
+  copy: ReturnType<typeof useLanguage>["copy"]
+): string {
+  if (reason === "unavailable" || reason === "host-unavailable") {
+    return copy.resources.hostActionUnavailable;
+  }
+  if (reason && Object.prototype.hasOwnProperty.call(copy.resources.commandFailures, reason)) {
+    return copy.resources.commandFailures[
+      reason as keyof typeof copy.resources.commandFailures
+    ];
+  }
+  if (reason === "unsupported-tool") return copy.home.plannedTitleSuffix;
+  return copy.home.layerFeedback.hostError;
+}
+
 function SearchItemIcon({ item }: { item: GlobalSearchItem }) {
   const ToolIcon = item.toolId ? HOME_TOOL_CATALOG[item.toolId]?.icon : undefined;
   if (ToolIcon) return <ToolIcon aria-hidden="true" weight="regular" />;
@@ -35,6 +52,7 @@ export function GlobalSearchPanel({ onExecute }: { onExecute?: (item: GlobalSear
   const globalSearch = useOptionalGlobalSearch();
   const inputRef = useRef<HTMLInputElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
+  const selectedResultRef = useRef<HTMLButtonElement>(null);
   const executionRef = useRef(false);
   const autoCloseTimerRef = useRef<number | null>(null);
   const searchInteractedRef = useRef(false);
@@ -118,6 +136,13 @@ export function GlobalSearchPanel({ onExecute }: { onExecute?: (item: GlobalSear
     setSelectedIndex((current) => Math.min(current, Math.max(0, results.length - 1)));
   }, [results.length]);
 
+  useEffect(() => {
+    const selectedRow = selectedResultRef.current;
+    if (selectedRow && typeof selectedRow.scrollIntoView === "function") {
+      selectedRow.scrollIntoView({ block: "nearest" });
+    }
+  }, [selectedIndex, results]);
+
   async function execute(item: GlobalSearchItem | undefined) {
     if (!item || executionRef.current) return;
     executionRef.current = true;
@@ -146,6 +171,10 @@ export function GlobalSearchPanel({ onExecute }: { onExecute?: (item: GlobalSear
         }, home.alignmentFeedback));
         return;
       }
+      if (!result.ok) {
+        toast.error(searchFailureMessage(result.reason, copy));
+        return;
+      }
       onExecute?.(item);
       closeSearch();
     } finally {
@@ -154,6 +183,9 @@ export function GlobalSearchPanel({ onExecute }: { onExecute?: (item: GlobalSear
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) {
+      return;
+    }
     if (event.key === "Escape") {
       event.preventDefault();
       closeSearch();
@@ -173,6 +205,13 @@ export function GlobalSearchPanel({ onExecute }: { onExecute?: (item: GlobalSear
     }
   }
 
+  function syncQuery(value: string) {
+    markSearchInteraction();
+    setQuery(value);
+    setOpen(true);
+    setSelectedIndex(0);
+  }
+
   return (
     <div className="global-search-shell" ref={shellRef}>
       <label className="global-search">
@@ -183,53 +222,100 @@ export function GlobalSearchPanel({ onExecute }: { onExecute?: (item: GlobalSear
           value={query}
           placeholder={home.searchPlaceholder}
           aria-label={home.searchAria}
+          aria-autocomplete="list"
+          aria-controls={open ? "global-search-results-list" : undefined}
+          aria-expanded={open}
+          aria-activedescendant={
+            open && results[selectedIndex]
+              ? `global-search-result-${results[selectedIndex].id.replace(/[^a-zA-Z0-9_-]/g, "-")}`
+              : undefined
+          }
           onFocus={() => {
             if (!open) searchInteractedRef.current = Boolean(query.trim());
             setOpen(true);
           }}
-          onChange={(event) => {
-            markSearchInteraction();
-            setQuery(event.target.value);
-            setOpen(true);
-            setSelectedIndex(0);
-          }}
+          onChange={(event) => syncQuery(event.currentTarget.value)}
+          onInput={(event) => syncQuery(event.currentTarget.value)}
+          onCompositionEnd={(event) => syncQuery(event.currentTarget.value)}
           onKeyDown={handleKeyDown}
         />
         <span className="search-key search-key--modifier">{modifierKey}</span>
         <span className="search-key">K</span>
       </label>
       {open ? (
-        <div className="global-search-results" role="listbox" aria-label={home.searchAria}>
-          {results.length === 0 ? (
-            <div className="global-search-empty">{query.trim() ? home.searchNoResults : home.searchEmpty}</div>
-          ) : (
-            [...groups.entries()].map(([kind, items]) => items.length > 0 ? (
-              <section className="global-search-group" key={kind}>
-                <h3>{home.searchKindLabels[kind]}</h3>
-                {items.map((item) => {
-                  const index = results.indexOf(item);
-                  return (
-                    <button
-                      className="global-search-result-row"
-                      data-selected={index === selectedIndex || undefined}
-                      key={item.id}
-                      type="button"
-                      role="option"
-                      aria-selected={index === selectedIndex}
-                      onClick={() => {
-                        markSearchInteraction();
-                        setSelectedIndex(index);
-                      }}
-                      onDoubleClick={() => void execute(item)}
-                    >
-                      <span className="global-search-result-row__icon"><SearchItemIcon item={item} /></span>
-                      <span>{item.displayName ?? item.name}</span>
-                    </button>
-                  );
-                })}
-              </section>
-            ) : null)
-          )}
+        <div className="global-search-results">
+          <div
+            className={`global-search-status ${
+              globalSearch?.effectsStatus === "connected"
+                ? "global-search-status--connected"
+                : ""
+            }`}
+            data-search-effects-status={globalSearch?.effectsStatus}
+          >
+            <span>
+              {globalSearch?.effectsStatus === "loading"
+                ? home.searchEffectsLoading
+                : globalSearch?.effectsStatus === "connected"
+                  ? ""
+                  : home.searchEffectsUnavailable}
+            </span>
+            <button
+              type="button"
+              className="global-search-status__refresh"
+              data-search-refresh-effects="true"
+              aria-label={home.searchRefreshEffects}
+              title={home.searchRefreshEffects}
+              disabled={globalSearch?.effectsStatus === "loading"}
+              onClick={() => {
+                markSearchInteraction();
+                void globalSearch?.refreshEffects();
+              }}
+            >
+              <ArrowClockwise aria-hidden="true" weight="regular" />
+            </button>
+          </div>
+          <div
+            id="global-search-results-list"
+            className="global-search-results__list"
+            role="listbox"
+            aria-label={home.searchAria}
+          >
+            {results.length === 0 ? (
+              <div className="global-search-empty">{query.trim() ? home.searchNoResults : home.searchEmpty}</div>
+            ) : (
+              [...groups.entries()].map(([kind, items]) => items.length > 0 ? (
+                <section className="global-search-group" data-search-group={kind} key={kind}>
+                  <h3>{home.searchKindLabels[kind]}</h3>
+                  {items.map((item) => {
+                    const index = results.indexOf(item);
+                    return (
+                      <button
+                        id={`global-search-result-${item.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`}
+                        ref={index === selectedIndex ? selectedResultRef : undefined}
+                        className="global-search-result-row"
+                        data-search-kind={item.kind}
+                        data-selected={index === selectedIndex || undefined}
+                        key={item.id}
+                        type="button"
+                        role="option"
+                        aria-selected={index === selectedIndex}
+                        onClick={() => {
+                          markSearchInteraction();
+                          setSelectedIndex(index);
+                        }}
+                        onDoubleClick={() => void execute(item)}
+                      >
+                        <span className={`global-search-result-row__icon global-search-kind-icon global-search-kind-icon--${item.kind}`}>
+                          <SearchItemIcon item={item} />
+                        </span>
+                        <span>{item.displayName ?? item.name}</span>
+                      </button>
+                    );
+                  })}
+                </section>
+              ) : null)
+            )}
+          </div>
         </div>
       ) : null}
     </div>

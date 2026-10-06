@@ -11,13 +11,17 @@ import { createDevelopmentResourceService, createDevelopmentGlobalSearchService 
 import { ActionServiceProvider } from "../src/actions/ActionServiceProvider";
 import type { ActionService } from "../src/actions/service";
 import { ToastProvider } from "../src/notifications/ToastProvider";
+import type { GlobalSearchHostBridge } from "../src/host/globalSearchBridge";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 
-async function renderPanel(actionService?: ActionService) {
+async function renderPanel(
+  actionService?: ActionService,
+  searchBridge: GlobalSearchHostBridge = createDevelopmentGlobalSearchService()
+) {
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -26,7 +30,7 @@ async function renderPanel(actionService?: ActionService) {
       <LanguageProvider>
         <ResourceProvider bridge={createDevelopmentResourceService()}>
           <ActionServiceProvider service={actionService}>
-            <GlobalSearchProvider bridge={createDevelopmentGlobalSearchService()}>
+            <GlobalSearchProvider bridge={searchBridge}>
               <ToastProvider>
                 <GlobalSearchPanel />
               </ToastProvider>
@@ -64,6 +68,63 @@ describe("GlobalSearchPanel", () => {
     expect(node.querySelectorAll(".global-search-result-row").length).toBeGreaterThan(0);
     expect(node.querySelector(".global-search-result-row__meta")).toBeNull();
     expect(node.querySelector(".search-key")?.textContent).toBe("Ctrl");
+    expect(input?.getAttribute("aria-autocomplete")).toBe("list");
+    expect(input?.getAttribute("aria-controls")).toBe("global-search-results-list");
+    expect(input?.getAttribute("aria-activedescendant")).toContain("global-search-result-");
+  });
+
+  it("does not intercept IME candidate navigation or confirmation", async () => {
+    const run = vi.fn(async () => ({ success: true as const, message: "ok" }));
+    const node = await renderPanel({ run });
+    const input = node.querySelector<HTMLInputElement>(".global-search input")!;
+
+    await act(async () => {
+      input.focus();
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value"
+      )?.set;
+      setter?.call(input, "新建文字层");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    const selectedBefore = node.querySelector('[data-selected="true"]')?.textContent;
+    await act(async () => {
+      input.dispatchEvent(new KeyboardEvent("keydown", {
+        key: "ArrowDown",
+        bubbles: true,
+        isComposing: true
+      }));
+      input.dispatchEvent(new KeyboardEvent("keydown", {
+        key: "Enter",
+        bubbles: true,
+        isComposing: true
+      }));
+    });
+
+    expect(node.querySelector('[data-selected="true"]')?.textContent).toBe(selectedBefore);
+    expect(run).not.toHaveBeenCalled();
+    expect(node.querySelector(".global-search-results")).not.toBeNull();
+  });
+
+  it("syncs the final Chinese value when CEP only delivers compositionend", async () => {
+    const node = await renderPanel();
+    const input = node.querySelector<HTMLInputElement>(".global-search input")!;
+
+    await act(async () => {
+      input.focus();
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value"
+      )?.set;
+      setter?.call(input, "新建文字层");
+      input.dispatchEvent(new CompositionEvent("compositionend", {
+        bubbles: true,
+        data: "新建文字层"
+      }));
+    });
+
+    expect(node.querySelector("[data-selected='true']")?.textContent).toContain("新建文字层");
   });
 
   it("moves selection with arrows, executes on Enter, and closes on Escape", async () => {
@@ -196,5 +257,74 @@ describe("GlobalSearchPanel", () => {
     expect(node.querySelector('[role="alert"]')?.textContent).toContain(
       "选中的图层含有表达式或关键帧，无法安全对齐（Layer 1）"
     );
+  });
+
+  it("shows a type-specific result marker and refreshes unavailable AE effects", async () => {
+    let effectReads = 0;
+    const searchBridge: GlobalSearchHostBridge = {
+      readCurrentAeEffects: async () => {
+        effectReads += 1;
+        return {
+          status: "unavailable",
+          effects: [{
+            id: "effect:blur",
+            name: "Gaussian Blur",
+            matchName: "ADBE Gaussian Blur 2",
+            aliases: ["高斯模糊"]
+          }],
+          isDevelopmentFixture: false
+        };
+      },
+      executeGlobalSearchAction: async () => ({ ok: true })
+    };
+    const node = await renderPanel(undefined, searchBridge);
+    const input = node.querySelector<HTMLInputElement>(".global-search input")!;
+
+    await act(async () => {
+      input.focus();
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value"
+      )?.set;
+      setter?.call(input, "高斯模糊");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    expect(node.querySelector('[data-search-kind="effect"]')).not.toBeNull();
+    expect(node.querySelector(".global-search-kind-icon")).not.toBeNull();
+
+    await act(async () => {
+      node.querySelector<HTMLButtonElement>("[data-search-refresh-effects]")?.click();
+    });
+    expect(effectReads).toBe(2);
+    expect(node.querySelector("[data-search-effects-status]")).not.toBeNull();
+  });
+
+  it("shows a localized toast when a non-action search result fails", async () => {
+    const node = await renderPanel({
+      run: async () => ({
+        success: false,
+        message: "Resource failed",
+        error: { code: "no-selected-layer" }
+      })
+    });
+    const input = node.querySelector<HTMLInputElement>(".global-search input")!;
+
+    await act(async () => {
+      input.focus();
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value"
+      )?.set;
+      setter?.call(input, "预合成");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new KeyboardEvent("keydown", {
+        key: "Enter",
+        bubbles: true
+      }));
+    });
+
+    expect(node.querySelector('[role="alert"]')?.textContent).toContain("请先");
+    expect(node.querySelector(".global-search-results")).not.toBeNull();
   });
 });

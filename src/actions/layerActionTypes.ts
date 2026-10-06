@@ -12,7 +12,7 @@ export const LAYER_ACTIONS = [
 
 export type LayerAction = (typeof LAYER_ACTIONS)[number];
 
-export type LayerActionModifier = "none" | "alt" | "ctrl" | "shift";
+export type LayerActionModifier = "none" | "alt" | "ctrl" | "shift" | "settings";
 
 const LAYER_ACTION_IDS: Record<LayerAction, string> = {
   "create-text": "layer.createText",
@@ -35,5 +35,5 @@ export function isLayerAction(value: unknown): value is LayerAction {
 }
 
 export function isLayerActionModifier(value: unknown): value is LayerActionModifier {
-  return value === "none" || value === "alt" || value === "ctrl" || value === "shift";
+  return value === "none" || value === "alt" || value === "ctrl" || value === "shift" || value === "settings";
 }

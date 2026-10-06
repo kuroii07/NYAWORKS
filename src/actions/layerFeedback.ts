@@ -37,7 +37,9 @@ export function getLayerFailureMessage(
     message = feedback.hostError;
   }
 
-  return error?.detail && error.code !== "action-unavailable"
+  return error?.detail &&
+    error.code !== "action-unavailable" &&
+    error.code !== "unsafe-unprecompose"
     ? `${message}（${error.detail}）`
     : message;
 }

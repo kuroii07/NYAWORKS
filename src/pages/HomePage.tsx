@@ -109,9 +109,9 @@ const CREATE_TOOLS: readonly {
   { id: "shapeLayer", icon: ShapeLayerIcon, action: "create-shape", modifiers: ["none", "alt", "ctrl", "shift"] },
   { id: "adjustmentLayer", icon: AdjustmentLayerIcon, action: "create-adjustment", modifiers: ["none"] },
   { id: "nullObject", icon: NullObjectIcon, action: "create-null", modifiers: ["none", "alt", "shift"] },
-  { id: "camera", icon: CameraLayerIcon, action: "create-camera-rig", modifiers: ["none", "alt"] },
+  { id: "camera", icon: CameraLayerIcon, action: "create-camera-rig", modifiers: ["none", "ctrl"] },
   { id: "light", icon: Lightbulb, action: "create-light", modifiers: ["none", "alt", "ctrl", "shift"] },
-  { id: "precompose", icon: PrecomposeIcon, action: "precompose-selected", modifiers: ["none", "alt", "ctrl"] },
+  { id: "precompose", icon: PrecomposeIcon, action: "precompose-selected", modifiers: ["none", "alt", "settings"] },
   { id: "unprecompose", icon: UnprecomposeIcon, action: "unprecompose-selected", modifiers: ["none"] }
 ] as const;
 
@@ -323,7 +323,6 @@ function CreateToolGrid({
     modifier: LayerActionModifier
   ) => void;
 }) {
-  const [variantMenu, setVariantMenu] = useState<LayerToolId | null>(null);
   const layers = [
     { id: "create", tools: CREATE_TOOLS },
     { id: "select", tools: SELECT_TOOLS }
@@ -361,15 +360,6 @@ function CreateToolGrid({
 
               const createTool = tool as (typeof CREATE_TOOLS)[number];
               const CreateIcon = createTool.icon;
-              const menuItems: readonly CompactActionMenuItem[] = createTool.modifiers.map((modifier) => ({
-                id: modifier,
-                label: `${copy.toolLabels[createTool.id]} · ${
-                  copy.layerActionVariantLabels[createTool.id]?.[modifier] ??
-                  (modifier === "none" ? copy.layerActionMenuDefault : modifier.toUpperCase())
-                }`,
-                icon: createTool.icon,
-                onSelect: () => onLayerAction(createTool.action, modifier)
-              }));
               return (
                 <div className="create-tool-cell" key={createTool.id} style={style}>
                   <button
@@ -379,22 +369,23 @@ function CreateToolGrid({
                     title={copy.layerActionTooltips[createTool.id]}
                     tabIndex={active ? undefined : -1}
                     onClick={(event) => {
-                      if (
-                        event.altKey &&
-                        event.ctrlKey &&
-                        event.shiftKey &&
-                        createTool.modifiers.length > 1
-                      ) {
-                        setVariantMenu(createTool.id);
+                      if (createTool.modifiers.length <= 1) {
+                        onLayerAction(createTool.action, "none");
                         return;
                       }
-                      const candidate: LayerActionModifier = event.shiftKey
-                        ? "shift"
-                        : event.ctrlKey
-                          ? "ctrl"
-                          : event.altKey
-                            ? "alt"
-                            : "none";
+                      const pressedCount = Number(event.altKey) + Number(event.ctrlKey) + Number(event.shiftKey);
+                      const candidate: LayerActionModifier =
+                        event.altKey && event.ctrlKey && event.shiftKey && createTool.action === "precompose-selected"
+                          ? "settings"
+                          : pressedCount > 1
+                            ? "none"
+                            : event.shiftKey
+                              ? "shift"
+                              : event.ctrlKey
+                                ? "ctrl"
+                                : event.altKey
+                                  ? "alt"
+                                  : "none";
                       onLayerAction(
                         createTool.action,
                         createTool.modifiers.some((modifier) => modifier === candidate)
@@ -405,12 +396,6 @@ function CreateToolGrid({
                   >
                     <CreateIcon aria-hidden="true" weight="regular" />
                   </button>
-                  <CompactActionMenu
-                    ariaLabel={copy.toolLabels[createTool.id]}
-                    open={variantMenu === createTool.id}
-                    items={menuItems}
-                    onClose={() => setVariantMenu(null)}
-                  />
                 </div>
               );
             })}

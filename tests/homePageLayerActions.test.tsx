@@ -96,7 +96,7 @@ describe("HomePage layer actions", () => {
     ]);
   });
 
-  it("opens the compact variant menu for Alt+Ctrl+Shift without executing immediately", async () => {
+  it("uses Alt+Ctrl+Shift only for precompose settings and never opens a variant menu", async () => {
     const runs: Array<{ actionId: string; options?: ActionRunOptions }> = [];
     const buttons = await renderGrid(runs);
     await act(async () => {
@@ -106,27 +106,13 @@ describe("HomePage layer actions", () => {
         ctrlKey: true,
         shiftKey: true
       }));
-    });
-    expect(runs).toEqual([]);
-    const items = document.querySelectorAll<HTMLButtonElement>(".compact-action-menu [role='menuitem']");
-    expect(items).toHaveLength(4);
-    expect(Array.from(items, (item) => item.textContent)).toEqual([
-      "形状图层 · 圆角矩形",
-      "形状图层 · 圆形",
-      "形状图层 · 三角形",
-      "形状图层 · 星形"
-    ]);
-    await act(async () => items[1].click());
-    expect(runs).toEqual([
-      { actionId: "layer.createShape", options: { layerModifier: "alt" } }
-    ]);
-  });
-
-  it("executes the default action instead of opening a one-item variant menu", async () => {
-    const runs: Array<{ actionId: string; options?: ActionRunOptions }> = [];
-    const buttons = await renderGrid(runs);
-    await act(async () => {
-      buttons[0].dispatchEvent(new MouseEvent("click", {
+      buttons[5].dispatchEvent(new MouseEvent("click", {
+        bubbles: true,
+        altKey: true,
+        ctrlKey: true,
+        shiftKey: true
+      }));
+      buttons[7].dispatchEvent(new MouseEvent("click", {
         bubbles: true,
         altKey: true,
         ctrlKey: true,
@@ -134,7 +120,9 @@ describe("HomePage layer actions", () => {
       }));
     });
     expect(runs).toEqual([
-      { actionId: "layer.createText", options: { layerModifier: "none" } }
+      { actionId: "layer.createShape", options: { layerModifier: "none" } },
+      { actionId: "layer.createCameraRig", options: { layerModifier: "none" } },
+      { actionId: "layer.precomposeSelected", options: { layerModifier: "settings" } }
     ]);
     expect(document.querySelector(".compact-action-menu")).toBe(null);
   });
@@ -144,7 +132,10 @@ describe("HomePage layer actions", () => {
     expect(buttons[2].title).toContain("Alt");
     expect(buttons[2].title).toContain("Ctrl");
     expect(buttons[2].title).toContain("Shift");
-    expect(buttons[0].title).not.toContain("Alt");
+    expect(buttons[0].title).not.toContain("Ctrl");
+    expect(buttons[1].title).not.toContain("Alt");
+    expect(buttons[1].title).not.toContain("Ctrl");
+    expect(buttons[7].title).toContain("Alt+Ctrl+Shift");
     for (const button of buttons) {
       expect(button.getAttribute("aria-label")).toBeTruthy();
       expect(button.hasAttribute("aria-disabled")).toBe(false);

@@ -34,7 +34,8 @@ function property(value) {
 function createLayer(kind, options = {}) {
   const transform = {
     "ADBE Anchor Point": property([0, 0]),
-    "ADBE Position": property([0, 0])
+    "ADBE Position": property([0, 0]),
+    "ADBE Point of Interest": property([0, 0, 0])
   };
   const effects = {
     added: [],
@@ -43,7 +44,7 @@ function createLayer(kind, options = {}) {
       const effect = {
         matchName,
         property(name) {
-          return name === "ADBE Fill-0002" ? color : null;
+          return name === "ADBE Fill-0002" || name === 1 ? color : null;
         }
       };
       this.added.push(effect);
@@ -164,7 +165,24 @@ describe("basic layer creation host actions", () => {
     expect(undo).toEqual(["begin:NYAWORKS Create Layer", "end"]);
   });
 
-  it("creates a timed black solid with Fill and a full-comp adjustment layer", async () => {
+  it("keeps the text action as a single AE-default point text operation", async () => {
+    const { comp, created } = createComp([]);
+    const host = await loadLayerHost({
+      project: { activeItem: comp },
+      beginUndoGroup() {},
+      endUndoGroup() {}
+    }, TestComp);
+
+    expect(JSON.parse(host.runLayerAction(payload("create-text", "ctrl"))).ok).toBe(true);
+    expect(created[0]).toMatchObject({
+      kind: "text",
+      text: "text",
+      name: "Nya 文字"
+    });
+    expect(created[0]).not.toHaveProperty("font");
+  });
+
+  it("creates a timed black solid with only a Fill effect and a full-comp adjustment layer", async () => {
     const selected = createLayer("existing", { index: 3, inPoint: 7, outPoint: 11 });
     const { comp, created } = createComp([selected]);
     const app = {
@@ -177,14 +195,43 @@ describe("basic layer creation host actions", () => {
     expect(JSON.parse(host.runLayerAction(payload("create-solid"))).ok).toBe(true);
     const solid = created[0];
     expect(solid.color).toEqual([0, 0, 0]);
-    expect(solid.effects.added[0].matchName).toBe("ADBE Fill");
+    expect(solid.effects.added.map((effect) => effect.matchName)).toEqual(["ADBE Fill"]);
     expect(solid.effects.added[0].property("ADBE Fill-0002").value).toEqual([0, 0, 0]);
+    expect(solid.effects.added[0].property("ADBE Fill-0002").expression).toBeUndefined();
     expect([solid.inPoint, solid.outPoint]).toEqual([7, 11]);
     expect(solid.movedBefore).toBe(selected);
 
     expect(JSON.parse(host.runLayerAction(payload("create-adjustment"))).ok).toBe(true);
     expect(created[0].adjustmentLayer).toBe(true);
     expect([created[0].width, created[0].height]).toEqual([1920, 1080]);
+  });
+
+  it("keeps a solid at full composition size even when legacy Alt is passed", async () => {
+    const selected = createLayer("existing", { index: 2, inPoint: 3, outPoint: 9 });
+    const { comp, created } = createComp([selected]);
+    const host = await loadLayerHost({
+      project: { activeItem: comp },
+      beginUndoGroup() {},
+      endUndoGroup() {}
+    }, TestComp);
+
+    expect(JSON.parse(host.runLayerAction(payload("create-solid", "alt"))).ok).toBe(true);
+    expect([created[0].width, created[0].height]).toEqual([1920, 1080]);
+    expect(created[0].transform["ADBE Position"].value).toEqual([0, 0]);
+    expect([created[0].inPoint, created[0].outPoint]).toEqual([3, 9]);
+  });
+
+  it("ignores the legacy solid-settings modifier", async () => {
+    const { comp, created } = createComp([]);
+    const host = await loadLayerHost({
+      project: { activeItem: comp },
+      beginUndoGroup() {},
+      endUndoGroup() {}
+    }, TestComp);
+
+    expect(JSON.parse(host.runLayerAction(payload("create-solid", "ctrl"))).ok).toBe(true);
+    expect(created).toHaveLength(1);
+    expect(created[0].effects.added.map((effect) => effect.matchName)).toEqual(["ADBE Fill"]);
   });
 
   it("places a created layer above the same selected layer after AE reindexes it", async () => {
@@ -245,5 +292,7 @@ describe("basic layer creation host actions", () => {
     expect(JSON.parse(host.runLayerAction(payload("create-light", modifier))).ok).toBe(true);
     expect(created[0].lightType).toBe(expectedType);
     expect(created[0].point).toEqual([960, 540]);
+    expect(created[0].transform["ADBE Point of Interest"].value).toEqual([960, 540, 0]);
+    expect(created[0].transform["ADBE Position"].value).toEqual([960, 540, 0]);
   });
 });

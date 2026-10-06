@@ -4,6 +4,8 @@ import {
   groupGlobalSearchItems,
   searchGlobalItems
 } from "../src/search/searchOperations";
+import { buildToolSearchItems } from "../src/search/toolSearchCatalog";
+import { UI_COPY } from "../src/i18n/translations";
 import type { GlobalSearchItem } from "../src/search/types";
 
 const items: GlobalSearchItem[] = [
@@ -92,6 +94,44 @@ describe("global search operations", () => {
     expect(searchGlobalItems(items, "对齐")[0]?.id).toBe("tool:align");
     expect(searchGlobalItems(items, "glow")[0]?.id).toBe("preset:glow");
     expect(searchGlobalItems(items, "高斯模糊")[0]?.id).toBe("effect:blur");
+  });
+
+  it("keeps banner tools searchable in Chinese even when the active UI language is English", () => {
+    const indexed = buildGlobalSearchIndex({
+      items: buildToolSearchItems(UI_COPY.en.home)
+    });
+    expect(searchGlobalItems(indexed, "调节")[0]?.id).toBe("tool:adjust");
+    expect(searchGlobalItems(indexed, "效果")[0]?.id).toBe("tool:effects");
+    expect(searchGlobalItems(indexed, "快速预设")[0]?.id).toBe("tool:quickPreset");
+  });
+
+  it("matches arbitrary Chinese names by full pinyin, initials, and light pinyin typos", () => {
+    const indexed = buildGlobalSearchIndex({ items });
+    expect(searchGlobalItems(indexed, "maodianshezhi")[0]?.id).toBe("tool:anchor");
+    expect(searchGlobalItems(indexed, "mdsz")[0]?.id).toBe("tool:anchor");
+    expect(searchGlobalItems(indexed, "kuaisufaguang")[0]?.id).toBe("preset:glow");
+    expect(searchGlobalItems(indexed, "ksfg")[0]?.id).toBe("preset:glow");
+    expect(searchGlobalItems(indexed, "gaosimohu")[0]?.id).toBe("effect:blur");
+    expect(searchGlobalItems(indexed, "gaosimouh")[0]?.id).toBe("effect:blur");
+
+    const precompose = buildGlobalSearchIndex({
+      items: [{
+        ...items[0],
+        id: "tool:precompose",
+        name: "预合成",
+        aliases: [],
+        searchableText: "预合成"
+      }]
+    });
+    expect(searchGlobalItems(precompose, "yuhecheng")[0]?.id).toBe("tool:precompose");
+    expect(searchGlobalItems(precompose, "yhc")[0]?.id).toBe("tool:precompose");
+  });
+
+  it("matches case-insensitive, full-width, whitespace, and lightly mistyped queries", () => {
+    expect(searchGlobalItems(items, "GAUSSIAN BLUR")[0]?.id).toBe("effect:blur");
+    expect(searchGlobalItems(items, "Ｇａｕｓｓｉａｎ")[0]?.id).toBe("effect:blur");
+    expect(searchGlobalItems(items, "高斯 模糊")[0]?.id).toBe("effect:blur");
+    expect(searchGlobalItems(items, "gausian")[0]?.id).toBe("effect:blur");
   });
 
   it("groups results by the five supported kinds", () => {
