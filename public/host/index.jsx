@@ -1645,7 +1645,7 @@
     path.name = "Nya 圆角矩形";
     addLayerControl(layer, "ADBE Slider Control", "Nya 宽度", 500);
     addLayerControl(layer, "ADBE Slider Control", "Nya 高度", 500);
-    addLayerControl(layer, "ADBE Slider Control", "Nya 圆角", 50);
+    addLayerControl(layer, "ADBE Slider Control", "Nya 圆角值", 50);
     addLayerControl(layer, "ADBE Checkbox Control", "Nya 分离圆角", 0);
     addLayerControl(layer, "ADBE Slider Control", "Nya 左上圆角", 50);
     addLayerControl(layer, "ADBE Slider Control", "Nya 右上圆角", 50);
@@ -1654,7 +1654,7 @@
     setShapeExpression(pathProperty, [
       'w=Math.max(0,effect("Nya 宽度")(1));',
       'h=Math.max(0,effect("Nya 高度")(1));',
-      'round=Math.max(0,effect("Nya 圆角")(1));',
+      'round=Math.max(0,effect("Nya 圆角值")(1));',
       'separate=effect("Nya 分离圆角")(1)>0;',
       'limit=Math.min(w,h)/2;',
       'tl=Math.min(limit,separate?Math.max(0,effect("Nya 左上圆角")(1)):round);',

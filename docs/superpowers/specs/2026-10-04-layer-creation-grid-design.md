@@ -146,7 +146,7 @@ interface LayerCreationContext {
 Nya 圆角矩形
 ├── Nya 宽度
 ├── Nya 高度
-├── Nya 圆角
+├── Nya 圆角值
 ├── Nya 分离圆角
 ├── Nya 左上圆角
 ├── Nya 右上圆角

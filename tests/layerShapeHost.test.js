@@ -134,7 +134,7 @@ describe("shape layer host action", () => {
     expect(layer.controls.map((control) => [control.matchName, control.name, control.value.value])).toEqual([
       ["ADBE Slider Control", "Nya 宽度", 500],
       ["ADBE Slider Control", "Nya 高度", 500],
-      ["ADBE Slider Control", "Nya 圆角", 50],
+      ["ADBE Slider Control", "Nya 圆角值", 50],
       ["ADBE Checkbox Control", "Nya 分离圆角", 0],
       ["ADBE Slider Control", "Nya 左上圆角", 50],
       ["ADBE Slider Control", "Nya 右上圆角", 50],
@@ -153,7 +153,7 @@ describe("shape layer host action", () => {
       (name) => () => ({
         "Nya 宽度": 500,
         "Nya 高度": 500,
-        "Nya 圆角": 50,
+        "Nya 圆角值": 50,
         "Nya 分离圆角": 0,
         "Nya 左上圆角": 50,
         "Nya 右上圆角": 50,
