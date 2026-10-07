@@ -92,23 +92,6 @@ textarea {
   font-weight: 600;
 }
 
-.text-editor-close {
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  color: var(--nw-text-muted);
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
-  cursor: pointer;
-}
-
-.text-editor-close:hover {
-  color: var(--nw-text);
-  border-color: var(--nw-border);
-  background: var(--nw-surface-hover);
-}
-
 .text-editor-body {
   display: flex;
   flex: 1 1 auto;

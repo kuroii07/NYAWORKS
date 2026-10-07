@@ -10,16 +10,12 @@ import {
   textEditorAppearanceBridge,
   type TextEditorAppearanceBridge
 } from "../host/textEditorAppearanceBridge";
-import {
-  closeTextLayerEditor,
-  prepareTextLayerEditorKeyboard
-} from "./cepLauncher";
+import { prepareTextLayerEditorKeyboard } from "./cepLauncher";
 import { startTextEditorAppearanceSubscriber } from "./appearanceSync";
 
 interface TextLayerEditorProps {
   bridge?: TextLayerEditorBridge;
   appearanceBridge?: TextEditorAppearanceBridge;
-  closeEditor?: () => void;
   prepareKeyboard?: () => void;
 }
 
@@ -28,7 +24,6 @@ type StatusTone = "neutral" | "success" | "error";
 export function TextLayerEditor({
   bridge = textLayerEditorBridge,
   appearanceBridge = textEditorAppearanceBridge,
-  closeEditor = closeTextLayerEditor,
   prepareKeyboard = prepareTextLayerEditorKeyboard
 }: TextLayerEditorProps) {
   const { copy, setLanguage } = useLanguage();
@@ -127,15 +122,6 @@ export function TextLayerEditor({
           <span className="text-editor-kicker">NYAWORKS</span>
           <h1>{labels.title}</h1>
         </div>
-        <button
-          className="text-editor-close"
-          type="button"
-          aria-label={labels.close}
-          title={labels.close}
-          onClick={closeEditor}
-        >
-          ×
-        </button>
       </header>
 
       <section className="text-editor-body">

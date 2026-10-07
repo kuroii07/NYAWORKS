@@ -62,41 +62,34 @@ describe("text layer editor appearance sync", () => {
     stop();
   });
 
-  it("polls the shared host state and only applies changed appearance values", async () => {
+  it("reads the shared host appearance once without keeping a Host poll alive", async () => {
     vi.useFakeTimers();
-    const appearances = [
-      { themeId: "deep-emerald", languageId: "en" },
-      { themeId: "deep-emerald", languageId: "en" },
-      { themeId: "nebula-violet", languageId: "ja" }
-    ] as const;
     let readIndex = 0;
     const bridge = {
       async writeAppearance() {
         return true;
       },
       async readAppearance() {
-        const value = appearances[Math.min(readIndex, appearances.length - 1)];
         readIndex += 1;
-        return value;
+        return { themeId: "deep-emerald" as const, languageId: "en" as const };
       }
     };
     const applied: unknown[] = [];
 
     const stop = startTextEditorAppearanceSubscriber(
       (appearance) => applied.push(appearance),
-      bridge,
-      400
+      bridge
     );
     await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(800);
 
     expect(applied).toEqual([
-      { themeId: "deep-emerald", languageId: "en" },
-      { themeId: "nebula-violet", languageId: "ja" }
+      { themeId: "deep-emerald", languageId: "en" }
     ]);
+    expect(readIndex).toBe(1);
 
     stop();
     await vi.advanceTimersByTimeAsync(800);
-    expect(readIndex).toBe(3);
+    expect(readIndex).toBe(1);
   });
 });

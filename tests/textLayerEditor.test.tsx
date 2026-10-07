@@ -39,7 +39,6 @@ async function renderEditor(
           <TextLayerEditor
             bridge={bridge}
             appearanceBridge={appearanceBridge}
-            closeEditor={() => {}}
             prepareKeyboard={() => {}}
           />
         </LanguageProvider>
@@ -63,6 +62,21 @@ afterEach(() => {
 });
 
 describe("TextLayerEditor", () => {
+  it("does not render a redundant in-content close button", async () => {
+    const bridge: TextLayerEditorBridge = {
+      readSelectedTextLayer: vi.fn(async () => ({
+        ok: false as const,
+        reason: "invalid-selection" as const
+      })),
+      applyText: vi.fn(async () => ({ ok: true as const, createdLayers: 0, updatedLayers: 1 })),
+      createText: vi.fn(async () => ({ ok: true as const, createdLayers: 1, updatedLayers: 0 }))
+    };
+
+    await renderEditor(bridge);
+
+    expect(container?.querySelector(".text-editor-close")).toBeNull();
+  });
+
   it("updates every visible idle label and theme from the main panel appearance", async () => {
     const bridge: TextLayerEditorBridge = {
       readSelectedTextLayer: vi.fn(async () => ({

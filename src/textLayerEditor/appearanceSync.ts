@@ -4,7 +4,6 @@ import {
   type TextEditorAppearanceBridge
 } from "../host/textEditorAppearanceBridge";
 
-const DEFAULT_POLL_INTERVAL_MS = 400;
 const PUBLISH_RETRY_INTERVAL_MS = 250;
 const MAX_PUBLISH_ATTEMPTS = 8;
 
@@ -34,33 +33,19 @@ export function startTextEditorAppearancePublisher(
 
 export function startTextEditorAppearanceSubscriber(
   onAppearance: (appearance: TextEditorAppearance) => void,
-  bridge: TextEditorAppearanceBridge = textEditorAppearanceBridge,
-  pollIntervalMs = DEFAULT_POLL_INTERVAL_MS
+  bridge: TextEditorAppearanceBridge = textEditorAppearanceBridge
 ): () => void {
   let active = true;
-  let reading = false;
-  let lastAppearanceKey: string | null = null;
 
-  const poll = async () => {
-    if (!active || reading) return;
-    reading = true;
+  const read = async () => {
     const appearance = await bridge.readAppearance();
-    reading = false;
     if (!active || !appearance) return;
-
-    const appearanceKey = `${appearance.themeId}:${appearance.languageId}`;
-    if (appearanceKey === lastAppearanceKey) return;
-    lastAppearanceKey = appearanceKey;
     onAppearance(appearance);
   };
 
-  void poll();
-  const intervalId = globalThis.setInterval(() => {
-    void poll();
-  }, pollIntervalMs);
+  void read();
 
   return () => {
     active = false;
-    globalThis.clearInterval(intervalId);
   };
 }
