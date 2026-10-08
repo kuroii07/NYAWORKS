@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Human-readable parameter layout; schema.json is the generator input. -->
+<pseudoEffect matchName="Pseudo/NYA_RRect_v1_zhCN" name="Nya 圆角矩形">
+  <slider id="width" name="宽度" default="500"/>
+  <slider id="height" name="高度" default="500"/>
+  <slider id="radius" name="圆角值" default="50"/>
+  <checkbox id="separate" name="分离圆角" default="0"/>
+  <group name="分离参数" collapsible="true">
+    <percent id="topLeftPercent" name="左上角" default="50"/>
+    <percent id="topRightPercent" name="右上角" default="50"/>
+    <percent id="bottomRightPercent" name="右下角" default="50"/>
+    <percent id="bottomLeftPercent" name="左下角" default="50"/>
+  </group>
+</pseudoEffect>

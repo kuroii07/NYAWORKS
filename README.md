@@ -43,7 +43,7 @@ NYAWORKS 已完成第一阶段 CEP 工程壳层、五套暗色主题、五语言
 
 当前开发主线调整为 NYAWORKS 核心工具：依次完成锚点、对齐、新建、选择四套九宫格和第一批高价值增强工具。Nya Pie 保留现有技术底座，达到 20–30 个稳定 Action 后再恢复正式 Runtime 与 Editor 开发。详细路线见 [`planning/05-core-tools-priority-roadmap.md`](planning/05-core-tools-priority-roadmap.md)。
 
-共享伪效果系统已完成规划文档，尚未实现或进行 AE 验收：通过共用参数规格、内置 `.ffx` 模板、Host 加载与绑定，为形状、摄像机及后续工具提供效果控件参数，不局限于圆角矩形。现有原生控件和旧工程保持不变，不要求用户修改 AE 安装目录；可移植性、五语言及版本兼容须在后续开发中验证。完整设计见 [`2026-10-08-pseudo-effect-system-design.md`](docs/superpowers/specs/2026-10-08-pseudo-effect-system-design.md)。
+共享伪效果系统已完成规划，首个圆角矩形 Windows 候选已接入“新建形状”的普通点击：内置简体中文 `.ffx`、参数目录与制作源；Alt/Ctrl/Shift 形状路径保持原样。该固定 `v1` 模板尚未经过真实 AE 加载、折叠、表达式、关键帧和保存重开验收，不能视为正式功能或跨平台发布版；请先在测试工程或副本中试用。旧工程不迁移，也不修改 AE 安装目录。设计见 [`2026-10-08-pseudo-effect-system-design.md`](docs/superpowers/specs/2026-10-08-pseudo-effect-system-design.md)，家中测试步骤与风险见 [`rounded-rectangle-pseudo-effect-ae-test.md`](docs/testing/rounded-rectangle-pseudo-effect-ae-test.md)。
 
 ## 本地 CEP 开发模式
 

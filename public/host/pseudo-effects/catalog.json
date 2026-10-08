@@ -1,0 +1,23 @@
+{
+  "templates": {
+    "shape.roundedRectangle/v1/zh-CN": {
+      "file": "rounded-rectangle-v1-zh-CN.ffx",
+      "matchName": "Pseudo/NYA_RRect_v1_zhCN",
+      "marker": {
+        "index": 10,
+        "name": "__NYA_RRECT_V1__"
+      },
+      "parameters": {
+        "width": 1,
+        "height": 2,
+        "radius": 3,
+        "separate": 4,
+        "topLeftPercent": 6,
+        "topRightPercent": 7,
+        "bottomRightPercent": 8,
+        "bottomLeftPercent": 9
+      },
+      "sha256": "98BA7F1D19CB78D45309FDE71CBDF87E6A3D90B54316A34C2D80C7C9FAF455B4"
+    }
+  }
+}

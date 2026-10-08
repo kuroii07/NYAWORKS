@@ -3,6 +3,8 @@ export const REQUIRED_DIST_FILES = [
   "dist/nya-pie-runtime.html",
   "dist/CSXS/manifest.xml",
   "dist/host/index.jsx",
+  "dist/host/pseudo-effects/catalog.json",
+  "dist/host/pseudo-effects/rounded-rectangle-v1-zh-CN.ffx",
   "dist/assets/brand/nyaworks-cat.png"
 ];
 

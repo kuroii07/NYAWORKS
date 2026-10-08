@@ -1,0 +1,17 @@
+{
+  "templateId": "shape.roundedRectangle/v1/zh-CN",
+  "matchName": "Pseudo/NYA_RRect_v1_zhCN",
+  "displayName": "Nya 圆角矩形",
+  "group": "分离参数",
+  "marker": "__NYA_RRECT_V1__",
+  "parameters": [
+    { "id": "width", "label": "宽度", "type": "slider", "defaultValue": 500, "max": 100000 },
+    { "id": "height", "label": "高度", "type": "slider", "defaultValue": 500, "max": 100000 },
+    { "id": "radius", "label": "圆角值", "type": "slider", "defaultValue": 50, "max": 100000 },
+    { "id": "separate", "label": "分离圆角", "type": "checkbox", "defaultValue": 0, "max": 1 },
+    { "id": "topLeftPercent", "label": "左上角", "type": "percent", "defaultValue": 50, "max": 100 },
+    { "id": "topRightPercent", "label": "右上角", "type": "percent", "defaultValue": 50, "max": 100 },
+    { "id": "bottomRightPercent", "label": "右下角", "type": "percent", "defaultValue": 50, "max": 100 },
+    { "id": "bottomLeftPercent", "label": "左下角", "type": "percent", "defaultValue": 50, "max": 100 }
+  ]
+}

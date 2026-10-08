@@ -1639,34 +1639,100 @@
     if (color) color.setValue([1, 1, 1]);
   }
 
-  function createRoundedRectangleShape(layer, contents) {
+  function preflightRoundedRectangleTemplate() {
+    var root = hostScriptFile.parent.fsName + "/pseudo-effects/";
+    var catalogFile = new File(root + "catalog.json");
+    var template;
+    var catalog;
+    var file;
+    if (!catalogFile.exists || !catalogFile.open("r")) {
+      throw new Error("pseudo-catalog-missing");
+    }
+    try {
+      catalog = JSON.parse(catalogFile.read());
+    } finally {
+      catalogFile.close();
+    }
+    template = catalog.templates && catalog.templates["shape.roundedRectangle/v1/zh-CN"];
+    if (!template || template.file !== "rounded-rectangle-v1-zh-CN.ffx" ||
+        template.matchName !== "Pseudo/NYA_RRect_v1_zhCN") {
+      throw new Error("pseudo-template-invalid");
+    }
+    file = new File(root + template.file);
+    if (!file.exists) throw new Error("pseudo-template-missing");
+    return { file: file, definition: template };
+  }
+
+  function applyRoundedRectangleTemplate(layer, context, template) {
+    var selected = context.selection;
+    var selectedProperties = context.comp.selectedProperties || [];
+    var effects = layer.property("ADBE Effect Parade");
+    var before = effects ? effects.numProperties : -1;
+    var effect;
+    var index;
+    var mapping = template.definition.parameters;
+    var keys = [
+      "width", "height", "radius", "separate",
+      "topLeftPercent", "topRightPercent", "bottomRightPercent", "bottomLeftPercent"
+    ];
+    if (before < 0 || !mapping) throw new Error("pseudo-effects-unavailable");
+    try {
+      for (index = 0; index < selected.length; index += 1) selected[index].selected = false;
+      for (index = 0; index < selectedProperties.length; index += 1) {
+        selectedProperties[index].selected = false;
+      }
+      layer.selected = true;
+      layer.applyPreset(template.file);
+    } finally {
+      layer.selected = false;
+      for (index = 0; index < selected.length; index += 1) selected[index].selected = true;
+      for (index = 0; index < selectedProperties.length; index += 1) {
+        try { selectedProperties[index].selected = true; } catch (ignoreRemovedProperty) {}
+      }
+    }
+    effects = layer.property("ADBE Effect Parade");
+    if (!effects || effects.numProperties !== before + 1) {
+      throw new Error("pseudo-effect-count-mismatch");
+    }
+    effect = effects.property(before + 1);
+    if (!effect || effect.matchName !== template.definition.matchName ||
+        !effect.property(10) ||
+        effect.property(10).name !== template.definition.marker.name) {
+      throw new Error("pseudo-effect-signature-mismatch");
+    }
+    for (index = 0; index < keys.length; index += 1) {
+      var parameterIndex = mapping[keys[index]];
+      var parameter = effect.property(parameterIndex);
+      if (!parameter || parameter.matchName !==
+          template.definition.matchName + "-" + ("000" + parameterIndex).slice(-4)) {
+        throw new Error("pseudo-parameter-mismatch-" + keys[index]);
+      }
+    }
+    return effect;
+  }
+
+  function createRoundedRectangleShape(layer, contents, context, template) {
     var path = contents.addProperty("ADBE Vector Shape - Group");
     var pathProperty = path.property("ADBE Vector Shape");
     path.name = "Nya 圆角矩形";
-    addLayerControl(layer, "ADBE Slider Control", "Nya 宽度", 500);
-    addLayerControl(layer, "ADBE Slider Control", "Nya 高度", 500);
-    addLayerControl(layer, "ADBE Slider Control", "Nya 圆角值", 50);
-    addLayerControl(layer, "ADBE Checkbox Control", "Nya 分离圆角", 0);
-    addLayerControl(layer, "ADBE Slider Control", "Nya 左上圆角", 50);
-    addLayerControl(layer, "ADBE Slider Control", "Nya 右上圆角", 50);
-    addLayerControl(layer, "ADBE Slider Control", "Nya 右下圆角", 50);
-    addLayerControl(layer, "ADBE Slider Control", "Nya 左下圆角", 50);
+    applyRoundedRectangleTemplate(layer, context, template);
     setShapeExpression(pathProperty, [
-      'w=Math.max(0,effect("Nya 宽度")(1));',
-      'h=Math.max(0,effect("Nya 高度")(1));',
-      'round=Math.max(0,effect("Nya 圆角值")(1));',
-      'separate=effect("Nya 分离圆角")(1)>0;',
+      'w=Math.max(0,effect("Nya 圆角矩形")(1));',
+      'h=Math.max(0,effect("Nya 圆角矩形")(2));',
+      'round=Math.max(0,effect("Nya 圆角矩形")(3));',
+      'separate=effect("Nya 圆角矩形")(4)>0;',
       'limit=Math.min(w,h)/2;',
-      'tl=Math.min(limit,separate?Math.max(0,effect("Nya 左上圆角")(1)):round);',
-      'tr=Math.min(limit,separate?Math.max(0,effect("Nya 右上圆角")(1)):round);',
-      'br=Math.min(limit,separate?Math.max(0,effect("Nya 右下圆角")(1)):round);',
-      'bl=Math.min(limit,separate?Math.max(0,effect("Nya 左下圆角")(1)):round);',
+      'tl=Math.min(limit,separate?Math.max(0,effect("Nya 圆角矩形")(6))*limit/100:round);',
+      'tr=Math.min(limit,separate?Math.max(0,effect("Nya 圆角矩形")(7))*limit/100:round);',
+      'br=Math.min(limit,separate?Math.max(0,effect("Nya 圆角矩形")(8))*limit/100:round);',
+      'bl=Math.min(limit,separate?Math.max(0,effect("Nya 圆角矩形")(9))*limit/100:round);',
       'hw=w/2;hh=h/2;k=0.5522847498;',
       'points=[[-hw+tl,-hh],[hw-tr,-hh],[hw,-hh+tr],[hw,hh-br],[hw-br,hh],[-hw+bl,hh],[-hw,hh-bl],[-hw,-hh+tl]];',
       'ins=[[-k*tl,0],[0,0],[0,-k*tr],[0,0],[k*br,0],[0,0],[0,k*bl],[0,0]];',
       'outs=[[0,0],[k*tr,0],[0,0],[0,k*br],[0,0],[-k*bl,0],[0,0],[0,-k*tl]];',
       'createPath(points,ins,outs,true);'
     ].join("\n"));
+    if (pathProperty.expressionError) throw new Error("pseudo-expression-invalid");
   }
 
   function createEllipseShape(layer, contents) {
@@ -1717,30 +1783,42 @@
   }
 
   function createShapeLayer(context, modifier) {
+    var template = modifier === "none" ? preflightRoundedRectangleTemplate() : null;
     var layer = context.comp.layers.addShape();
-    var root = layer.property("ADBE Root Vectors Group");
-    var group = root.addProperty("ADBE Vector Group");
-    var contents = group.property("ADBE Vectors Group");
+    var root;
+    var group;
+    var contents;
     var names = {
       none: "Nya 圆角矩形",
       alt: "Nya 圆",
       ctrl: "Nya 三角形",
       shift: "Nya 星形"
     };
-    layer.name = uniqueLayerName(context.comp, names[modifier] || names.none, layer);
-    group.name = layer.name;
-    if (modifier === "alt") {
-      createEllipseShape(layer, contents);
-    } else if (modifier === "ctrl") {
-      createPolygonShape(layer, contents, false);
-    } else if (modifier === "shift") {
-      createPolygonShape(layer, contents, true);
-    } else {
-      createRoundedRectangleShape(layer, contents);
+    try {
+      root = layer.property("ADBE Root Vectors Group");
+      group = root.addProperty("ADBE Vector Group");
+      contents = group.property("ADBE Vectors Group");
+      layer.name = uniqueLayerName(context.comp, names[modifier] || names.none, layer);
+      group.name = layer.name;
+      if (modifier === "alt") {
+        createEllipseShape(layer, contents);
+      } else if (modifier === "ctrl") {
+        createPolygonShape(layer, contents, false);
+      } else if (modifier === "shift") {
+        createPolygonShape(layer, contents, true);
+      } else {
+        createRoundedRectangleShape(layer, contents, context, template);
+      }
+      addShapeFill(contents);
+      setLayerCentered(layer, context.comp, [0, 0]);
+      return finishCreatedLayer(layer, context);
+    } catch (error) {
+      try { layer.remove(); } catch (ignoreCleanup) {}
+      for (var index = 0; index < context.selection.length; index += 1) {
+        try { context.selection[index].selected = true; } catch (ignoreSelectionRestore) {}
+      }
+      throw error;
     }
-    addShapeFill(contents);
-    setLayerCentered(layer, context.comp, [0, 0]);
-    return finishCreatedLayer(layer, context);
   }
 
   function createAdjustmentLayer(context) {
