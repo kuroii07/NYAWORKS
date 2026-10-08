@@ -234,7 +234,7 @@ Nya 焦点自动 / Nya 焦点距离
 Nya 抖动强度 / Nya 抖动频率
 ```
 
-当前使用 AE 原生 Expression Controls 提供稳定的中文参数；玄如意截图中的可折叠自定义参数组属于 Pseudo Effect 能力，不在未安装额外效果定义的 CEP 中伪装实现。
+当前实现使用 AE 原生 Expression Controls 提供中文参数。可折叠自定义参数组后续纳入[共享伪效果系统规划](2026-10-08-pseudo-effect-system-design.md)：拟通过扩展内置的 `.ffx` 控件模板与统一 Host 加载/绑定支持，不要求用户修改 AE 的 `PresetEffects.xml` 或安装制作器。该系统同时面向形状、摄像机及后续工具，现阶段仅完成规划，模板可移植性和兼容性仍待验证；本规格既有实现及旧工程不会自动迁移。
 
 建议扩展：
 
