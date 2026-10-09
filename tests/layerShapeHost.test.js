@@ -6,8 +6,10 @@ async function loadRunLayerAction(app) {
   const catalog = await readFile("public/host/pseudo-effects/catalog.json", "utf8");
   function TestFile(path) {
     this.fsName = path;
-    this.exists = !app.missingPreset && /pseudo-effects[\\/]/.test(path);
-    this.open = () => this.exists;
+    this.exists = !app.missingPreset &&
+      /^C:\/CEP\/NYAWORKS\/host\/pseudo-effects\/(catalog\.json|rounded-rectangle-zh-CN\.ffx)$/.test(path);
+    this.error = app.catalogUnreadable ? "Permission denied" : "";
+    this.open = () => this.exists && !app.catalogUnreadable;
     this.read = () => catalog;
     this.close = () => {};
   }
@@ -23,7 +25,9 @@ async function loadRunLayerAction(app) {
     "hostScriptFile",
     `${source.slice(start, end)}
 return runLayerAction;`
-  )(app, TestComp, {}, JSON, decodeURIComponent, TestFile, { parent: { fsName: "host" } });
+  )(app, TestComp, {}, JSON, decodeURIComponent, TestFile, {
+    parent: { fsName: "C:/Program Files/Common Files/Adobe/Startup Scripts CC/Adobe After Effects" }
+  });
 }
 
 class TestComp {}
@@ -92,15 +96,15 @@ function createShapeLayer() {
       if (!file.exists) throw new Error("missing-template");
       const values = [500, 500, 50, 0, null, 50, 50, 50, 50, null];
       controls.push({
-        matchName: "Pseudo/NYA_RRect_v1_zhCN",
+        matchName: "Pseudo/NYA_RRect_v2_zhCN",
         name: "Nya 圆角矩形",
         numProperties: 11,
         property(index) {
           const names = ["宽度", "高度", "圆角值", "分离圆角", "分离参数",
-            "左上角", "右上角", "右下角", "左下角", "__NYA_RRECT_V1__"];
+            "左上角", "右上角", "右下角", "左下角", "__NYA_RRECT_V2__"];
           return index <= 10 ? {
             name: names[index - 1],
-            matchName: `Pseudo/NYA_RRect_v1_zhCN-${String(index).padStart(4, "0")}`,
+            matchName: `Pseudo/NYA_RRect_v2_zhCN-${String(index).padStart(4, "0")}`,
             propertyValueType: index === 5 || index === 10 ? 6412 : 6417,
             value: values[index - 1]
           } : null;
@@ -153,7 +157,24 @@ function createApp() {
 }
 
 function encoded(modifier) {
-  return encodeURIComponent(JSON.stringify({ action: "create-shape", modifier }));
+  return encodeURIComponent(JSON.stringify({
+    action: "create-shape",
+    modifier,
+    extensionRoot: "C:/CEP/NYAWORKS"
+  }));
+}
+
+function evaluateRoundedPath(layer, controls) {
+  const path = layer.vectors.find((vector) => vector.matchName === "ADBE Vector Shape - Group");
+  const expression = path.values["ADBE Vector Shape"].expression;
+  return Function(
+    "effect",
+    "createPath",
+    `${expression.replace("createPath(points,ins,outs,true);", "return createPath(points,ins,outs,true);")}`
+  )(
+    () => (index) => controls[index],
+    (points, ins, outs, closed) => ({ points, ins, outs, closed })
+  );
 }
 
 describe("shape layer host action", () => {
@@ -166,31 +187,63 @@ describe("shape layer host action", () => {
     expect(layer.anchor.value).toEqual([0, 0]);
     expect(layer.position.value).toEqual([960, 540]);
     expect(layer.name).toBe("Nya 圆角矩形");
-    expect(layer.controls.map((control) => control.matchName)).toEqual(["Pseudo/NYA_RRect_v1_zhCN"]);
+    expect(layer.controls.map((control) => control.matchName)).toEqual(["Pseudo/NYA_RRect_v2_zhCN"]);
     const path = layer.vectors.find((vector) => vector.matchName === "ADBE Vector Shape - Group");
     expect(path.values["ADBE Vector Shape"].expressionEnabled).toBe(true);
     expect(path.values["ADBE Vector Shape"].expression).toContain('effect("Nya 圆角矩形")(6)');
-    const expression = path.values["ADBE Vector Shape"].expression;
-    const evaluated = Function(
-      "effect",
-      "createPath",
-      `${expression.replace("createPath(points,ins,outs,true);", "return createPath(points,ins,outs,true);")}`
-    )(
-      () => (index) => [null, 500, 500, 50, 0, null, 50, 50, 50, 50][index],
-      (points, ins, outs, closed) => ({ points, ins, outs, closed })
-    );
-    expect(evaluated.ins[0]).toEqual([-0.5522847498 * 50, 0]);
-    expect(evaluated.outs[7]).toEqual([0, -0.5522847498 * 50]);
-    expect(evaluated.outs[1]).toEqual([0.5522847498 * 50, 0]);
-    expect(evaluated.ins[2]).toEqual([0, -0.5522847498 * 50]);
+    const evaluated = evaluateRoundedPath(layer, [null, 500, 500, 50, 0, null, 50, 50, 50, 50]);
+    expect(evaluated.ins[0]).toEqual([-0.5522847498 * 125, 0]);
+    expect(evaluated.outs[7]).toEqual([0, -0.5522847498 * 125]);
+    expect(evaluated.outs[1]).toEqual([0.5522847498 * 125, 0]);
+    expect(evaluated.ins[2]).toEqual([0, -0.5522847498 * 125]);
     expect(evaluated.closed).toBe(true);
+  });
+
+  it("maps master 0–100 to square–circle and keeps the default shape unchanged on separation", async () => {
+    const { app, created } = createApp();
+    const run = await loadRunLayerAction(app);
+    expect(JSON.parse(run(encoded("none"))).ok).toBe(true);
+    const layer = created[0];
+    const controls = [null, 500, 500, 0, 0, null, 50, 50, 50, 50];
+    const square = evaluateRoundedPath(layer, controls);
+    expect(square.points[0]).toEqual([-250, -250]);
+    expect(square.ins[0][0]).toBeCloseTo(0);
+    expect(square.ins[0][1]).toBeCloseTo(0);
+    controls[3] = 100;
+    const circle = evaluateRoundedPath(layer, controls);
+    expect(circle.points[0]).toEqual([0, -250]);
+    expect(circle.points[2]).toEqual([250, 0]);
+    controls[3] = 50;
+    const together = evaluateRoundedPath(layer, controls);
+    controls[4] = 1;
+    expect(evaluateRoundedPath(layer, controls)).toEqual(together);
+    controls[3] = 0;
+    expect(evaluateRoundedPath(layer, controls)).toEqual(together);
+    controls[6] = 0;
+    const independent = evaluateRoundedPath(layer, controls);
+    expect(independent.points[0]).toEqual([-250, -250]);
+    expect(independent.points[2]).toEqual([250, -125]);
   });
 
   it("refuses a missing pseudo template before creating a layer", async () => {
     const { app, created } = createApp();
     app.missingPreset = true;
     const run = await loadRunLayerAction(app);
-    expect(JSON.parse(run(encoded("none")))).toMatchObject({ ok: false });
+    expect(JSON.parse(run(encoded("none")))).toMatchObject({
+      ok: false,
+      detail: expect.stringContaining("pseudo-catalog-missing: C:/CEP/NYAWORKS/host/pseudo-effects/catalog.json")
+    });
+    expect(created).toHaveLength(0);
+  });
+
+  it("distinguishes a catalog read failure from a missing file without creating a layer", async () => {
+    const { app, created } = createApp();
+    app.catalogUnreadable = true;
+    const run = await loadRunLayerAction(app);
+    expect(JSON.parse(run(encoded("none")))).toMatchObject({
+      ok: false,
+      detail: expect.stringContaining("pseudo-catalog-unreadable: C:/CEP/NYAWORKS/host/pseudo-effects/catalog.json (Permission denied)")
+    });
     expect(created).toHaveLength(0);
   });
 

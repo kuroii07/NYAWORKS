@@ -43,7 +43,7 @@ NYAWORKS 已完成第一阶段 CEP 工程壳层、五套暗色主题、五语言
 
 当前开发主线调整为 NYAWORKS 核心工具：依次完成锚点、对齐、新建、选择四套九宫格和第一批高价值增强工具。Nya Pie 保留现有技术底座，达到 20–30 个稳定 Action 后再恢复正式 Runtime 与 Editor 开发。详细路线见 [`planning/05-core-tools-priority-roadmap.md`](planning/05-core-tools-priority-roadmap.md)。
 
-共享伪效果系统已完成规划，首个圆角矩形 Windows 候选已接入“新建形状”的普通点击：内置简体中文 `.ffx`、参数目录与制作源；Alt/Ctrl/Shift 形状路径保持原样。该固定 `v1` 模板尚未经过真实 AE 加载、折叠、表达式、关键帧和保存重开验收，不能视为正式功能或跨平台发布版；请先在测试工程或副本中试用。旧工程不迁移，也不修改 AE 安装目录。设计见 [`2026-10-08-pseudo-effect-system-design.md`](docs/superpowers/specs/2026-10-08-pseudo-effect-system-design.md)，家中测试步骤与风险见 [`rounded-rectangle-pseudo-effect-ae-test.md`](docs/testing/rounded-rectangle-pseudo-effect-ae-test.md)。
+共享伪效果系统已完成规划，圆角矩形 Windows 测试候选接入“新建形状”的普通点击：内置简体中文 `rounded-rectangle-zh-CN.ffx`、参数目录与制作源；Alt/Ctrl/Shift 形状路径保持原样。用户已在本机 AE 2025 测试新建及圆角操作正常；总圆角和四角均为 0–100，默认切换不变形。错误的旧 `v1` 成品已从扩展资产与交付清单移除；生成所需的 MIT 样例基底和许可证仍保留在制作源中，不自动修改已有 AE 工程。关键帧、保存重开、其他 AE 版本和跨平台仍未验收；请先在测试工程或副本中试用。不修改 AE 安装目录。设计见 [`2026-10-08-pseudo-effect-system-design.md`](docs/superpowers/specs/2026-10-08-pseudo-effect-system-design.md)，测试记录与风险见 [`rounded-rectangle-pseudo-effect-ae-test.md`](docs/testing/rounded-rectangle-pseudo-effect-ae-test.md)。
 
 ## 本地 CEP 开发模式
 

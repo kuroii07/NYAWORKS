@@ -1,4 +1,4 @@
-import { evaluateHostScript, type CepEnvironment } from "./cepBridge";
+import { evaluateHostScript, getCepExtensionRoot, type CepEnvironment } from "./cepBridge";
 import type {
   LayerAction,
   LayerActionModifier
@@ -91,9 +91,16 @@ export function createLayerHostBridge(
 ): LayerHostBridge {
   return {
     async runLayerAction(action, modifier) {
+      const roundedRectangle = action === "create-shape" && modifier === "none";
+      const extensionRoot = roundedRectangle ? getCepExtensionRoot(environment) : null;
+      if (roundedRectangle && !extensionRoot) {
+        return { ok: false, reason: "host-error", detail: "pseudo-extension-root-unavailable" };
+      }
       return parseResult(
         await evaluateHostScript(
-          `NYAWORKS.runLayerAction("${encodedPayload({ action, modifier })}")`,
+          `NYAWORKS.runLayerAction("${encodedPayload(
+            extensionRoot ? { action, modifier, extensionRoot } : { action, modifier }
+          )}")`,
           environment
         )
       );

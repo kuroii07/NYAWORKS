@@ -5,10 +5,10 @@ import { fileURLToPath } from "node:url";
 import iconv from "iconv-lite";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const sourceRoot = path.join(projectRoot, "assets/pseudo-effects/rounded-rectangle/v1");
+const sourceRoot = path.join(projectRoot, "assets/pseudo-effects/rounded-rectangle/v2");
 const outputRoot = path.join(projectRoot, "public/host/pseudo-effects");
 const schema = JSON.parse(fs.readFileSync(path.join(sourceRoot, "schema.json"), "utf8"));
-const original = fs.readFileSync(path.join(sourceRoot, "base-scribe.ffx"));
+const original = fs.readFileSync(path.join(sourceRoot, "../source/base-scribe.ffx"));
 const params = [
   { label: "", kind: 0, source: 0 },
   ...schema.parameters.slice(0, 4).map(parameter => ({
@@ -27,7 +27,7 @@ const params = [
 ];
 
 if (schema.parameters.length !== 8 || params.length !== 11) {
-  throw new Error("Rounded rectangle v1 requires eight business parameters.");
+  throw new Error("Rounded rectangle requires eight business parameters.");
 }
 
 function parse(bytes, start = 0, end = bytes.length) {
@@ -145,7 +145,7 @@ function renameContainer(node) {
 renameContainer(root);
 
 const bytes = pack(root);
-const file = "rounded-rectangle-v1-zh-CN.ffx";
+const file = "rounded-rectangle-zh-CN.ffx";
 const sha256 = createHash("sha256").update(bytes).digest("hex").toUpperCase();
 const catalog = {
   templates: {
@@ -165,4 +165,10 @@ const catalog = {
 fs.mkdirSync(outputRoot, { recursive: true });
 fs.writeFileSync(path.join(outputRoot, file), bytes);
 fs.writeFileSync(path.join(outputRoot, "catalog.json"), `${JSON.stringify(catalog, null, 2)}\n`);
+for (const obsolete of [
+  "rounded-rectangle-v1-zh-CN.ffx",
+  "rounded-rectangle-v2-zh-CN.ffx"
+]) {
+  fs.rmSync(path.join(outputRoot, obsolete), { force: true });
+}
 console.log(`${file}: ${bytes.length} bytes, SHA-256 ${sha256}`);

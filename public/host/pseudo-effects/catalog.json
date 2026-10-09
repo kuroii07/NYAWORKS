@@ -1,11 +1,11 @@
 {
   "templates": {
-    "shape.roundedRectangle/v1/zh-CN": {
-      "file": "rounded-rectangle-v1-zh-CN.ffx",
-      "matchName": "Pseudo/NYA_RRect_v1_zhCN",
+    "shape.roundedRectangle/v2/zh-CN": {
+      "file": "rounded-rectangle-zh-CN.ffx",
+      "matchName": "Pseudo/NYA_RRect_v2_zhCN",
       "marker": {
         "index": 10,
-        "name": "__NYA_RRECT_V1__"
+        "name": "__NYA_RRECT_V2__"
       },
       "parameters": {
         "width": 1,
@@ -17,7 +17,7 @@
         "bottomRightPercent": 8,
         "bottomLeftPercent": 9
       },
-      "sha256": "98BA7F1D19CB78D45309FDE71CBDF87E6A3D90B54316A34C2D80C7C9FAF455B4"
+      "sha256": "EA3A18922AC859BA1E33B028CD6F18AF36E48837C5CE8A4B4E4B0CBD4A3D7F59"
     }
   }
 }

@@ -1639,23 +1639,44 @@
     if (color) color.setValue([1, 1, 1]);
   }
 
-  function preflightRoundedRectangleTemplate() {
-    var root = hostScriptFile.parent.fsName + "/pseudo-effects/";
+  function preflightRoundedRectangleTemplate(extensionRoot) {
+    if (typeof extensionRoot !== "string") {
+      throw new Error("pseudo-extension-root-unavailable");
+    }
+    var driveLetter = extensionRoot.charAt(0).toUpperCase();
+    var driveRoot = driveLetter >= "A" && driveLetter <= "Z" &&
+      extensionRoot.charAt(1) === ":" &&
+      (extensionRoot.charAt(2) === "/" || extensionRoot.charAt(2) === "\\");
+    if (!driveRoot && extensionRoot.charAt(0) !== "/") {
+      throw new Error("pseudo-extension-root-unavailable");
+    }
+    while (extensionRoot.length > 1 &&
+           (extensionRoot.charAt(extensionRoot.length - 1) === "/" ||
+            extensionRoot.charAt(extensionRoot.length - 1) === "\\")) {
+      extensionRoot = extensionRoot.substring(0, extensionRoot.length - 1);
+    }
+    var root = extensionRoot + "/host/pseudo-effects/";
     var catalogFile = new File(root + "catalog.json");
     var template;
     var catalog;
     var file;
-    if (!catalogFile.exists || !catalogFile.open("r")) {
-      throw new Error("pseudo-catalog-missing");
+    if (!catalogFile.exists) {
+      throw new Error("pseudo-catalog-missing: " + catalogFile.fsName);
+    }
+    if (!catalogFile.open("r")) {
+      throw new Error(
+        "pseudo-catalog-unreadable: " + catalogFile.fsName +
+        " (" + (catalogFile.error || "unknown") + ")"
+      );
     }
     try {
       catalog = JSON.parse(catalogFile.read());
     } finally {
       catalogFile.close();
     }
-    template = catalog.templates && catalog.templates["shape.roundedRectangle/v1/zh-CN"];
-    if (!template || template.file !== "rounded-rectangle-v1-zh-CN.ffx" ||
-        template.matchName !== "Pseudo/NYA_RRect_v1_zhCN") {
+    template = catalog.templates && catalog.templates["shape.roundedRectangle/v2/zh-CN"];
+    if (!template || template.file !== "rounded-rectangle-zh-CN.ffx" ||
+        template.matchName !== "Pseudo/NYA_RRect_v2_zhCN") {
       throw new Error("pseudo-template-invalid");
     }
     file = new File(root + template.file);
@@ -1722,10 +1743,10 @@
       'round=Math.max(0,effect("Nya 圆角矩形")(3));',
       'separate=effect("Nya 圆角矩形")(4)>0;',
       'limit=Math.min(w,h)/2;',
-      'tl=Math.min(limit,separate?Math.max(0,effect("Nya 圆角矩形")(6))*limit/100:round);',
-      'tr=Math.min(limit,separate?Math.max(0,effect("Nya 圆角矩形")(7))*limit/100:round);',
-      'br=Math.min(limit,separate?Math.max(0,effect("Nya 圆角矩形")(8))*limit/100:round);',
-      'bl=Math.min(limit,separate?Math.max(0,effect("Nya 圆角矩形")(9))*limit/100:round);',
+      'tl=Math.min(limit,Math.max(0,separate?effect("Nya 圆角矩形")(6):round)*limit/100);',
+      'tr=Math.min(limit,Math.max(0,separate?effect("Nya 圆角矩形")(7):round)*limit/100);',
+      'br=Math.min(limit,Math.max(0,separate?effect("Nya 圆角矩形")(8):round)*limit/100);',
+      'bl=Math.min(limit,Math.max(0,separate?effect("Nya 圆角矩形")(9):round)*limit/100);',
       'hw=w/2;hh=h/2;k=0.5522847498;',
       'points=[[-hw+tl,-hh],[hw-tr,-hh],[hw,-hh+tr],[hw,hh-br],[hw-br,hh],[-hw+bl,hh],[-hw,hh-bl],[-hw,-hh+tl]];',
       'ins=[[-k*tl,0],[0,0],[0,-k*tr],[0,0],[k*br,0],[0,0],[0,k*bl],[0,0]];',
@@ -1782,8 +1803,8 @@
     }
   }
 
-  function createShapeLayer(context, modifier) {
-    var template = modifier === "none" ? preflightRoundedRectangleTemplate() : null;
+  function createShapeLayer(context, modifier, extensionRoot) {
+    var template = modifier === "none" ? preflightRoundedRectangleTemplate(extensionRoot) : null;
     var layer = context.comp.layers.addShape();
     var root;
     var group;
@@ -2678,7 +2699,7 @@
       } else if (action === "create-solid") {
         result = createSolidLayer(context, modifier);
       } else if (action === "create-shape") {
-        result = createShapeLayer(context, modifier);
+        result = createShapeLayer(context, modifier, payload.extensionRoot);
       } else if (action === "create-adjustment") {
         result = createAdjustmentLayer(context, modifier);
       } else if (action === "create-null") {

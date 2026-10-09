@@ -15,6 +15,7 @@ export interface HostCommandResult {
 
 interface CepRuntime {
   evalScript: (script: string, callback: (result: string) => void) => void;
+  getSystemPath?: (pathType: string) => string;
 }
 
 export interface CepEnvironment {
@@ -36,6 +37,20 @@ function resolveEnvironment(environment?: CepEnvironment): CepEnvironment {
   return typeof window === "undefined"
     ? {}
     : (window as unknown as CepEnvironment);
+}
+
+export function getCepExtensionRoot(environment?: CepEnvironment): string | null {
+  const runtime = resolveEnvironment(environment).__adobe_cep__;
+  if (!runtime?.getSystemPath) return null;
+  try {
+    const path = decodeURI(runtime.getSystemPath("extension"));
+    if (/^file:\/\/\/[A-Za-z]:[\\/]/.test(path)) return path.slice(8);
+    if (path.startsWith("file:///")) return path.slice(7);
+    if (/^[A-Za-z]:[\\/]/.test(path) || path.startsWith("/")) return path;
+  } catch {
+    // A missing or malformed CEP path must not fall back to $.fileName.
+  }
+  return null;
 }
 
 export function evaluateHostScript(

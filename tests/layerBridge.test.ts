@@ -31,6 +31,73 @@ describe("layer host bridge", () => {
     });
   });
 
+  it("passes the current CEP extension directory for a normal rounded rectangle", async () => {
+    let received = "";
+    const bridge = createLayerHostBridge({
+      __adobe_cep__: {
+        getSystemPath: (type) => {
+          expect(type).toBe("extension");
+          return "file:///D:/AE%E8%84%9A%E6%9C%AC/NYAWORKS";
+        },
+        evalScript: (script, callback) => {
+          received = script;
+          callback(JSON.stringify({
+            ok: true,
+            createdLayers: 1,
+            updatedLayers: 0,
+            createdItems: 0
+          }));
+        }
+      }
+    });
+
+    await expect(bridge.runLayerAction("create-shape", "none")).resolves.toMatchObject({
+      ok: true,
+      createdLayers: 1
+    });
+    expect(JSON.parse(decodeURIComponent(received.match(/\("(.+)"\)$/)?.[1] ?? ""))).toEqual({
+      action: "create-shape",
+      modifier: "none",
+      extensionRoot: "D:/AE脚本/NYAWORKS"
+    });
+  });
+
+  it("invokes the CEP path API with its runtime receiver", async () => {
+    let received = "";
+    const runtime = {
+      evalScript(script: string, callback: (result: string) => void) {
+        received = script;
+        callback(JSON.stringify({ ok: true, createdLayers: 1 }));
+      },
+      getSystemPath(type: string) {
+        expect(this).toBe(runtime);
+        expect(type).toBe("extension");
+        return "file:///C:/NYAWORKS";
+      }
+    };
+    const bridge = createLayerHostBridge({ __adobe_cep__: runtime });
+    await expect(bridge.runLayerAction("create-shape", "none")).resolves.toMatchObject({
+      ok: true
+    });
+    expect(JSON.parse(decodeURIComponent(received.match(/\("(.+)"\)$/)?.[1] ?? "")))
+      .toMatchObject({ extensionRoot: "C:/NYAWORKS" });
+  });
+
+  it("does not call AE for a rounded rectangle when the extension directory is unavailable", async () => {
+    let called = false;
+    const bridge = createLayerHostBridge({
+      __adobe_cep__: {
+        evalScript: () => { called = true; }
+      }
+    });
+    await expect(bridge.runLayerAction("create-shape", "none")).resolves.toEqual({
+      ok: false,
+      reason: "host-error",
+      detail: "pseudo-extension-root-unavailable"
+    });
+    expect(called).toBe(false);
+  });
+
   it("normalizes unavailable and malformed host responses", async () => {
     await expect(
       createLayerHostBridge({}).runLayerAction("create-text", "none")

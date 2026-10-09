@@ -104,4 +104,40 @@ matchName：`Pseudo/NYA_RRect_probe3`。这不是正式 `v1` 身份。
 
 1. 在副本/专用工程中真实加载 `v1` 资产并检查折叠、表达式、百分比、关键帧、保存/重开与异常恢复；失败则调整候选，不要求用户自己制作 `.ffx`。
 2. 核验命名与重排后的表达式绑定，完成跨版本/编码范围结论。未验证范围须保持候选状态。
-3. 家中拉取现有开发分支，重建 NYAWORKS 开发扩展并在测试工程中完成用户 AE 验收；本次提前推送只是交付测试候选，不能以本地 mock/构建代替 AE 验收。
+3. 在公司已链接的 NYAWORKS 开发扩展中继续复测；此前提前推送只是交付测试候选，不能以本地 mock/构建代替 AE 验收。
+
+## 2026-10-09 公司 AE 首次测试
+
+用户在新工程和合成中普通点击新建圆角矩形，面板报告 `Error: pseudo-catalog-missing`，未进入 `.ffx` 加载与效果控件验收。仓库、`dev-extension/` 和 CEP junction 目标的 Catalog 均存在，Host、Catalog、模板的源码与开发构建哈希一致；这些磁盘检查不能证明 AE 运行时采用的脚本路径或有权打开文件。
+
+现有 Host 将 `File.exists === false` 和 `File.open("r") === false` 合并报为同一错误，无法凭截图定位根因。针对这一点，开发扩展候选新增只读失败诊断：分别报告 missing/unreadable 和 AE 实际构造出的文件路径；局部测试先观察两项失败，再通过。下一步需在同一 AE 面板重新载入 Host、再次点击并记录完整错误路径，确定根因后才可修复。当前不宣称问题解决，也不在用户工程中运行探针或清理对象。
+
+第二次测试截图显示 AE 实际查找的是
+`C:\Program Files\Common Files\Adobe\Startup Scripts CC\Adobe After Effects\pseudo-effects\catalog.json`，
+而不是 NYAWORKS 的 `host/pseudo-effects/catalog.json`。根因定位为 Host 使用 `$.fileName` 的父目录推断 CEP 扩展位置；此 AE 环境中该值指向 Startup Scripts。开发候选改为由 CEP 当前面板读取扩展目录，仅普通点击新建圆角矩形时传给 Host，Host 在创建图层前用该目录定位固定 Catalog 与模板；取不到目录不回退到 `$.fileName`。针对错误的 Startup Scripts 路径及 CEP 路径接口缺失已先见测试失败，再实现通过。此为离线验证结果，修复后的真实 AE 加载和效果控件仍待用户复测。
+
+### 同日第三次测试：Host 解析与资产定位
+
+用户截图依次显示 AE 加载脚本第 1644 行报“应为: )”，随后仍报告 Startup Scripts 下的旧 Catalog 路径。AE 2025 的只读工程探针先对修改前 Host 复现 `SyntaxError: 应为: )`、`line=1644`；Node 的语法检查却通过，说明普通前端测试不能覆盖此 AE 解析差异。新增路径判断中的正则字符类为出错位置，同一写法也出现在紧接的尾部分隔符清理中。两处改为字符串判断后，同一 AE 探针报告 `result=loaded`。
+
+探针 `scripts/ae-tests/host-syntax-smoke.jsx` 从当前 `dev-extension/host/index.jsx` 加载 Host，并对预检函数做只读调用；结果定位到当前开发扩展内的 `host/pseudo-effects/rounded-rectangle-v1-zh-CN.ffx`。探针会刷新 AE 会话中的 `$.global.NYAWORKS`，但不创建、删除或保存工程对象；结果写入系统临时目录的 `nyaworks-host-syntax-smoke.txt`。它只证明脚本解析、Catalog 可读及模板文件可定位，不证明 `.ffx` 已在图层上应用或参数外观正确。
+
+针对性测试 3 文件 / 25 测试通过；`typecheck`、生产构建与 `smoke:dist` 通过，开发扩展已重建。Host/Catalog/`.ffx` 的源码、开发构建与对应生产构建 SHA-256 一致，CEP junction 指向本工作树的 `dev-extension`。最初两次全量 Vitest 因无中途输出而过早中止；给足隔离 worker 时间后，`npm.cmd run test -- --maxWorkers=2` 完整通过：130 文件 / 663 测试，耗时约 580 秒。
+
+下一关：在测试工程关闭并重新打开 NYAWORKS 面板，普通点击新建圆角矩形。若仍有错误，保存完整报错；若成功，再看效果控件是否出现“分离参数”的原生折叠组，并验证分离开关、四角数值及 Undo。不要把这次只读探针当作完整 AE 功能验收。
+
+## 2026-10-09 总圆角范围与分离行为修订（v2 候选）
+
+用户真实 AE 截图验证：`v1` 已可新建并显示可折叠伪效果控件，但总圆角值被错误配置为最大 `100000`，默认总圆角 50（像素半径）与四角 50%（短边半径百分比）切换会变形。用户在玄如意中明确复测了期望交互：总圆角 0–100、默认 50；不分离时 0 是直角、正方形的 100 是圆形；分离后总圆角不再影响路径，改用四个独立的 0–100% 控件。
+
+本轮将新建图层切到独立 `v2` 模板身份 `shape.roundedRectangle/v2/zh-CN` / `Pseudo/NYA_RRect_v2_zhCN`，保留 `v1` 的原始 `.ffx`、Catalog 项及旧工程表达式。`v2` 总圆角上限 100，四角各上限 100，未分离与分离均按实际矩形短边一半乘百分比换算。初始 500×500、总圆角 50、各角 50% 对应同一个 125 px 半径；先调总圆角而不改四角再勾选时，会切换到四角预留数值，这不是自动同步控件值。旧 `v1` 使用 50 px 半径的历史测试结果不能套用到 `v2`。
+
+`v2` 资产 SHA-256：`EA3A18922AC859BA1E33B028CD6F18AF36E48837C5CE8A4B4E4B0CBD4A3D7F59`；旧 `v1` 保持 `98BA7F1D19CB78D45309FDE71CBDF87E6A3D90B54316A34C2D80C7C9FAF455B4`。二进制参数读回：宽度上限 100000、总圆角默认 50 且上限 100、四角上限 100。针对性测试先见 `v2` 缺失及半径几何失败，再修改后通过（2 文件 / 11 测试）。开发及生产构建、`smoke:dist` 通过；源码、`dev-extension` 和 `dist` 的 Host、Catalog、`v2` 模板哈希一致。AE 2025 只读脚本加载结果为 `result=loaded`，预检定位到 `dev-extension/host/pseudo-effects/rounded-rectangle-v2-zh-CN.ffx`。此检查没有在图层上应用新 `.ffx`。
+
+全量 `npm.cmd run test -- --maxWorkers=2`：130 文件 / 665 测试通过，耗时约 573 秒。`git diff --check` 通过。当前不对用户现有图层自动重写表达式，也不将生成新模板等同于真实 AE 上的载入与几何验收。
+
+## 2026-10-09 用户复测与错误候选清理
+
+用户确认当前新建圆角矩形和圆角操作已在本机 AE 2025 正常，并要求确认可用的成品 `.ffx` 文件名不带版本号、有问题的候选直接从扩展交付移除。当前成品改名为 `rounded-rectangle-zh-CN.ffx`，二进制内容未变；内部 `shape.roundedRectangle/v2/zh-CN`、`Pseudo/NYA_RRect_v2_zhCN` 保持稳定，以免改名时改变旧实例的参数身份。错误的 `v1` 成品、Catalog 映射和制作定义不再交付；独立的 MIT 样例基底与许可证保留在 `assets/pseudo-effects/rounded-rectangle/source/`，供生成脚本使用。历史段落记录当时状态，并非当前交付清单。已有 AE 工程不自动删除旧控件或重写表达式；关键帧、保存重开和其他 AE/系统版本仍待验收。
+
+针对性测试先见 2 文件 / 4 项按预期失败，改动后 2 文件 / 10 项通过。`npm.cmd run typecheck`、全量 `npm.cmd run test -- --maxWorkers=2`（130 文件 / 664 测试）、生产与开发扩展构建、`npm.cmd run smoke:dist` 均通过。`public/`、`dist/`、当前 CEP junction 指向的 `dev-extension/` 中各只剩 Catalog 与 `rounded-rectangle-zh-CN.ffx`，三个成品 SHA-256 均为 `EA3A18922AC859BA1E33B028CD6F18AF36E48837C5CE8A4B4E4B0CBD4A3D7F59`。改名后的开发扩展还未再做一次真实 AE 宿主点击；磁盘/测试结果不能替代该复测。
