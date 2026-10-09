@@ -1,0 +1,23 @@
+{
+  "templateId": "shape.roundedRectangle/v7/zh-CN",
+  "matchName": "Pseudo/NYA_RRect_v7_zhCN",
+  "displayName": "Nya 圆角矩形",
+  "group": "分离参数",
+  "styleGroup": "样式",
+  "marker": "__NYA_RRECT_V7__",
+  "parameters": [
+    { "id": "width", "label": "宽度", "type": "slider", "defaultValue": 500, "sliderMin": 0, "sliderMax": 4000, "validMin": 0, "validMax": 10000 },
+    { "id": "height", "label": "高度", "type": "slider", "defaultValue": 500, "sliderMin": 0, "sliderMax": 4000, "validMin": 0, "validMax": 10000 },
+    { "id": "radius", "label": "圆角值", "type": "slider", "defaultValue": 50, "sliderMin": 0, "sliderMax": 100, "validMin": 0, "validMax": 100 },
+    { "id": "separate", "label": "分离圆角", "type": "checkbox", "defaultValue": 0 },
+    { "id": "topLeftPercent", "label": "左上角", "type": "percent", "defaultValue": 50, "sliderMin": 0, "sliderMax": 100, "validMin": 0, "validMax": 100 },
+    { "id": "topRightPercent", "label": "右上角", "type": "percent", "defaultValue": 50, "sliderMin": 0, "sliderMax": 100, "validMin": 0, "validMax": 100 },
+    { "id": "bottomRightPercent", "label": "右下角", "type": "percent", "defaultValue": 50, "sliderMin": 0, "sliderMax": 100, "validMin": 0, "validMax": 100 },
+    { "id": "bottomLeftPercent", "label": "左下角", "type": "percent", "defaultValue": 50, "sliderMin": 0, "sliderMax": 100, "validMin": 0, "validMax": 100 },
+    { "id": "fillEnabled", "label": "启用填充", "type": "checkbox", "defaultValue": 1 },
+    { "id": "fillColor", "label": "填充颜色", "type": "color", "defaultValue": [1, 1, 1, 1] },
+    { "id": "strokeEnabled", "label": "启用描边", "type": "checkbox", "defaultValue": 0 },
+    { "id": "strokeColor", "label": "描边颜色", "type": "color", "defaultValue": [0, 0, 0, 1] },
+    { "id": "strokeWidth", "label": "描边宽度", "type": "slider", "defaultValue": 5, "sliderMin": 0, "sliderMax": 100, "validMin": 0, "validMax": 1000 }
+  ]
+}

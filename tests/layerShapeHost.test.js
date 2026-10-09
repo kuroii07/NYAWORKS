@@ -32,16 +32,38 @@ return runLayerAction;`
 
 class TestComp {}
 
-function valueProperty(initial = null) {
-  return {
+function valueProperty(initial = null, backingState = null) {
+  const state = backingState || {
     value: initial,
     expression: "",
     expressionEnabled: false,
-    setValue(value) { this.value = value; }
+    expressionError: ""
   };
+  let valid = true;
+  const property = {
+    get valid() { return valid; },
+    invalidate() { valid = false; },
+    setValue(value) {
+      if (!valid) throw new ReferenceError("Object is invalid");
+      state.value = value;
+    }
+  };
+  for (const key of ["value", "expression", "expressionEnabled", "expressionError"]) {
+    Object.defineProperty(property, key, {
+      get() {
+        if (!valid) throw new ReferenceError("Object is invalid");
+        return state[key];
+      },
+      set(value) {
+        if (!valid) throw new ReferenceError("Object is invalid");
+        state[key] = value;
+      }
+    });
+  }
+  return property;
 }
 
-function createShapeLayer() {
+function createShapeLayer({ invalidateVectorReferences = false } = {}) {
   const controls = [];
   const vectors = [];
   const anchor = valueProperty([0, 0]);
@@ -62,18 +84,36 @@ function createShapeLayer() {
   };
   const vectorContents = {
     addProperty(matchName) {
+      if (invalidateVectorReferences) {
+        for (const existing of vectors) {
+          for (const property of Object.values(existing.values)) property.invalidate();
+        }
+      }
+      const states = {};
       const vector = {
         matchName,
         name: "",
+        propertyIndex: vectors.length + 1,
         values: {},
         property(name) {
-          if (!this.values[name]) this.values[name] = valueProperty();
+          if (!states[name]) {
+            states[name] = {
+              value: null,
+              expression: "",
+              expressionEnabled: false,
+              expressionError: ""
+            };
+          }
+          if (!this.values[name] || !this.values[name].valid) {
+            this.values[name] = valueProperty(null, states[name]);
+          }
           return this.values[name];
         }
       };
       vectors.push(vector);
       return vector;
-    }
+    },
+    property(index) { return vectors[index - 1] || null; }
   };
   const group = {
     property(name) {
@@ -94,18 +134,22 @@ function createShapeLayer() {
     selected: false,
     applyPreset(file) {
       if (!file.exists) throw new Error("missing-template");
-      const values = [500, 500, 50, 0, null, 50, 50, 50, 50, null];
+      const values = [
+        500, 500, 50, 0, null, 50, 50, 50, 50, null,
+        null, 1, [1, 1, 1, 1], 0, [0, 0, 0, 1], 5, null
+      ];
       controls.push({
-        matchName: "Pseudo/NYA_RRect_v2_zhCN",
+        matchName: "Pseudo/NYA_RRect_v7_zhCN",
         name: "Nya 圆角矩形",
-        numProperties: 11,
+        numProperties: 18,
         property(index) {
           const names = ["宽度", "高度", "圆角值", "分离圆角", "分离参数",
-            "左上角", "右上角", "右下角", "左下角", "__NYA_RRECT_V2__"];
-          return index <= 10 ? {
+            "左上角", "右上角", "右下角", "左下角", "", "样式",
+            "启用填充", "填充颜色", "启用描边", "描边颜色", "描边宽度", "__NYA_RRECT_V7__"];
+          return index <= 17 ? {
             name: names[index - 1],
-            matchName: `Pseudo/NYA_RRect_v2_zhCN-${String(index).padStart(4, "0")}`,
-            propertyValueType: index === 5 || index === 10 ? 6412 : 6417,
+            matchName: `Pseudo/NYA_RRect_v7_zhCN-${String(index).padStart(4, "0")}`,
+            propertyValueType: [5, 10, 11, 17].includes(index) ? 6412 : 6417,
             value: values[index - 1]
           } : null;
         }
@@ -123,7 +167,7 @@ function createShapeLayer() {
   };
 }
 
-function createApp() {
+function createApp(options = {}) {
   const created = [];
   const comp = Object.assign(new TestComp(), {
     width: 1920,
@@ -136,7 +180,7 @@ function createApp() {
     layer(index) { return created[index - 1]; },
     layers: {
       addShape() {
-        const layer = createShapeLayer();
+        const layer = createShapeLayer(options);
         layer.remove = () => {
           const index = created.indexOf(layer);
           if (index !== -1) created.splice(index, 1);
@@ -187,7 +231,7 @@ describe("shape layer host action", () => {
     expect(layer.anchor.value).toEqual([0, 0]);
     expect(layer.position.value).toEqual([960, 540]);
     expect(layer.name).toBe("Nya 圆角矩形");
-    expect(layer.controls.map((control) => control.matchName)).toEqual(["Pseudo/NYA_RRect_v2_zhCN"]);
+    expect(layer.controls.map((control) => control.matchName)).toEqual(["Pseudo/NYA_RRect_v7_zhCN"]);
     const path = layer.vectors.find((vector) => vector.matchName === "ADBE Vector Shape - Group");
     expect(path.values["ADBE Vector Shape"].expressionEnabled).toBe(true);
     expect(path.values["ADBE Vector Shape"].expression).toContain('effect("Nya 圆角矩形")(6)');
@@ -197,6 +241,34 @@ describe("shape layer host action", () => {
     expect(evaluated.outs[1]).toEqual([0.5522847498 * 125, 0]);
     expect(evaluated.ins[2]).toEqual([0, -0.5522847498 * 125]);
     expect(evaluated.closed).toBe(true);
+  });
+
+  it("creates real fill and stroke operators controlled by the v7 style parameters", async () => {
+    const { app, created } = createApp();
+    const run = await loadRunLayerAction(app);
+
+    expect(JSON.parse(run(encoded("none"))).ok).toBe(true);
+    const layer = created[0];
+    const fill = layer.vectors.find((vector) => vector.matchName === "ADBE Vector Graphic - Fill");
+    const stroke = layer.vectors.find((vector) => vector.matchName === "ADBE Vector Graphic - Stroke");
+
+    expect(fill).toBeTruthy();
+    expect(stroke).toBeTruthy();
+    expect(fill.values["ADBE Vector Fill Opacity"].expression).toContain('(12)>0?100:0');
+    expect(fill.values["ADBE Vector Fill Color"].expression).toContain('(13)');
+    expect(stroke.values["ADBE Vector Stroke Opacity"].expression).toContain('(14)>0?100:0');
+    expect(stroke.values["ADBE Vector Stroke Color"].expression).toContain('(15)');
+    expect(stroke.values["ADBE Vector Stroke Width"].expression).toContain('(16)');
+  });
+
+  it("reacquires style properties after AE invalidates indexed-group references", async () => {
+    const { app, created } = createApp({ invalidateVectorReferences: true });
+    const run = await loadRunLayerAction(app);
+
+    expect(JSON.parse(run(encoded("none")))).toMatchObject({ ok: true });
+    expect(created).toHaveLength(1);
+    const fill = created[0].vectors.find((vector) => vector.matchName === "ADBE Vector Graphic - Fill");
+    expect(fill.property("ADBE Vector Fill Opacity").expression).toContain('(12)>0?100:0');
   });
 
   it("maps master 0–100 to square–circle and keeps the default shape unchanged on separation", async () => {

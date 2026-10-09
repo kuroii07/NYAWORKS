@@ -5,29 +5,58 @@ import { fileURLToPath } from "node:url";
 import iconv from "iconv-lite";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const sourceRoot = path.join(projectRoot, "assets/pseudo-effects/rounded-rectangle/v2");
+const sourceRoot = path.join(projectRoot, "assets/pseudo-effects/rounded-rectangle/v7");
 const outputRoot = path.join(projectRoot, "public/host/pseudo-effects");
 const schema = JSON.parse(fs.readFileSync(path.join(sourceRoot, "schema.json"), "utf8"));
 const original = fs.readFileSync(path.join(sourceRoot, "../source/base-scribe.ffx"));
+function numericParameter(parameter, percent) {
+  return {
+    label: parameter.label,
+    kind: 10,
+    value: parameter.defaultValue,
+    sliderMin: parameter.sliderMin,
+    sliderMax: parameter.sliderMax,
+    validMin: parameter.validMin,
+    validMax: parameter.validMax,
+    percent
+  };
+}
+function businessParameter(parameter) {
+  if (parameter.type === "checkbox") {
+    return { label: parameter.label, kind: 4, value: parameter.defaultValue };
+  }
+  if (parameter.type === "color") {
+    return { label: parameter.label, kind: 5, source: 1, value: parameter.defaultValue };
+  }
+  return numericParameter(parameter, parameter.type === "percent");
+}
 const params = [
   { label: "", kind: 0, source: 0 },
-  ...schema.parameters.slice(0, 4).map(parameter => ({
-    label: parameter.label,
-    kind: parameter.type === "checkbox" ? 4 : 10,
-    value: parameter.defaultValue,
-    max: parameter.max,
-    percent: false
-  })),
+  ...schema.parameters.slice(0, 4).map(businessParameter),
   { label: schema.group, kind: 13, source: 3 },
-  ...schema.parameters.slice(4).map(parameter => ({
-    label: parameter.label, kind: 10, value: parameter.defaultValue,
-    max: parameter.max, percent: true
-  })),
+  ...schema.parameters.slice(4, 8).map(businessParameter),
+  { label: "", kind: 14, source: 7 },
+  { label: schema.styleGroup, kind: 13, source: 3 },
+  ...schema.parameters.slice(8).map(businessParameter),
   { label: schema.marker, kind: 14, source: 7 }
 ];
 
-if (schema.parameters.length !== 8 || params.length !== 11) {
-  throw new Error("Rounded rectangle requires eight business parameters.");
+if (schema.parameters.length !== 13 || params.length !== 18) {
+  throw new Error("Rounded rectangle requires thirteen business parameters.");
+}
+for (const parameter of params) {
+  if (parameter.kind !== 10) continue;
+  const range = [
+    parameter.validMin, parameter.sliderMin, parameter.value,
+    parameter.sliderMax, parameter.validMax
+  ];
+  if (!range.every(Number.isFinite) ||
+      parameter.validMin > parameter.sliderMin ||
+      parameter.sliderMin > parameter.value ||
+      parameter.value > parameter.sliderMax ||
+      parameter.sliderMax > parameter.validMax) {
+    throw new Error(`Invalid numeric range for ${parameter.label}.`);
+  }
 }
 
 function parse(bytes, start = 0, end = bytes.length) {
@@ -104,10 +133,12 @@ for (const [index, parameter] of params.entries()) {
   if (parameter.kind === 10) {
     definition.data.fill(0, 56);
     definition.data.writeDoubleBE(parameter.value, 56);
-    definition.data.writeFloatBE(0, 104);
-    definition.data.writeFloatBE(parameter.max, 108);
-    definition.data.writeFloatBE(0, 112);
-    definition.data.writeFloatBE(parameter.percent ? 100 : 1000, 116);
+    // Match the original Scribe pseudo-effect layout: the first pair is the
+    // typed-input range, while the second pair is the drag range.
+    definition.data.writeFloatBE(parameter.validMin, 104);
+    definition.data.writeFloatBE(parameter.validMax, 108);
+    definition.data.writeFloatBE(parameter.sliderMin, 112);
+    definition.data.writeFloatBE(parameter.sliderMax, 116);
     definition.data.writeFloatBE(parameter.value, 120);
     definition.data.writeInt16BE(2, 124);
     definition.data.writeUInt16BE(parameter.percent ? 1 : 0, 126);
@@ -120,12 +151,19 @@ for (const [index, parameter] of params.entries()) {
   const stream = clone(originalStreams[sourceIndex]);
   for (const child of stream.children) {
     if (child.tag === "tdsn") child.data = encoded(parameter.label);
-    if (child.tag === "cdat" && parameter.value !== undefined) {
+    if (child.tag === "cdat" && parameter.kind === 5) {
+      child.data.fill(0);
+      for (let channel = 0; channel < 4; channel += 1) {
+        child.data.writeDoubleBE(parameter.value[channel] * 255, channel * 8);
+      }
+    } else if (child.tag === "cdat" && parameter.value !== undefined) {
       child.data.fill(0);
       child.data.writeDoubleBE(parameter.value, 0);
     }
-    if (child.tag === "tdum") child.data.writeDoubleBE(0, 0);
-    if (child.tag === "tduM") child.data.writeDoubleBE(parameter.max || 0, 0);
+    // AE renders the stream bounds beside the slider, so keep them aligned
+    // with the drag range while the parameter definition retains typed input bounds.
+    if (child.tag === "tdum") child.data.writeDoubleBE(parameter.sliderMin || 0, 0);
+    if (child.tag === "tduM") child.data.writeDoubleBE(parameter.sliderMax || 0, 0);
   }
   values.children.push(text("tdmn", matchName, 40), stream);
 }
@@ -152,11 +190,13 @@ const catalog = {
     [schema.templateId]: {
       file,
       matchName: schema.matchName,
-      marker: { index: 10, name: schema.marker },
+      marker: { index: 17, name: schema.marker },
       parameters: {
         width: 1, height: 2, radius: 3, separate: 4,
         topLeftPercent: 6, topRightPercent: 7,
-        bottomRightPercent: 8, bottomLeftPercent: 9
+        bottomRightPercent: 8, bottomLeftPercent: 9,
+        fillEnabled: 12, fillColor: 13,
+        strokeEnabled: 14, strokeColor: 15, strokeWidth: 16
       },
       sha256
     }

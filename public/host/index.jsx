@@ -1674,9 +1674,9 @@
     } finally {
       catalogFile.close();
     }
-    template = catalog.templates && catalog.templates["shape.roundedRectangle/v2/zh-CN"];
+    template = catalog.templates && catalog.templates["shape.roundedRectangle/v7/zh-CN"];
     if (!template || template.file !== "rounded-rectangle-zh-CN.ffx" ||
-        template.matchName !== "Pseudo/NYA_RRect_v2_zhCN") {
+        template.matchName !== "Pseudo/NYA_RRect_v7_zhCN") {
       throw new Error("pseudo-template-invalid");
     }
     file = new File(root + template.file);
@@ -1694,7 +1694,8 @@
     var mapping = template.definition.parameters;
     var keys = [
       "width", "height", "radius", "separate",
-      "topLeftPercent", "topRightPercent", "bottomRightPercent", "bottomLeftPercent"
+      "topLeftPercent", "topRightPercent", "bottomRightPercent", "bottomLeftPercent",
+      "fillEnabled", "fillColor", "strokeEnabled", "strokeColor", "strokeWidth"
     ];
     if (before < 0 || !mapping) throw new Error("pseudo-effects-unavailable");
     try {
@@ -1716,9 +1717,10 @@
       throw new Error("pseudo-effect-count-mismatch");
     }
     effect = effects.property(before + 1);
+    var markerIndex = template.definition.marker && template.definition.marker.index;
     if (!effect || effect.matchName !== template.definition.matchName ||
-        !effect.property(10) ||
-        effect.property(10).name !== template.definition.marker.name) {
+        !markerIndex || !effect.property(markerIndex) ||
+        effect.property(markerIndex).name !== template.definition.marker.name) {
       throw new Error("pseudo-effect-signature-mismatch");
     }
     for (index = 0; index < keys.length; index += 1) {
@@ -1735,6 +1737,15 @@
   function createRoundedRectangleShape(layer, contents, context, template) {
     var path = contents.addProperty("ADBE Vector Shape - Group");
     var pathProperty = path.property("ADBE Vector Shape");
+    var fill;
+    var fillIndex;
+    var fillColor;
+    var fillOpacity;
+    var stroke;
+    var strokeIndex;
+    var strokeColor;
+    var strokeOpacity;
+    var strokeWidth;
     path.name = "Nya 圆角矩形";
     applyRoundedRectangleTemplate(layer, context, template);
     setShapeExpression(pathProperty, [
@@ -1754,6 +1765,33 @@
       'createPath(points,ins,outs,true);'
     ].join("\n"));
     if (pathProperty.expressionError) throw new Error("pseudo-expression-invalid");
+
+    fill = contents.addProperty("ADBE Vector Graphic - Fill");
+    fillIndex = fill && fill.propertyIndex;
+    stroke = contents.addProperty("ADBE Vector Graphic - Stroke");
+    strokeIndex = stroke && stroke.propertyIndex;
+    // Adding a property to an AE indexed group invalidates previously held
+    // Property references, so reacquire both operators after all additions.
+    fill = fillIndex ? contents.property(fillIndex) : null;
+    stroke = strokeIndex ? contents.property(strokeIndex) : null;
+    fillColor = fill && fill.property("ADBE Vector Fill Color");
+    fillOpacity = fill && fill.property("ADBE Vector Fill Opacity");
+    strokeColor = stroke && stroke.property("ADBE Vector Stroke Color");
+    strokeOpacity = stroke && stroke.property("ADBE Vector Stroke Opacity");
+    strokeWidth = stroke && stroke.property("ADBE Vector Stroke Width");
+    if (!fillColor || !fillOpacity || !strokeColor || !strokeOpacity || !strokeWidth) {
+      throw new Error("pseudo-style-properties-unavailable");
+    }
+    setShapeExpression(fillOpacity, 'effect("Nya 圆角矩形")(12)>0?100:0');
+    setShapeExpression(fillColor, 'effect("Nya 圆角矩形")(13)');
+    setShapeExpression(strokeOpacity, 'effect("Nya 圆角矩形")(14)>0?100:0');
+    setShapeExpression(strokeColor, 'effect("Nya 圆角矩形")(15)');
+    setShapeExpression(strokeWidth, 'Math.max(0,effect("Nya 圆角矩形")(16))');
+    if (fillOpacity.expressionError || fillColor.expressionError ||
+        strokeOpacity.expressionError || strokeColor.expressionError ||
+        strokeWidth.expressionError) {
+      throw new Error("pseudo-style-expression-invalid");
+    }
   }
 
   function createEllipseShape(layer, contents) {
@@ -1830,7 +1868,7 @@
       } else {
         createRoundedRectangleShape(layer, contents, context, template);
       }
-      addShapeFill(contents);
+      if (modifier !== "none") addShapeFill(contents);
       setLayerCentered(layer, context.comp, [0, 0]);
       return finishCreatedLayer(layer, context);
     } catch (error) {
