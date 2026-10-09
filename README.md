@@ -8,9 +8,17 @@
 
 > 当前版本：`0.1.0-alpha.1` · 开发预览；本 README 不提供面向普通用户的正式安装入口。
 
-## 现在可以做什么
+<p align="center">
+  <img src="docs/screenshots/home-obsidian-cyan.png" width="76%" alt="NYAWORKS 极夜青主题首页的早期界面截图">
+</p>
 
-NYAWORKS 是一个 CEP 面板：首页和全局搜索共享工具执行链，资源库可调用本地 AE 脚本、预设与表达式。面板提供五套主题、五种语言，以及可编辑的首页布局。Nya Pie 仍处于技术验证阶段，不是已发布的功能。
+<p align="center"><sub>界面预览拍摄于 2026 年 9 月；工具布局和操作以当前开发扩展及下文状态为准。</sub></p>
+
+## 当前状态
+
+NYAWORKS 是一个 After Effects CEP 面板：首页和全局搜索共享工具执行链，资源库可调用本地 AE 脚本、预设与表达式。项目处于持续开发阶段，已接入的功能与完成真实 AE 验收的范围并不完全相同。
+
+## 现在可以做什么
 
 | 功能 | 当前范围 | 验证状态 |
 | --- | --- | --- |
@@ -21,6 +29,32 @@ NYAWORKS 是一个 CEP 面板：首页和全局搜索共享工具执行链，资
 | 本地资源库 | 浏览当前 AE 内置来源及自定义目录；双击执行脚本、预设、表达式，支持筛选、收藏和最近使用。 | 相关目录扫描与执行路径有真实 AE 测试反馈，完整矩阵见[检查表](docs/testing/resource-command-ae-test.md)。 |
 
 详细的首页、搜索、设置、资源命令和实验能力见[当前功能清单](docs/current-feature-inventory.md)。选择九宫格的宿主功能、云端资源目录、AI 平台正式联网以及正式 Nya Pie UI 均未完成，不应视为可用功能。
+
+## 主题与语言
+
+提供极夜青（默认）、星云紫、熔金琥珀、翡翠深海、樱夜绯粉五套暗色主题，以及简体中文（默认）、繁體中文、English、日本語、한국어五种界面语言。首页布局可编辑，支持工具位调整与布局预设；常规设置包含界面密度、亮度、提示与启动页等选项。
+
+## 界面截图
+
+以下为仓库保留的早期开发界面记录，不代表所有功能现已通过 AE 宿主验收；实际交互和验证边界见上表及[功能清单](docs/current-feature-inventory.md)。
+
+<p align="center">
+  <img src="docs/screenshots/settings-general-updates.png" width="48%" alt="NYAWORKS 常规设置与更新选项">
+  <img src="docs/screenshots/settings-ai.png" width="48%" alt="NYAWORKS AI 设置页预览">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/whats-new-dialog.png" width="48%" alt="NYAWORKS 本次更新窗口">
+  <img src="docs/screenshots/update-available-dialog.png" width="48%" alt="NYAWORKS 发现新版本窗口">
+</p>
+
+AI 设置页可管理连接和生成偏好，但正式 CEP 安全存储与真实平台联网仍待接入和验收；更新窗口目前只引导至安全下载页，不会在扩展内自动安装。
+
+## 开发路线
+
+- 已接入锚点、对齐、新建图层三套共享 Action 九宫格和本地资源库；继续逐项补齐真实 AE 宿主验收。
+- 下一步完善选择九宫格及高价值增强工具；Nya Pie P0/P1 仍为技术验证，正式 Pie UI 与编辑器尚未开始。
+- 后续功能与待验收条目分别记录在[核心工具优先路线](planning/05-core-tools-priority-roadmap.md)和[开发路线](planning/02-roadmap.md)，不以浏览器测试代替 AE 结果。
 
 ## 开发者快速开始
 
