@@ -16,7 +16,7 @@
 | 锚点九宫格 | 按各图层边界移动锚点，用 Position 补偿保持画面位置；多选逐层处理。 | 基础场景已有用户测试反馈；关键帧/表达式的高级修改没有实现，遇到不安全状态应拒绝。[测试记录](testing/anchor-action-ae-test.md) |
 | 对齐九宫格 | 单选默认合成，多选默认联合选区；多选按 Alt/Option 或 Shift 强制合成。2D 与打开 3D 开关的图层使用不同计算路径，下排三个按钮处理文字段落对齐。 | 用户反馈 2D、3D、父子级和段落操作正常；[检查表](testing/alignment-action-ae-test.md)中的完整手动结果尚未逐项填写，AE 2025 有 3D 六方向自动化宿主证据。Position 关键帧/表达式仍安全拒绝。 |
 | 新建图层九宫格 | 文字、纯色、形状、调整层、参考线空对象、摄像机控制器、灯光、预合成、解预合成共九个 Action。形状等按钮有修饰键变体；预合成与解预合成也供其他入口复用。 | 文字专项已有 AE 验收；九个 Action 的[完整场景检查表](testing/layer-creation-grid-ae-test.md)仍待填写，不能笼统写成全部通过。 |
-| 圆角矩形伪效果 | 普通点击新建圆角矩形加载 `rounded-rectangle-zh-CN.ffx`；总圆角和四角为 0–100，分离前后默认外观一致。其他形状变体不加载此预设。 | 用户在本机 Windows AE 2025 测试新建和圆角操作正常；改名后点击、关键帧、保存重开、其他 AE 版本与 macOS 待复验。[测试记录](testing/rounded-rectangle-pseudo-effect-ae-test.md) |
+| 圆角矩形伪效果 | 普通点击新建圆角矩形加载 `rounded-rectangle-zh-CN.ffx`；支持总圆角、四角分离、填充与描边样式控制。其他形状变体暂不加载伪效果。 | Windows AE 2025 已验证创建、调参、关键帧、效果重命名、Undo、复制及保存重开；其他 AE 版本、macOS 与跨电脑场景待验证。[测试记录](testing/rounded-rectangle-pseudo-effect-ae-test.md) |
 
 文字层支持 AE 默认点文字创建，另有独立编辑器；纯色层加原生 Fill；摄像机控制器和空对象按业务关系创建。解预合成有安全拒绝条件，不承诺展开任何复杂预合成。操作详情见[新建图层检查表](testing/layer-creation-grid-ae-test.md)。
 
