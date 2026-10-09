@@ -1639,7 +1639,76 @@
     if (color) color.setValue([1, 1, 1]);
   }
 
-  function preflightRoundedRectangleTemplate(extensionRoot) {
+  function getPseudoEffectTemplateContract(templateId) {
+    if (templateId !== "shape.roundedRectangle/v7/zh-CN") {
+      throw new Error("pseudo-template-not-allowed");
+    }
+    return {
+      templateId: templateId,
+      file: "rounded-rectangle-zh-CN.ffx",
+      matchName: "Pseudo/NYA_RRect_v7_zhCN",
+      marker: {
+        index: 17,
+        name: "__NYA_RRECT_V7__"
+      },
+      parameterIds: [
+        "width", "height", "radius", "separate",
+        "topLeftPercent", "topRightPercent", "bottomRightPercent", "bottomLeftPercent",
+        "fillEnabled", "fillColor", "strokeEnabled", "strokeColor", "strokeWidth"
+      ]
+    };
+  }
+
+  function pseudoEffectArrayContains(values, expected) {
+    for (var index = 0; index < values.length; index += 1) {
+      if (values[index] === expected) return true;
+    }
+    return false;
+  }
+
+  function validatePseudoEffectDefinition(definition, contract) {
+    var mapping = definition && definition.parameters;
+    var usedIndexes = {};
+    var parameterId;
+    var parameterIndex;
+    var index;
+    var count = 0;
+    if (!definition || definition.file !== contract.file ||
+        definition.matchName !== contract.matchName ||
+        !definition.marker ||
+        definition.marker.index !== contract.marker.index ||
+        definition.marker.name !== contract.marker.name ||
+        !mapping ||
+        contract.file.indexOf("/") !== -1 ||
+        contract.file.indexOf("\\") !== -1 ||
+        contract.file.indexOf(":") !== -1) {
+      throw new Error("pseudo-template-invalid");
+    }
+    for (index = 0; index < contract.parameterIds.length; index += 1) {
+      parameterId = contract.parameterIds[index];
+      parameterIndex = mapping[parameterId];
+      if (typeof parameterIndex !== "number" || parameterIndex <= 0 ||
+          Math.floor(parameterIndex) !== parameterIndex || usedIndexes[parameterIndex]) {
+        throw new Error("pseudo-template-invalid");
+      }
+      usedIndexes[parameterIndex] = true;
+    }
+    for (parameterId in mapping) {
+      if (mapping.hasOwnProperty(parameterId)) {
+        count += 1;
+        if (!pseudoEffectArrayContains(contract.parameterIds, parameterId)) {
+          throw new Error("pseudo-template-invalid");
+        }
+      }
+    }
+    if (count !== contract.parameterIds.length) {
+      throw new Error("pseudo-template-invalid");
+    }
+    return definition;
+  }
+
+  function preflightPseudoEffectTemplate(extensionRoot, templateId) {
+    var contract = getPseudoEffectTemplateContract(templateId);
     if (typeof extensionRoot !== "string") {
       throw new Error("pseudo-extension-root-unavailable");
     }
@@ -1670,68 +1739,128 @@
       );
     }
     try {
-      catalog = JSON.parse(catalogFile.read());
+      try {
+        catalog = JSON.parse(catalogFile.read());
+      } catch (catalogError) {
+        throw new Error("pseudo-catalog-invalid");
+      }
     } finally {
       catalogFile.close();
     }
-    template = catalog.templates && catalog.templates["shape.roundedRectangle/v7/zh-CN"];
-    if (!template || template.file !== "rounded-rectangle-zh-CN.ffx" ||
-        template.matchName !== "Pseudo/NYA_RRect_v7_zhCN") {
-      throw new Error("pseudo-template-invalid");
-    }
-    file = new File(root + template.file);
+    template = catalog.templates && catalog.templates[templateId];
+    validatePseudoEffectDefinition(template, contract);
+    file = new File(root + contract.file);
     if (!file.exists) throw new Error("pseudo-template-missing");
-    return { file: file, definition: template };
+    return {
+      file: file,
+      definition: template,
+      contract: contract,
+      templateId: templateId
+    };
   }
 
-  function applyRoundedRectangleTemplate(layer, context, template) {
-    var selected = context.selection;
+  function validatePseudoEffectInstance(effect, template) {
+    var definition = template.definition;
+    var contract = template.contract;
+    var mapping = definition.parameters;
+    var marker = effect && effect.property(contract.marker.index);
+    var parameterId;
+    var parameterIndex;
+    var parameter;
+    var index;
+    if (!effect || effect.matchName !== contract.matchName ||
+        !marker || marker.name !== contract.marker.name) {
+      throw new Error("pseudo-effect-signature-mismatch");
+    }
+    for (index = 0; index < contract.parameterIds.length; index += 1) {
+      parameterId = contract.parameterIds[index];
+      parameterIndex = mapping[parameterId];
+      parameter = effect.property(parameterIndex);
+      if (!parameter || parameter.matchName !==
+          contract.matchName + "-" + ("000" + parameterIndex).slice(-4)) {
+        throw new Error("pseudo-parameter-mismatch-" + parameterId);
+      }
+    }
+    return effect;
+  }
+
+  function findExistingPseudoEffect(effects, template) {
+    var contract = template.contract;
+    var candidate = null;
+    var effect;
+    var marker;
+    var index;
+    if (!effects) throw new Error("pseudo-effects-unavailable");
+    for (index = 1; index <= effects.numProperties; index += 1) {
+      effect = effects.property(index);
+      marker = null;
+      try {
+        marker = effect && effect.property && effect.property(contract.marker.index);
+      } catch (ignoreMarkerProbe) {}
+      if (effect && (effect.matchName === contract.matchName ||
+          (marker && marker.name === contract.marker.name))) {
+        if (candidate) throw new Error("pseudo-effect-ambiguous");
+        candidate = effect;
+      }
+    }
+    return candidate ? validatePseudoEffectInstance(candidate, template) : null;
+  }
+
+  function cleanupAddedPseudoEffects(layer, previousCount) {
+    var effects = layer && layer.property("ADBE Effect Parade");
+    var effect;
+    if (!effects) throw new Error("pseudo-effect-cleanup-failed");
+    while (effects.numProperties > previousCount) {
+      effect = effects.property(effects.numProperties);
+      if (!effect || typeof effect.remove !== "function") {
+        throw new Error("pseudo-effect-cleanup-failed");
+      }
+      effect.remove();
+    }
+  }
+
+  function applyPseudoEffectTemplate(layer, context, template) {
+    var selected = context.selection || [];
     var selectedProperties = context.comp.selectedProperties || [];
     var effects = layer.property("ADBE Effect Parade");
     var before = effects ? effects.numProperties : -1;
     var effect;
+    var existing;
     var index;
-    var mapping = template.definition.parameters;
-    var keys = [
-      "width", "height", "radius", "separate",
-      "topLeftPercent", "topRightPercent", "bottomRightPercent", "bottomLeftPercent",
-      "fillEnabled", "fillColor", "strokeEnabled", "strokeColor", "strokeWidth"
-    ];
-    if (before < 0 || !mapping) throw new Error("pseudo-effects-unavailable");
+    if (before < 0) throw new Error("pseudo-effects-unavailable");
+    existing = findExistingPseudoEffect(effects, template);
+    if (existing) return existing;
     try {
-      for (index = 0; index < selected.length; index += 1) selected[index].selected = false;
-      for (index = 0; index < selectedProperties.length; index += 1) {
-        selectedProperties[index].selected = false;
+      try {
+        for (index = 0; index < selected.length; index += 1) selected[index].selected = false;
+        for (index = 0; index < selectedProperties.length; index += 1) {
+          selectedProperties[index].selected = false;
+        }
+        layer.selected = true;
+        layer.applyPreset(template.file);
+      } finally {
+        try { layer.selected = false; } catch (ignoreTargetSelectionRestore) {}
+        for (index = 0; index < selected.length; index += 1) {
+          try { selected[index].selected = true; } catch (ignoreLayerSelectionRestore) {}
+        }
+        for (index = 0; index < selectedProperties.length; index += 1) {
+          try { selectedProperties[index].selected = true; } catch (ignorePropertySelectionRestore) {}
+        }
       }
-      layer.selected = true;
-      layer.applyPreset(template.file);
-    } finally {
-      layer.selected = false;
-      for (index = 0; index < selected.length; index += 1) selected[index].selected = true;
-      for (index = 0; index < selectedProperties.length; index += 1) {
-        try { selectedProperties[index].selected = true; } catch (ignoreRemovedProperty) {}
+      effects = layer.property("ADBE Effect Parade");
+      if (!effects || effects.numProperties !== before + 1) {
+        throw new Error("pseudo-effect-count-mismatch");
       }
-    }
-    effects = layer.property("ADBE Effect Parade");
-    if (!effects || effects.numProperties !== before + 1) {
-      throw new Error("pseudo-effect-count-mismatch");
-    }
-    effect = effects.property(before + 1);
-    var markerIndex = template.definition.marker && template.definition.marker.index;
-    if (!effect || effect.matchName !== template.definition.matchName ||
-        !markerIndex || !effect.property(markerIndex) ||
-        effect.property(markerIndex).name !== template.definition.marker.name) {
-      throw new Error("pseudo-effect-signature-mismatch");
-    }
-    for (index = 0; index < keys.length; index += 1) {
-      var parameterIndex = mapping[keys[index]];
-      var parameter = effect.property(parameterIndex);
-      if (!parameter || parameter.matchName !==
-          template.definition.matchName + "-" + ("000" + parameterIndex).slice(-4)) {
-        throw new Error("pseudo-parameter-mismatch-" + keys[index]);
+      effect = effects.property(before + 1);
+      return validatePseudoEffectInstance(effect, template);
+    } catch (error) {
+      try {
+        cleanupAddedPseudoEffects(layer, before);
+      } catch (cleanupError) {
+        throw new Error("pseudo-effect-cleanup-failed: " + error.message);
       }
+      throw error;
     }
-    return effect;
   }
 
   function createRoundedRectangleShape(layer, contents, context, template) {
@@ -1747,7 +1876,7 @@
     var strokeOpacity;
     var strokeWidth;
     path.name = "Nya 圆角矩形";
-    applyRoundedRectangleTemplate(layer, context, template);
+    applyPseudoEffectTemplate(layer, context, template);
     setShapeExpression(pathProperty, [
       'w=Math.max(0,effect("Nya 圆角矩形")(1));',
       'h=Math.max(0,effect("Nya 圆角矩形")(2));',
@@ -1842,7 +1971,10 @@
   }
 
   function createShapeLayer(context, modifier, extensionRoot) {
-    var template = modifier === "none" ? preflightRoundedRectangleTemplate(extensionRoot) : null;
+    var template = modifier === "none" ? preflightPseudoEffectTemplate(
+      extensionRoot,
+      "shape.roundedRectangle/v7/zh-CN"
+    ) : null;
     var layer = context.comp.layers.addShape();
     var root;
     var group;

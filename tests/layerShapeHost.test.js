@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
-async function loadRunLayerAction(app) {
+async function loadLayerHost(app) {
   const source = await readFile("public/host/index.jsx", "utf8");
   const catalog = await readFile("public/host/pseudo-effects/catalog.json", "utf8");
   function TestFile(path) {
@@ -10,7 +10,7 @@ async function loadRunLayerAction(app) {
       /^C:\/CEP\/NYAWORKS\/host\/pseudo-effects\/(catalog\.json|rounded-rectangle-zh-CN\.ffx)$/.test(path);
     this.error = app.catalogUnreadable ? "Permission denied" : "";
     this.open = () => this.exists && !app.catalogUnreadable;
-    this.read = () => catalog;
+    this.read = () => app.catalogOverride || catalog;
     this.close = () => {};
   }
   const start = source.indexOf("  function decodeLayerActionPayload(encodedPayload) {");
@@ -24,10 +24,18 @@ async function loadRunLayerAction(app) {
     "File",
     "hostScriptFile",
     `${source.slice(start, end)}
-return runLayerAction;`
+return {
+  runLayerAction: runLayerAction,
+  preflightPseudoEffectTemplate: typeof preflightPseudoEffectTemplate === "function" ? preflightPseudoEffectTemplate : null,
+  applyPseudoEffectTemplate: typeof applyPseudoEffectTemplate === "function" ? applyPseudoEffectTemplate : null
+};`
   )(app, TestComp, {}, JSON, decodeURIComponent, TestFile, {
     parent: { fsName: "C:/Program Files/Common Files/Adobe/Startup Scripts CC/Adobe After Effects" }
   });
+}
+
+async function loadRunLayerAction(app) {
+  return (await loadLayerHost(app)).runLayerAction;
 }
 
 class TestComp {}
@@ -63,7 +71,11 @@ function valueProperty(initial = null, backingState = null) {
   return property;
 }
 
-function createShapeLayer({ invalidateVectorReferences = false } = {}) {
+function createShapeLayer({
+  invalidateVectorReferences = false,
+  invalidPseudoSignature = false,
+  invalidPseudoMatchName = false
+} = {}) {
   const controls = [];
   const vectors = [];
   const anchor = valueProperty([0, 0]);
@@ -138,22 +150,26 @@ function createShapeLayer({ invalidateVectorReferences = false } = {}) {
         500, 500, 50, 0, null, 50, 50, 50, 50, null,
         null, 1, [1, 1, 1, 1], 0, [0, 0, 0, 1], 5, null
       ];
-      controls.push({
-        matchName: "Pseudo/NYA_RRect_v7_zhCN",
+      const parameters = values.map((value, offset) => ({
+        name: ["宽度", "高度", "圆角值", "分离圆角", "分离参数",
+          "左上角", "右上角", "右下角", "左下角", "", "样式",
+          "启用填充", "填充颜色", "启用描边", "描边颜色", "描边宽度",
+          invalidPseudoSignature ? "__INVALID__" : "__NYA_RRECT_V7__"][offset],
+        matchName: `Pseudo/NYA_RRect_v7_zhCN-${String(offset + 1).padStart(4, "0")}`,
+        propertyValueType: [5, 10, 11, 17].includes(offset + 1) ? 6412 : 6417,
+        value
+      }));
+      const effect = {
+        matchName: invalidPseudoMatchName ? "Pseudo/Unexpected" : "Pseudo/NYA_RRect_v7_zhCN",
         name: "Nya 圆角矩形",
         numProperties: 18,
-        property(index) {
-          const names = ["宽度", "高度", "圆角值", "分离圆角", "分离参数",
-            "左上角", "右上角", "右下角", "左下角", "", "样式",
-            "启用填充", "填充颜色", "启用描边", "描边颜色", "描边宽度", "__NYA_RRECT_V7__"];
-          return index <= 17 ? {
-            name: names[index - 1],
-            matchName: `Pseudo/NYA_RRect_v7_zhCN-${String(index).padStart(4, "0")}`,
-            propertyValueType: [5, 10, 11, 17].includes(index) ? 6412 : 6417,
-            value: values[index - 1]
-          } : null;
+        property(index) { return parameters[index - 1] || null; },
+        remove() {
+          const index = controls.indexOf(effect);
+          if (index !== -1) controls.splice(index, 1);
         }
-      });
+      };
+      controls.push(effect);
     },
     moveToBeginning() {},
     property(name) {
@@ -222,6 +238,109 @@ function evaluateRoundedPath(layer, controls) {
 }
 
 describe("shape layer host action", () => {
+  it("rejects pseudo-effect template ids outside the Host whitelist", async () => {
+    const { app } = createApp();
+    const { preflightPseudoEffectTemplate } = await loadLayerHost(app);
+
+    expect(() => preflightPseudoEffectTemplate(
+      "C:/CEP/NYAWORKS",
+      "shape.unknown/v1/zh-CN"
+    )).toThrow("pseudo-template-not-allowed");
+  });
+
+  it.each([
+    ["a traversing asset path", (template) => { template.file = "../evil.ffx"; }],
+    ["duplicate parameter indexes", (template) => { template.parameters.height = 1; }]
+  ])("rejects catalog tampering with %s", async (_label, mutate) => {
+    const { app } = createApp();
+    const catalog = JSON.parse(await readFile("public/host/pseudo-effects/catalog.json", "utf8"));
+    mutate(catalog.templates["shape.roundedRectangle/v7/zh-CN"]);
+    app.catalogOverride = JSON.stringify(catalog);
+    const { preflightPseudoEffectTemplate } = await loadLayerHost(app);
+
+    expect(() => preflightPseudoEffectTemplate(
+      "C:/CEP/NYAWORKS",
+      "shape.roundedRectangle/v7/zh-CN"
+    )).toThrow("pseudo-template-invalid");
+  });
+
+  it("reports malformed pseudo-effect catalogs as invalid", async () => {
+    const { app } = createApp();
+    app.catalogOverride = "{";
+    const { preflightPseudoEffectTemplate } = await loadLayerHost(app);
+
+    expect(() => preflightPseudoEffectTemplate(
+      "C:/CEP/NYAWORKS",
+      "shape.roundedRectangle/v7/zh-CN"
+    )).toThrow("pseudo-catalog-invalid");
+  });
+
+  it("reuses one valid pseudo-effect instance without resetting its parameters", async () => {
+    const { app, created } = createApp();
+    const comp = app.project.activeItem;
+    const layer = comp.layers.addShape();
+    const { preflightPseudoEffectTemplate, applyPseudoEffectTemplate } = await loadLayerHost(app);
+    const template = preflightPseudoEffectTemplate(
+      "C:/CEP/NYAWORKS",
+      "shape.roundedRectangle/v7/zh-CN"
+    );
+    const context = { comp, selection: [] };
+
+    const first = applyPseudoEffectTemplate(layer, context, template);
+    first.property(1).value = 777;
+    const second = applyPseudoEffectTemplate(layer, context, template);
+
+    expect(created).toHaveLength(1);
+    expect(layer.controls).toHaveLength(1);
+    expect(second).toBe(first);
+    expect(second.property(1).value).toBe(777);
+  });
+
+  it("rejects ambiguous existing pseudo-effect instances without adding another", async () => {
+    const { app } = createApp();
+    const comp = app.project.activeItem;
+    const layer = comp.layers.addShape();
+    const { preflightPseudoEffectTemplate, applyPseudoEffectTemplate } = await loadLayerHost(app);
+    const template = preflightPseudoEffectTemplate(
+      "C:/CEP/NYAWORKS",
+      "shape.roundedRectangle/v7/zh-CN"
+    );
+    layer.applyPreset(template.file);
+    layer.applyPreset(template.file);
+
+    expect(() => applyPseudoEffectTemplate(layer, {
+      comp,
+      selection: []
+    }, template)).toThrow("pseudo-effect-ambiguous");
+    expect(layer.controls).toHaveLength(2);
+  });
+
+  it("cleans only newly added invalid effects and restores layer and property selection", async () => {
+    const { app } = createApp({ invalidPseudoSignature: true });
+    const comp = app.project.activeItem;
+    const original = { selected: true };
+    const selectedProperty = { selected: true };
+    comp.selectedLayers = [original];
+    comp.selectedProperties = [selectedProperty];
+    const layer = comp.layers.addShape();
+    const effects = layer.property("ADBE Effect Parade");
+    const existing = effects.addProperty("ADBE Slider Control");
+    const { preflightPseudoEffectTemplate, applyPseudoEffectTemplate } = await loadLayerHost(app);
+    const template = preflightPseudoEffectTemplate(
+      "C:/CEP/NYAWORKS",
+      "shape.roundedRectangle/v7/zh-CN"
+    );
+
+    expect(() => applyPseudoEffectTemplate(layer, {
+      comp,
+      selection: [original]
+    }, template)).toThrow("pseudo-effect-signature-mismatch");
+    expect(layer.controls).toEqual([existing]);
+    expect(original.selected).toBe(true);
+    expect(selectedProperty.selected).toBe(true);
+    expect(layer.selected).toBe(false);
+  });
+
   it("creates a centered controlled rounded rectangle with independent corners", async () => {
     const { app, created } = createApp();
     const runLayerAction = await loadRunLayerAction(app);

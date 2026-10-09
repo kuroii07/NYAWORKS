@@ -193,3 +193,11 @@ Host 现在为圆角矩形在同一矢量组内创建真实 Fill 与 Stroke 运�
 ### v7 修复后真实 AE 验收
 
 用户在 Windows / AE 2025 中重新打开 NYAWORKS 面板后确认：圆角矩形已可正常创建；“样式”组正常显示；填充、填充颜色、描边、描边颜色和描边宽度均在真实合成画面中生效。截图同时确认分离圆角参数与不同角度组合仍可正常工作。用户随后完成剩余回归，确认开关与颜色关键帧、Undo、复制图层以及保存工程后重开均正常。至此 v7 在 Windows / AE 2025 中文环境中的本轮验收项全部通过；其他 AE 版本与 macOS 仍待兼容性验证。
+
+### 共享 Host Helper 自动化与真实 AE 2025 回归通过
+
+圆角矩形专用的 Catalog 预检与 `.ffx` 应用逻辑已收敛为白名单驱动的共享 Host Helper，仍位于现有 `public/host/index.jsx` 并继续复用原 Action → Bridge → Host 链路。共享流程现负责扩展根目录与固定资产校验、Catalog 模板/标记/参数映射校验、选层和属性选择隔离、已存在实例识别、重复调用幂等、加载后重新取得效果属性，以及失败时只清理本次新增效果。未知模板、目录穿越、重复参数索引、签名错误和同层多实例歧义均会拒绝执行；圆角矩形几何、Fill/Stroke 表达式与其余形状行为未改动。
+
+本轮按 TDD 先确认新增共享 Helper 测试因函数不存在而出现 5 项预期失败，随后实现并补齐损坏 Catalog 与多实例歧义边界。相关测试为 2 个文件 / 21 项通过；`npm.cmd run typecheck`、`npm.cmd run build`、`npm.cmd run smoke:dist` 均通过。全量测试为 134 个文件中 132 个通过、683 项中 680 项通过；3 项失败仍是既有基线：缺少被忽略的 `outputs/nya-launcher-p1/NyaLauncher.exe`，以及未跟踪旧实验测试仍引用已废弃的 v1 资产路径。`public/`、`dist/`、`dev-extension/` 与 CEP junction 中的 `host/index.jsx` SHA-256 均为 `1AFDCD3656F68AAE141A15EB01D02310037ADFD2C7192F3AF36BFCCA4F260FC5`。
+
+用户随后在 Windows / 中文 AE 2025 中刷新 NYAWORKS，并确认本轮回归项目全部正常：新建圆角矩形、几何与样式参数、关键帧、效果重命名、Undo、复制及保存重开均未出现问题。至此共享 Host Helper 的首个真实业务接入已通过本机 AE 2025 验收；该结果不替代其他 AE 版本、系统、语言与跨电脑兼容性验证。下一步开始 `Alt` 圆形的独立伪效果接入。
