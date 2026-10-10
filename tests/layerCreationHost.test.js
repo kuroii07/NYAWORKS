@@ -437,6 +437,37 @@ describe("basic layer creation host actions", () => {
     expect([created[0].width, created[0].height]).toEqual([1920, 1080]);
   });
 
+  it("creates a uniquely named adjustment layer with the shared timing and insertion rules", async () => {
+    const selected = createLayer("existing", {
+      index: 4,
+      inPoint: 2.5,
+      outPoint: 8.75,
+      name: "Nya 调整层"
+    });
+    const { comp, created } = createComp([selected]);
+    const host = await loadLayerHost({
+      project: { activeItem: comp },
+      beginUndoGroup() {},
+      endUndoGroup() {}
+    }, TestComp);
+
+    expect(JSON.parse(host.runLayerAction(payload("create-adjustment")))).toMatchObject({
+      ok: true,
+      createdLayers: 1,
+      updatedLayers: 0,
+      createdItems: 0
+    });
+
+    const adjustment = created[0];
+    expect(adjustment.name).toBe("Nya 调整层 2");
+    expect(adjustment.adjustmentLayer).toBe(true);
+    expect([adjustment.width, adjustment.height]).toEqual([1920, 1080]);
+    expect([adjustment.inPoint, adjustment.outPoint]).toEqual([2.5, 8.75]);
+    expect(adjustment.movedBefore).toBe(selected);
+    expect(adjustment.selected).toBe(true);
+    expect(adjustment.effects.added).toEqual([]);
+  });
+
   it("keeps a solid at full composition size even when legacy Alt is passed", async () => {
     const selected = createLayer("existing", { index: 2, inPoint: 3, outPoint: 9 });
     const { comp, created } = createComp([selected]);

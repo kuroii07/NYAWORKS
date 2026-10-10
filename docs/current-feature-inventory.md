@@ -1,6 +1,6 @@
 # NYAWORKS 当前功能与验证边界
 
-更新日期：2026-10-10。本文承接仓库 README 中较详细的功能清单；具体操作与逐项验收以链接的测试记录为准。**代码已实现、浏览器自动化通过、真实 AE 宿主通过是不同状态**，不能互相替代。
+更新日期：2026-10-11。本文承接仓库 README 中较详细的功能清单；具体操作与逐项验收以链接的测试记录为准。**代码已实现、浏览器自动化通过、真实 AE 宿主通过是不同状态**，不能互相替代。
 
 ## 首页与共享 Action
 
@@ -15,7 +15,7 @@
 | --- | --- | --- |
 | 锚点九宫格 | 按各图层边界移动锚点，用 Position 补偿保持画面位置；多选逐层处理。 | 基础场景已有用户测试反馈；关键帧/表达式的高级修改没有实现，遇到不安全状态应拒绝。[测试记录](testing/anchor-action-ae-test.md) |
 | 对齐九宫格 | 单选默认合成，多选默认联合选区；多选按 Alt/Option 或 Shift 强制合成。2D 与打开 3D 开关的图层使用不同计算路径，下排三个按钮处理文字段落对齐。 | 用户反馈 2D、3D、父子级和段落操作正常；[检查表](testing/alignment-action-ae-test.md)中的完整手动结果尚未逐项填写，AE 2025 有 3D 六方向自动化宿主证据。Position 关键帧/表达式仍安全拒绝。 |
-| 新建图层九宫格 | 文字、纯色、形状、调整层、参考线空对象、摄像机控制器、灯光、预合成、解预合成共九个 Action。形状等按钮有修饰键变体；预合成与解预合成也供其他入口复用。 | 文字专项已有 AE 验收；九个 Action 的[完整场景检查表](testing/layer-creation-grid-ae-test.md)仍待填写，不能笼统写成全部通过。 |
+| 新建图层九宫格 | 文字、纯色、形状、调整层、参考线空对象、摄像机控制器、灯光、预合成、解预合成共九个 Action。形状等按钮有修饰键变体；预合成与解预合成也供其他入口复用。 | 文字专项和形状专项已有 AE 验收；调整层已完成全合成尺寸、选区时间范围、选区上方插入、重名递增、创建后单选和不加效果的自动化回归，正在进行 AE 2025 实机验收；九个 Action 的[完整场景检查表](testing/layer-creation-grid-ae-test.md)仍未全部完成。 |
 | 圆角矩形伪效果 | 普通点击新建圆角矩形加载 `rounded-rectangle-zh-CN.ffx`；支持总圆角、四角分离、填充与描边样式控制。 | 保留 v7 原验收资产与内部身份；已修复新增 Alt 后 ExtendScript 模板分支误选圆形的问题。2026-10-10 用户最终确认圆角矩形和圆形均正常，授权提交推送。[测试记录](testing/rounded-rectangle-pseudo-effect-ae-test.md) |
 | Alt 圆形伪效果 | 按住 Alt 新建正圆，当前内部模板为 `shape.circle/v3/zh-CN`，公开文件仍为 `circle-zh-CN.ffx`；半径、填充和描边共六项参数持续可调。 | v3 描边规格已与圆角矩形 v7 对齐；AE 25.6x101 的交替创建、描边数值边界与表达式绑定通过。2026-10-10 用户最终确认功能正常，本机本轮验收通过；逐项记录与其他环境边界见[检查表](testing/circle-pseudo-effect-ae-test.md)。 |
 | Ctrl 三角形/多边形伪效果 | 按住 Ctrl 新建默认三边的多边形，使用 `shape.triangle/v1/zh-CN` 与 `triangle-zh-CN.ffx`；点（边数）、旋转、外半径、外圆度及五项样式参数持续可调，点数拖动 3–20、输入 3–100。 | AE 25.6x101 脚本创建和参数回归通过；用户在家里电脑完成同步后的总体交互测试，反馈基本没有问题，本轮 Windows / 中文 AE 2025 验收通过。见[三角形与星形检查表](testing/triangle-star-pseudo-effect-ae-test.md)。 |
@@ -42,6 +42,12 @@
 - AI 设置页可管理八个内置平台与自定义 OpenAI Compatible 连接、模型字段和生成偏好；正式 CEP 安全存储与真实平台联网仍待单独接入和验收，不能把设置界面当成已可用的 AI 助手。
 - GitHub Releases 检查和“本次更新”提示已接入；当前不自动下载、安装或升级扩展。
 - Nya Pie P0 只有四方向调用链探针；Windows NyaLauncher P1 是定位/无边框候选，**不是正式 Pie UI 或 Pie Editor**。见[P0](testing/nya-pie-p0-ae-test.md)和[P1](testing/nya-launcher-p1-ae-test.md)测试记录。
+
+## 图层本地化与兼容规范
+
+- 本轮已形成长期设计规范和后续实施计划：[设计规范](superpowers/specs/2026-10-11-layer-localization-and-compatibility-design.md)、[实施计划](superpowers/plans/2026-10-11-layer-localization-and-compatibility.md)。
+- 当前仍以 `zh-CN` 为默认且唯一完整验收的图层/伪效果输出；已有图层、表达式和中文 `.ffx` 不自动改名、不迁移、不覆盖。
+- 后续本地化先接入普通图层，再逐种加入伪效果模板；未完成语言必须在创建前被识别，不能留下半成品或假装已支持。
 
 ## 验证与发布原则
 

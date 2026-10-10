@@ -2313,7 +2313,7 @@
     var comp = context.comp;
     var layer = comp.layers.addSolid(
       [1, 1, 1],
-      "Nya Adjustment",
+      uniqueLayerName(comp, "Nya 调整层", null),
       comp.width,
       comp.height,
       comp.pixelAspect,
