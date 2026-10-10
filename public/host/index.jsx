@@ -1,7 +1,57 @@
 (function () {
   "use strict";
 
-  var hostScriptFile = new File($.fileName);
+  var hostScriptFile = $.fileName;
+  var nyaworksJson = $.global.JSON;
+
+  // Some AE 2025 ExtendScript sessions do not expose native JSON. Keep the
+  // CEP contract alive with a small ES3-compatible fallback for plain data.
+  if (!nyaworksJson) {
+    nyaworksJson = {
+      stringify: function (value) {
+        function escapeString(text) {
+          return String(text)
+            .replace(/\\/g, "\\\\")
+            .replace(/\"/g, "\\\"")
+            .replace(/\r/g, "\\r")
+            .replace(/\n/g, "\\n")
+            .replace(/\t/g, "\\t");
+        }
+
+        function serialize(item) {
+          var key;
+          var parts;
+          if (item === null) return "null";
+          if (typeof item === "string") return '\"' + escapeString(item) + '\"';
+          if (typeof item === "number") return isFinite(item) ? String(item) : "null";
+          if (typeof item === "boolean") return item ? "true" : "false";
+          if (typeof item === "undefined") return "null";
+          if (item instanceof Array) {
+            parts = [];
+            for (key = 0; key < item.length; key += 1) parts.push(serialize(item[key]));
+            return "[" + parts.join(",") + "]";
+          }
+          if (typeof item === "object") {
+            parts = [];
+            for (key in item) {
+              if (item.hasOwnProperty && !item.hasOwnProperty(key)) continue;
+              if (typeof item[key] === "undefined" || typeof item[key] === "function") continue;
+              parts.push('\"' + escapeString(key) + '\":' + serialize(item[key]));
+            }
+            return "{" + parts.join(",") + "}";
+          }
+          return "null";
+        }
+
+        return serialize(value);
+      },
+      parse: function (text) {
+        return eval("(" + text + ")");
+      }
+    };
+    $.global.JSON = nyaworksJson;
+  }
+  var JSON = nyaworksJson;
 
   function getHostInfo() {
     return JSON.stringify({
