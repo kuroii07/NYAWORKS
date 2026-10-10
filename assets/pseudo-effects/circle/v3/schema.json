@@ -1,0 +1,15 @@
+{
+  "templateId": "shape.circle/v3/zh-CN",
+  "matchName": "Pseudo/NYA_Circle_v3_zhCN",
+  "displayName": "Nya 圆形",
+  "styleGroup": "样式",
+  "marker": "__NYA_CIRCLE_V3__",
+  "parameters": [
+    { "id": "radius", "label": "半径", "type": "slider", "defaultValue": 250, "sliderMin": 0, "sliderMax": 3000, "validMin": 0, "validMax": 5000 },
+    { "id": "fillEnabled", "label": "启用填充", "type": "checkbox", "defaultValue": 1 },
+    { "id": "fillColor", "label": "填充颜色", "type": "color", "defaultValue": [1, 1, 1, 1] },
+    { "id": "strokeEnabled", "label": "启用描边", "type": "checkbox", "defaultValue": 0 },
+    { "id": "strokeColor", "label": "描边颜色", "type": "color", "defaultValue": [0, 0, 0, 1] },
+    { "id": "strokeWidth", "label": "描边宽度", "type": "slider", "defaultValue": 5, "sliderMin": 0, "sliderMax": 100, "validMin": 0, "validMax": 1000 }
+  ]
+}

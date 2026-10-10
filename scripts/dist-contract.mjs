@@ -5,6 +5,7 @@ export const REQUIRED_DIST_FILES = [
   "dist/host/index.jsx",
   "dist/host/pseudo-effects/catalog.json",
   "dist/host/pseudo-effects/rounded-rectangle-zh-CN.ffx",
+  "dist/host/pseudo-effects/circle-zh-CN.ffx",
   "dist/assets/brand/nyaworks-cat.png"
 ];
 

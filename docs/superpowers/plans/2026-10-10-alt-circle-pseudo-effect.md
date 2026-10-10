@@ -4,22 +4,24 @@
 
 **Goal:** 为 `create-shape + Alt/Option` 创建的正圆接入独立简体中文伪效果，提供半径及填充/描边六项持续可调参数，同时保持现有 Action、正圆几何、图层命名和其他形状行为。
 
+**2026-10-10 最终状态（覆盖下方历史实施步骤）：**用户确认“圆角矩形和圆形现在都没问题了”，并明确授权提交推送，本机本轮功能验收完成。圆角矩形保持原始 v7 身份与资产，模板路由已改为显式 `if/else` 并增加 builder 身份检查；圆形 v3 与 v7 统一描边默认值 5、数字拖动/滑杆 0–100、键盘输入 0–1000。AE 25.6x101 交替创建、描边数值边界与表达式绑定通过，全量 130 文件 / 708 项通过。用户总体确认与脚本逐项证据分别记录，不推断未单独提供的测试细项。下方 Task 0–4 保留此前实施过程，其中 v8/v2 与统一 500 的文字是历史候选，**不再是当前交付规格**。后续三角形、星形必须沿用当前公共描边规格。
+
 **Architecture:** 继续使用现有 `UI → Action → Layer Bridge → public/host/index.jsx → AE` 链路，并复用已通过 Windows / 中文 AE 2025 验收的白名单共享 Pseudo Effect Host Helper。圆形使用独立 `.ffx`、模板身份和参数映射；Bridge 为普通圆角矩形和 `Alt` 圆形统一传入 CEP 扩展根目录，Host 在创建图层前预检模板，随后用 AE 原生 Ellipse、Fill、Stroke 与表达式完成业务绑定。
 
 **Tech Stack:** React 18、TypeScript、Vite、Adobe CEP、ExtendScript ES3、After Effects 2025、`.ffx`、Node.js 资产生成脚本、Vitest。
 
 **Spec:** [共享伪效果系统设计](../specs/2026-10-08-pseudo-effect-system-design.md)。
 
-当前基线：`main` 提交 `46034cb` 已完成共享 Host Helper，并由用户在 Windows / 中文 AE 2025 中确认圆角矩形创建、参数、样式、关键帧、重命名、Undo、复制和保存重开均正常。圆形仍使用一个原生 `Nya 半径` Slider Control；Bridge 当前只为 `modifier === "none"` 传 `extensionRoot`。本计划从该状态继续，不执行旧的 2026-10-07 未跟踪实验方案。
+计划最初基线：`main` 提交 `46034cb` 已完成共享 Host Helper，并由用户在 Windows / 中文 AE 2025 中确认圆角矩形创建、参数、样式、关键帧、重命名、Undo、复制和保存重开均正常。当时圆形使用一个原生 `Nya 半径` Slider Control，Bridge 只为 `modifier === "none"` 传 `extensionRoot`；当前圆形伪效果与 Bridge 路径传递已实现。不执行旧的 2026-10-07 未跟踪实验方案。
 
 ## Global Constraints
 
-- 仅修改 `Alt/Option` 圆形；普通点击圆角矩形必须保持 v7 行为，`Ctrl` 三角形和 `Shift` 星形继续使用现有原生控件。
+- 当前仅将 `Alt/Option` 圆形的描边范围统一到圆角矩形 v7；普通点击保留 v7 原始身份、资产和几何/样式行为，显式模板路由修复继续保留；`Ctrl` 三角形和 `Shift` 星形继续使用现有原生控件，本轮不开发其伪效果。
 - 圆形始终是正圆，只暴露半径，不增加独立宽高、直径、整体透明度、位置、缩放、虚线、渐变或圆角参数。
 - 参数固定为六项：`radius`、`fillEnabled`、`fillColor`、`strokeEnabled`、`strokeColor`、`strokeWidth`。
-- 半径默认 `250`；拖动范围 `0–2000`；键盘输入有效范围 `0–5000`，对应拖动直径最大 `4000`、输入直径最大 `10000`。
-- 填充默认开启且为白色；描边默认关闭、黑色、宽度 `5`；描边宽度拖动范围 `0–100`、输入范围 `0–1000`。
-- 模板身份固定为 `shape.circle/v1/zh-CN`；交付文件为 `circle-zh-CN.ffx`；matchName 为 `Pseudo/NYA_Circle_v1_zhCN`；marker 为 `__NYA_CIRCLE_V1__`。
+- 半径默认 `250`；滑杆范围 `0–3000`，允许输入范围 `0–5000`，对应最大直径分别为 `6000` 和 `10000`。这两组数值是已确认的首轮实现参数，不代表 AE 原生硬上限；实际数值拖动和滑杆手感仍须在 AE 中验收。
+- 填充默认开启且为白色；描边默认关闭、黑色、宽度 `5`；圆形与圆角矩形描边的数字拖动/滑杆范围均为 `0–100`，键盘输入范围均为 `0–1000`。三角形和星形后续必须复用 `scripts/shape-pseudo-effect-contract.mjs` 的公共规则并分别验收，不另定描边上限。
+- 当前模板身份为 `shape.circle/v3/zh-CN`；交付文件仍为 `circle-zh-CN.ffx`；matchName 为 `Pseudo/NYA_Circle_v3_zhCN`；marker 为 `__NYA_CIRCLE_V3__`。圆角矩形当前模板身份为 `shape.roundedRectangle/v7/zh-CN`，matchName 为 `Pseudo/NYA_RRect_v7_zhCN`，marker 为 `__NYA_RRECT_V7__`。
 - 图层名称继续为 `Nya 圆`；效果显示名为 `Nya 圆形`；表达式不得依赖参数的中文标签。
 - 首轮只制作简体中文模板，不宣称其他控件语言、其他 AE 版本、macOS 或跨电脑已经通过。
 - 不修改 `PresetEffects.xml`，不建立第二套 Action/Bridge，不让内部模板进入资源页，不迁移或重写既有圆形图层。
@@ -30,10 +32,11 @@
 ## Review Focus
 
 1. `Alt` 圆形以前不传 `extensionRoot`：Bridge 必须对两种伪效果形状传路径，CEP 路径不可用时应在调用 AE 前失败。
-2. 新资产生成不能覆盖圆角矩形 Catalog 或改变其已验收二进制：圆形加入后，圆角矩形 SHA-256 必须继续为 `D51226CC1DD15988215CFBD27254C1F7377F2C1334E939B01CF0FA8B199BDEB9`。
+2. 不能用不同内容覆盖同一 `matchName` 的伪效果定义：圆角矩形 v7 的 SHA-256 必须保持 `D51226CC1DD15988215CFBD27254C1F7377F2C1334E939B01CF0FA8B199BDEB9`；历史 circle/v2 schema 与哈希记录保留，本次改变圆形范围使用独立 v3 身份和 Catalog。既有图层不自动迁移。
 3. 添加 Stroke 会使 AE Shape Contents 的旧索引属性引用失效：完成全部 `addProperty()` 后必须通过 `propertyIndex` 重新获取 Fill 和 Stroke。
 4. 圆形效果被重命名、复制或重复探测：表达式、幂等复用、签名校验和多实例歧义行为必须与共享 Helper 契约一致。
-5. 自动化范围不能冒充真实 AE：半径两组范围、颜色/开关、关键帧、Undo、复制和保存重开必须在 Windows / 中文 AE 2025 中单独验收。
+5. 自动化范围不能冒充真实 AE：先在常用合成尺寸中观察原生圆形的实际大小和描边效果；生成模板后再分别检查数值拖动、滑杆拖动、端点刻度、键盘输入与越界限制。两组范围、颜色/开关、关键帧、Undo、复制和保存重开都必须在 Windows / 中文 AE 2025 中单独验收，不能仅凭二进制字段正确宣布数值体验通过。
+6. 模板选择必须保留显式 `if/else`，不得重新使用未加括号的连续三元表达式；每个形状 builder 在创建属性前检查模板身份。Node 测试之外，需要真实 AE 按“矩形 → 圆形 → 矩形”检查路由、参数类型与表达式。
 
 ## 固定参数布局
 
@@ -61,11 +64,15 @@ strokeWidth=7
 marker/样式组结束=8
 ```
 
+## Task 0：首轮参数确认（真实 AE 手感验收留到 Task 5）
+
+- [x] 半径采用 `defaultValue=250`、`sliderMin/Max=0/3000`、`validMin/Max=0/5000` 作为首轮实现参数；滑杆常用范围与直接输入范围分开，不把输入上限当作滑杆刻度或鼠标拖动速度。
+
 ## Task 1：圆形资产、可复现生成和 Catalog 合并
 
 **Files:**
 
-- Create: `assets/pseudo-effects/circle/v1/schema.json`
+- Create: `assets/pseudo-effects/circle/v2/schema.json`（最初的 v1 首轮测试后因范围修订不再交付）
 - Move/Modify: `scripts/build-rounded-rectangle-pseudo.mjs` → `scripts/build-shape-pseudo-effects.mjs`
 - Modify: `package.json`
 - Generate: `public/host/pseudo-effects/circle-zh-CN.ffx`
@@ -75,13 +82,13 @@ marker/样式组结束=8
 
 **Interfaces:**
 
-- `npm.cmd run build:pseudo-effects` 读取圆角矩形 v7 与圆形 v1 两份 schema，一次生成两份 `.ffx` 和一个合并 Catalog。
+- `npm.cmd run build:pseudo-effects` 读取圆角矩形 v8 与圆形 v2 两份 schema，一次生成两份 `.ffx` 和一个合并 Catalog。
 - 圆形 Catalog 条目使用固定身份、marker index `8` 和六项映射；圆角矩形条目及二进制必须保持不变。
 - 继续复用已归档 MIT 样例基底和许可证，不引入新的运行时依赖。
 
 - [ ] **Step 1: 写资产 RED 测试**
 
-  在 `tests/pseudoEffectAssets.test.js` 中断言：生产契约同时包含 `rounded-rectangle-zh-CN.ffx` 与 `circle-zh-CN.ffx`；Catalog 同时包含圆角矩形 v7 和圆形 v1；圆形 schema 的六项参数、默认值、拖动范围、输入范围、身份和 marker 均精确匹配本计划；圆角矩形 SHA 保持不变。
+  在 `tests/pseudoEffectAssets.test.js` 中断言：生产契约同时包含 `rounded-rectangle-zh-CN.ffx` 与 `circle-zh-CN.ffx`；Catalog 同时包含圆角矩形 v8 和圆形 v2；圆形 schema 的六项参数、默认值、滑杆/输入范围、身份和 marker 均精确匹配本计划；旧身份不得绑定到改变后的 FFX 字节，圆角矩形参数索引不变。若后续 AE 验收发现范围需要调整，先记录结果并更新计划，再同步测试与 schema。
 
 - [ ] **Step 2: 运行资产测试确认 RED**
 
@@ -99,7 +106,7 @@ marker/样式组结束=8
 
   Run: `npm.cmd run test -- tests/pseudoEffectAssets.test.js`
 
-  Expected: 圆形 `.ffx` 为有效 RIFX，哈希与 Catalog 一致；圆形 Slider/Checkbox/Color 类型及范围字节正确；圆角矩形既有测试和哈希继续通过。
+  Expected: 圆形 `.ffx` 为有效 RIFX，哈希与 Catalog 一致；圆形 Slider/Checkbox/Color 类型及范围字节正确；圆角矩形身份和索引保持不变，描边上限变更后的哈希及编码范围通过测试。
 
 - [ ] **Step 5: 检查资产差异边界**
 
@@ -147,7 +154,7 @@ marker/样式组结束=8
 
 **Interfaces:**
 
-- `getPseudoEffectTemplateContract(templateId)` 同时允许圆角矩形 v7 和圆形 v1，返回各自固定 file、matchName、marker 和 parameterIds。
+- `getPseudoEffectTemplateContract(templateId)` 当前同时允许圆角矩形 v8 和圆形 v2，返回各自固定 file、matchName、marker 和 parameterIds。
 - `createEllipseShape(layer, contents, context, template)` 应用已预检圆形模板，创建 AE 原生 Ellipse、Fill、Stroke，并把 Size 表达式绑定到半径，把样式绑定到参数 3–7。
 - `createShapeLayer()` 在添加图层前为 `none` 预检圆角矩形、为 `alt` 预检圆形；`ctrl/shift` 不加载模板。
 - 可抽取一个仅负责 Shape Fill/Stroke 创建、索引重取与样式表达式安装的小助手供圆角矩形和圆形复用；不得把几何算法移入通用 Pseudo Effect Loader。
@@ -158,11 +165,11 @@ marker/样式组结束=8
 
 - [ ] **Step 2: 写 Alt 圆形创建 RED 测试**
 
-  断言 Alt 创建一个 `Nya 圆` 图层和一份 `Pseudo/NYA_Circle_v1_zhCN` 效果，不再创建旧 `ADBE Slider Control`；Ellipse Size 使用半径参数生成 `[r*2,r*2]`；Fill/Stroke 的开关、颜色和宽度分别绑定索引 3–7。
+  断言 Alt 创建一个 `Nya 圆` 图层和一份 `Pseudo/NYA_Circle_v2_zhCN` 效果，不再创建旧 `ADBE Slider Control`；Ellipse Size 使用半径参数生成 `[r*2,r*2]`；Fill/Stroke 的开关、颜色和宽度分别绑定索引 3–7。
 
 - [ ] **Step 3: 写失败与回归 RED 测试**
 
-  覆盖圆形模板缺失时创建图层前失败、加载/签名失败时只移除本次新层并恢复选择、Shape Contents 索引引用失效后重新获取、圆角矩形 v7 保持原行为、`ctrl/shift` 仍使用原生控件。
+  覆盖圆形模板缺失时创建图层前失败、加载/签名失败时只移除本次新层并恢复选择、Shape Contents 索引引用失效后重新获取、圆角矩形 v8 除描边范围外保持 v7 行为、`ctrl/shift` 仍使用原生控件。
 
 - [ ] **Step 4: 运行 Host 测试确认 RED**
 
@@ -229,23 +236,25 @@ marker/样式组结束=8
 
 - [ ] **Step 2: 验收参数和几何**
 
-  检查默认半径 `250`；数值拖动与滑杆最大 `2000`；直接输入 `5000` 可用；改变半径时 X/Y 尺寸始终相同，不得变成椭圆。
+  在 `1920×1080` 和 `3840×2160` 测试合成中对照原生 Ellipse，观察半径 `250/500/960/1920/2203/3000/5000` 的可见效果。检查默认半径 `250`；分别实测下划线数值轻拖、滑杆拖动、右侧刻度和直接输入，轻拖不得跳大数，滑杆范围为 `0–3000`，直接输入 `3000`、`5000` 可用而 `5001` 被限制，并检查输入超过滑杆上限后再拖动的行为。改变半径时 X/Y 尺寸始终相同，不得变成椭圆；记录 AE 版本、合成尺寸、截图和结论。若真实 AE 验收发现范围需要调整，先记录并更新计划与 schema。
 
 - [ ] **Step 3: 验收样式、动画和失败边界**
 
-  检查填充开关/颜色、描边开关/颜色/宽度、关键帧、效果重命名、一次 Undo、复制图层。再回归创建圆角矩形、三角形和星形，确认原行为未变。
+  检查填充开关/颜色、描边开关/颜色/宽度；观察描边宽度 `0/5/20/100/500/1000` 的可见效果。圆形 v3 与圆角矩形 v7 的数值拖动和滑杆刻度均为 `0–100`、直接输入范围均为 `0–1000`，`1001` 被限制，默认 `5` 仍便于微调。AE 脚本已确认 0/5/100/500/1000 的绑定和越界拒绝，鼠标交互与可见效果仍须单独检查。再检查半径与样式关键帧、效果重命名、一次 Undo、复制图层，并回归三角形、星形原行为。未经真实 AE 鼠标操作验收不得宣称数值手感已通过。
 
 - [ ] **Step 4: 验收保存重开**
 
   保存工程、关闭并重新打开，确认圆形仍可调参和渲染；关闭 NYAWORKS 面板后效果仍工作。其他 AE 版本、macOS、跨电脑和其他控件语言未测试时继续标记为待验收。
 
-- [ ] **Step 5: 更新文档并形成提交候选**
+- [x] **Step 5: 更新文档并形成提交候选**
 
   记录 AE 完整版本、操作系统、语言、通过项和未测项；Roadmap 只在用户真实确认后勾选 Alt 圆形。重新核对 Git 状态，只纳入本计划拥有的文件。未经用户明确要求不 commit/push；得到授权后建议提交信息：`feat: add circle pseudo effect controls`。
 
 ## 完成标准与下一步
 
-本轮只有在资产可复现、Bridge/Host 链路通过、构建同步完成，并由用户在 Windows / 中文 AE 2025 验收上述真实交互后才算完成。完成后下一轮进入 `Ctrl` 三角形：独立模板、独立参数规格，继续复用同一个共享 Host Helper，不直接复制圆形业务表达式。
+本轮资产、Bridge/Host、构建同步及 130 文件 / 708 项测试已通过，用户在 Windows / 中文 AE 2025 中最终确认圆角矩形与圆形均正常，并授权提交推送。据此完成本轮功能收尾；下方和 Task 5 中未逐项填写的详细操作不另行声明为逐项实测通过。后续下一种形状为 `Ctrl` 三角形：独立模板、独立几何参数规格，继续复用同一个共享 Host Helper，不直接复制圆形业务表达式。
+
+三角形、星形的描边宽度必须沿用公共规格：默认 5、数字拖动/滑杆 0–100、输入 0–1000；这是用户已明确的统一要求。它们的几何参数和后续摄像机参数仍须分别依据实际 AE 工作场景确定默认值、数值拖动范围、滑杆刻度和输入上限。每种参数都要区分“技术上允许输入”与“日常拖动是否可控”，并在真实 AE 中完成边界和手感验收。
 
 ## 执行方式
 

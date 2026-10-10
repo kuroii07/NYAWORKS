@@ -91,9 +91,9 @@ export function createLayerHostBridge(
 ): LayerHostBridge {
   return {
     async runLayerAction(action, modifier) {
-      const roundedRectangle = action === "create-shape" && modifier === "none";
-      const extensionRoot = roundedRectangle ? getCepExtensionRoot(environment) : null;
-      if (roundedRectangle && !extensionRoot) {
+      const pseudoShape = action === "create-shape" && (modifier === "none" || modifier === "alt");
+      const extensionRoot = pseudoShape ? getCepExtensionRoot(environment) : null;
+      if (pseudoShape && !extensionRoot) {
         return { ok: false, reason: "host-error", detail: "pseudo-extension-root-unavailable" };
       }
       return parseResult(

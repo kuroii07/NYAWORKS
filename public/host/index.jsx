@@ -1639,7 +1639,63 @@
     if (color) color.setValue([1, 1, 1]);
   }
 
+  var lastShapePseudoTrace = null;
+
+  function getLastShapePseudoTrace() {
+    return JSON.stringify(lastShapePseudoTrace);
+  }
+
+  function captureShapePseudoEffect(stage, effect) {
+    if (!lastShapePseudoTrace) return;
+    var row = { stage: stage, parameters: [] };
+    try {
+      row.name = effect.name;
+      row.matchName = effect.matchName;
+      row.index = effect.propertyIndex;
+      row.count = effect.numProperties;
+      for (var index = 1; index <= effect.numProperties; index += 1) {
+        var parameter = effect.property(index);
+        var item = { index: index, name: parameter.name, matchName: parameter.matchName };
+        try { item.valueType = String(parameter.propertyValueType); } catch (ignoreType) {}
+        try { item.value = parameter.value; } catch (error) { item.valueError = String(error); }
+        row.parameters.push(item);
+      }
+    } catch (error) { row.error = String(error); }
+    lastShapePseudoTrace.snapshots.push(row);
+  }
+
+  function writeShapePseudoTrace(error) {
+    if (!lastShapePseudoTrace) return null;
+    lastShapePseudoTrace.error = String(error);
+    // Diagnostic output only. Never save, close or replace the user's project.
+    try {
+      var folder = new Folder(Folder.userData.fsName + "/NYAWORKS");
+      if (!folder.exists && !folder.create()) return null;
+      var file = new File(folder.fsName + "/shape-pseudo-trace.json");
+      file.encoding = "UTF-8";
+      if (!file.open("w")) return null;
+      try { file.write(getLastShapePseudoTrace()); } finally { file.close(); }
+      return file.fsName;
+    } catch (ignoreDiagnosticWrite) { return null; }
+  }
+
   function getPseudoEffectTemplateContract(templateId) {
+    if (templateId === "shape.circle/v3/zh-CN") {
+      return {
+        templateId: templateId,
+        file: "circle-zh-CN.ffx",
+        matchName: "Pseudo/NYA_Circle_v3_zhCN",
+        marker: { index: 8, name: "__NYA_CIRCLE_V3__" },
+        parameterIds: [
+          "radius", "fillEnabled", "fillColor",
+          "strokeEnabled", "strokeColor", "strokeWidth"
+        ],
+        parameterIndexes: {
+          radius: 1, fillEnabled: 3, fillColor: 4,
+          strokeEnabled: 5, strokeColor: 6, strokeWidth: 7
+        }
+      };
+    }
     if (templateId !== "shape.roundedRectangle/v7/zh-CN") {
       throw new Error("pseudo-template-not-allowed");
     }
@@ -1655,7 +1711,14 @@
         "width", "height", "radius", "separate",
         "topLeftPercent", "topRightPercent", "bottomRightPercent", "bottomLeftPercent",
         "fillEnabled", "fillColor", "strokeEnabled", "strokeColor", "strokeWidth"
-      ]
+      ],
+      parameterIndexes: {
+        width: 1, height: 2, radius: 3, separate: 4,
+        topLeftPercent: 6, topRightPercent: 7,
+        bottomRightPercent: 8, bottomLeftPercent: 9,
+        fillEnabled: 12, fillColor: 13,
+        strokeEnabled: 14, strokeColor: 15, strokeWidth: 16
+      }
     };
   }
 
@@ -1688,6 +1751,7 @@
       parameterId = contract.parameterIds[index];
       parameterIndex = mapping[parameterId];
       if (typeof parameterIndex !== "number" || parameterIndex <= 0 ||
+          parameterIndex !== contract.parameterIndexes[parameterId] ||
           Math.floor(parameterIndex) !== parameterIndex || usedIndexes[parameterIndex]) {
         throw new Error("pseudo-template-invalid");
       }
@@ -1829,7 +1893,10 @@
     var index;
     if (before < 0) throw new Error("pseudo-effects-unavailable");
     existing = findExistingPseudoEffect(effects, template);
-    if (existing) return existing;
+    if (existing) {
+      captureShapePseudoEffect("existing-validated", existing);
+      return existing;
+    }
     try {
       try {
         for (index = 0; index < selected.length; index += 1) selected[index].selected = false;
@@ -1852,7 +1919,10 @@
         throw new Error("pseudo-effect-count-mismatch");
       }
       effect = effects.property(before + 1);
-      return validatePseudoEffectInstance(effect, template);
+      captureShapePseudoEffect("after-apply-before-validation", effect);
+      validatePseudoEffectInstance(effect, template);
+      captureShapePseudoEffect("after-validation", effect);
+      return effect;
     } catch (error) {
       try {
         cleanupAddedPseudoEffects(layer, before);
@@ -1863,9 +1933,36 @@
     }
   }
 
+  function describePseudoParameter(effect, index) {
+    var parameter;
+    var value;
+    var valueType;
+    var name;
+    try {
+      parameter = effect.property(index);
+      if (!parameter) return "p" + index + "=<missing>";
+      name = String(parameter.name);
+      valueType = String(parameter.propertyValueType);
+      try {
+        value = parameter.value;
+        return "p" + index + "=" + name + "/" + valueType + "/" +
+          typeof value + "/" + String(value);
+      } catch (valueError) {
+        return "p" + index + "=" + name + "/" + valueType + "/unreadable";
+      }
+    } catch (parameterError) {
+      return "p" + index + "=<unreadable>";
+    }
+  }
+
   function createRoundedRectangleShape(layer, contents, context, template) {
+    if (!template || template.templateId !== "shape.roundedRectangle/v7/zh-CN") {
+      throw new Error("pseudo-template-shape-mismatch: rounded-rectangle");
+    }
     var path = contents.addProperty("ADBE Vector Shape - Group");
     var pathProperty = path.property("ADBE Vector Shape");
+    var pseudoEffect;
+    var effectReference;
     var fill;
     var fillIndex;
     var fillColor;
@@ -1876,24 +1973,39 @@
     var strokeOpacity;
     var strokeWidth;
     path.name = "Nya 圆角矩形";
-    applyPseudoEffectTemplate(layer, context, template);
+    pseudoEffect = applyPseudoEffectTemplate(layer, context, template);
+    captureShapePseudoEffect("before-path-expression", pseudoEffect);
+    effectReference = "effect(" + JSON.stringify(pseudoEffect.name) + ")";
+    if (lastShapePseudoTrace) lastShapePseudoTrace.effectReference = effectReference;
     setShapeExpression(pathProperty, [
-      'w=Math.max(0,effect("Nya 圆角矩形")(1));',
-      'h=Math.max(0,effect("Nya 圆角矩形")(2));',
-      'round=Math.max(0,effect("Nya 圆角矩形")(3));',
-      'separate=effect("Nya 圆角矩形")(4)>0;',
+      'w=Math.max(0,' + effectReference + '(1));',
+      'h=Math.max(0,' + effectReference + '(2));',
+      'round=Math.max(0,' + effectReference + '(3));',
+      'separate=' + effectReference + '(4)>0;',
       'limit=Math.min(w,h)/2;',
-      'tl=Math.min(limit,Math.max(0,separate?effect("Nya 圆角矩形")(6):round)*limit/100);',
-      'tr=Math.min(limit,Math.max(0,separate?effect("Nya 圆角矩形")(7):round)*limit/100);',
-      'br=Math.min(limit,Math.max(0,separate?effect("Nya 圆角矩形")(8):round)*limit/100);',
-      'bl=Math.min(limit,Math.max(0,separate?effect("Nya 圆角矩形")(9):round)*limit/100);',
+      'tl=Math.min(limit,Math.max(0,separate?' + effectReference + '(6):round)*limit/100);',
+      'tr=Math.min(limit,Math.max(0,separate?' + effectReference + '(7):round)*limit/100);',
+      'br=Math.min(limit,Math.max(0,separate?' + effectReference + '(8):round)*limit/100);',
+      'bl=Math.min(limit,Math.max(0,separate?' + effectReference + '(9):round)*limit/100);',
       'hw=w/2;hh=h/2;k=0.5522847498;',
       'points=[[-hw+tl,-hh],[hw-tr,-hh],[hw,-hh+tr],[hw,hh-br],[hw-br,hh],[-hw+bl,hh],[-hw,hh-bl],[-hw,-hh+tl]];',
       'ins=[[-k*tl,0],[0,0],[0,-k*tr],[0,0],[k*br,0],[0,0],[0,k*bl],[0,0]];',
       'outs=[[0,0],[k*tr,0],[0,0],[0,k*br],[0,0],[-k*bl,0],[0,0],[0,-k*tl]];',
       'createPath(points,ins,outs,true);'
     ].join("\n"));
-    if (pathProperty.expressionError) throw new Error("pseudo-expression-invalid");
+    if (pathProperty.expressionError) {
+      if (lastShapePseudoTrace) {
+        lastShapePseudoTrace.expression = pathProperty.expression;
+        lastShapePseudoTrace.expressionError = pathProperty.expressionError;
+      }
+      captureShapePseudoEffect("after-path-expression-error", pseudoEffect);
+      throw new Error(
+        "pseudo-expression-invalid:path: " +
+        describePseudoParameter(pseudoEffect, 2) + "; " +
+        describePseudoParameter(pseudoEffect, 1) + "; effect=" + pseudoEffect.name + "; " +
+        pathProperty.expressionError
+      );
+    }
 
     fill = contents.addProperty("ADBE Vector Graphic - Fill");
     fillIndex = fill && fill.propertyIndex;
@@ -1911,11 +2023,11 @@
     if (!fillColor || !fillOpacity || !strokeColor || !strokeOpacity || !strokeWidth) {
       throw new Error("pseudo-style-properties-unavailable");
     }
-    setShapeExpression(fillOpacity, 'effect("Nya 圆角矩形")(12)>0?100:0');
-    setShapeExpression(fillColor, 'effect("Nya 圆角矩形")(13)');
-    setShapeExpression(strokeOpacity, 'effect("Nya 圆角矩形")(14)>0?100:0');
-    setShapeExpression(strokeColor, 'effect("Nya 圆角矩形")(15)');
-    setShapeExpression(strokeWidth, 'Math.max(0,effect("Nya 圆角矩形")(16))');
+    setShapeExpression(fillOpacity, effectReference + '(12)>0?100:0');
+    setShapeExpression(fillColor, effectReference + '(13)');
+    setShapeExpression(strokeOpacity, effectReference + '(14)>0?100:0');
+    setShapeExpression(strokeColor, effectReference + '(15)');
+    setShapeExpression(strokeWidth, 'Math.max(0,' + effectReference + '(16))');
     if (fillOpacity.expressionError || fillColor.expressionError ||
         strokeOpacity.expressionError || strokeColor.expressionError ||
         strokeWidth.expressionError) {
@@ -1923,12 +2035,50 @@
     }
   }
 
-  function createEllipseShape(layer, contents) {
+  function createEllipseShape(layer, contents, context, template) {
+    if (!template || template.templateId !== "shape.circle/v3/zh-CN") {
+      throw new Error("pseudo-template-shape-mismatch: circle");
+    }
     var ellipse = contents.addProperty("ADBE Vector Shape - Ellipse");
     var size = ellipse.property("ADBE Vector Ellipse Size");
+    var fill;
+    var fillIndex;
+    var stroke;
+    var strokeIndex;
+    var fillColor;
+    var fillOpacity;
+    var strokeColor;
+    var strokeOpacity;
+    var strokeWidth;
     ellipse.name = "Nya 圆";
-    addLayerControl(layer, "ADBE Slider Control", "Nya 半径", 250);
-    setShapeExpression(size, 'r=Math.max(0,effect("Nya 半径")(1));[r*2,r*2]');
+    applyPseudoEffectTemplate(layer, context, template);
+    setShapeExpression(size, 'r=Math.max(0,effect("Nya 圆形")(1));[r*2,r*2]');
+    if (!size || size.expressionError) throw new Error("pseudo-expression-invalid");
+
+    stroke = contents.addProperty("ADBE Vector Graphic - Stroke");
+    strokeIndex = stroke && stroke.propertyIndex;
+    fill = contents.addProperty("ADBE Vector Graphic - Fill");
+    fillIndex = fill && fill.propertyIndex;
+    fill = fillIndex ? contents.property(fillIndex) : null;
+    stroke = strokeIndex ? contents.property(strokeIndex) : null;
+    fillColor = fill && fill.property("ADBE Vector Fill Color");
+    fillOpacity = fill && fill.property("ADBE Vector Fill Opacity");
+    strokeColor = stroke && stroke.property("ADBE Vector Stroke Color");
+    strokeOpacity = stroke && stroke.property("ADBE Vector Stroke Opacity");
+    strokeWidth = stroke && stroke.property("ADBE Vector Stroke Width");
+    if (!fillColor || !fillOpacity || !strokeColor || !strokeOpacity || !strokeWidth) {
+      throw new Error("pseudo-style-properties-unavailable");
+    }
+    setShapeExpression(fillOpacity, 'effect("Nya 圆形")(3)>0?100:0');
+    setShapeExpression(fillColor, 'effect("Nya 圆形")(4)');
+    setShapeExpression(strokeOpacity, 'effect("Nya 圆形")(5)>0?100:0');
+    setShapeExpression(strokeColor, 'effect("Nya 圆形")(6)');
+    setShapeExpression(strokeWidth, 'Math.max(0,effect("Nya 圆形")(7))');
+    if (fillOpacity.expressionError || fillColor.expressionError ||
+        strokeOpacity.expressionError || strokeColor.expressionError ||
+        strokeWidth.expressionError) {
+      throw new Error("pseudo-style-expression-invalid");
+    }
   }
 
   function createPolygonShape(layer, contents, isStar) {
@@ -1971,10 +2121,21 @@
   }
 
   function createShapeLayer(context, modifier, extensionRoot) {
-    var template = modifier === "none" ? preflightPseudoEffectTemplate(
-      extensionRoot,
-      "shape.roundedRectangle/v7/zh-CN"
-    ) : null;
+    // AE's ExtendScript evaluates an unparenthesized chained conditional
+    // differently from V8. Use explicit branches to keep ordinary clicks on v7.
+    var templateId = null;
+    if (modifier === "none") {
+      templateId = "shape.roundedRectangle/v7/zh-CN";
+    } else if (modifier === "alt") {
+      templateId = "shape.circle/v3/zh-CN";
+    }
+    var template = templateId ? preflightPseudoEffectTemplate(extensionRoot, templateId) : null;
+    lastShapePseudoTrace = template ? {
+      revision: "shape-boundary-1", aeVersion: String(app.version), modifier: modifier,
+      templateId: templateId, file: template.file.fsName,
+      expectedMatchName: template.contract.matchName, expectedMarker: template.contract.marker,
+      catalogSha256: template.definition.sha256, snapshots: []
+    } : null;
     var layer = context.comp.layers.addShape();
     var root;
     var group;
@@ -1992,7 +2153,7 @@
       layer.name = uniqueLayerName(context.comp, names[modifier] || names.none, layer);
       group.name = layer.name;
       if (modifier === "alt") {
-        createEllipseShape(layer, contents);
+        createEllipseShape(layer, contents, context, template);
       } else if (modifier === "ctrl") {
         createPolygonShape(layer, contents, false);
       } else if (modifier === "shift") {
@@ -2000,14 +2161,16 @@
       } else {
         createRoundedRectangleShape(layer, contents, context, template);
       }
-      if (modifier !== "none") addShapeFill(contents);
+      if (modifier === "ctrl" || modifier === "shift") addShapeFill(contents);
       setLayerCentered(layer, context.comp, [0, 0]);
       return finishCreatedLayer(layer, context);
     } catch (error) {
+      var tracePath = writeShapePseudoTrace(error);
       try { layer.remove(); } catch (ignoreCleanup) {}
       for (var index = 0; index < context.selection.length; index += 1) {
         try { context.selection[index].selected = true; } catch (ignoreSelectionRestore) {}
       }
+      if (tracePath) throw new Error(String(error) + "; trace=" + tracePath);
       throw error;
     }
   }
@@ -3715,6 +3878,7 @@
     ,setAnchorPoint: setAnchorPoint
     ,getActionContext: getActionContext
     ,runLayerAction: runLayerAction
+    ,getLastShapePseudoTrace: getLastShapePseudoTrace
     ,readSelectedTextLayer: readSelectedTextLayer
     ,applyTextLayerEdit: applyTextLayerEdit
     ,createTextLayerFromEditor: createTextLayerFromEditor

@@ -6,6 +6,7 @@ describe("layer host bridge", () => {
     let received = "";
     const bridge = createLayerHostBridge({
       __adobe_cep__: {
+        getSystemPath: () => "file:///C:/NYAWORKS",
         evalScript: (script, callback) => {
           received = script;
           callback(JSON.stringify({
@@ -27,7 +28,8 @@ describe("layer host bridge", () => {
     expect(received).toMatch(/^NYAWORKS\.runLayerAction\(".+"\)$/);
     expect(JSON.parse(decodeURIComponent(received.match(/\("(.+)"\)$/)?.[1] ?? ""))).toEqual({
       action: "create-shape",
-      modifier: "alt"
+      modifier: "alt",
+      extensionRoot: "C:/NYAWORKS"
     });
   });
 
@@ -96,6 +98,37 @@ describe("layer host bridge", () => {
       detail: "pseudo-extension-root-unavailable"
     });
     expect(called).toBe(false);
+  });
+
+  it("does not call AE for an Alt circle when the extension directory is unavailable", async () => {
+    let called = false;
+    const bridge = createLayerHostBridge({
+      __adobe_cep__: {
+        evalScript: () => { called = true; }
+      }
+    });
+    await expect(bridge.runLayerAction("create-shape", "alt")).resolves.toEqual({
+      ok: false,
+      reason: "host-error",
+      detail: "pseudo-extension-root-unavailable"
+    });
+    expect(called).toBe(false);
+  });
+
+  it.each(["ctrl", "shift"] as const)("does not require the extension path for %s shapes", async modifier => {
+    let received = "";
+    const bridge = createLayerHostBridge({
+      __adobe_cep__: {
+        evalScript: (script, callback) => {
+          received = script;
+          callback(JSON.stringify({ ok: true, createdLayers: 1 }));
+        }
+      }
+    });
+    await expect(bridge.runLayerAction("create-shape", modifier)).resolves.toMatchObject({ ok: true });
+    expect(JSON.parse(decodeURIComponent(received.match(/\("(.+)"\)$/)?.[1] ?? ""))).toEqual({
+      action: "create-shape", modifier
+    });
   });
 
   it("normalizes unavailable and malformed host responses", async () => {

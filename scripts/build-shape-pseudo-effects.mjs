@@ -3,12 +3,17 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import iconv from "iconv-lite";
+import { validateShapeStrokeWidth } from "./shape-pseudo-effect-contract.mjs";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const sourceRoot = path.join(projectRoot, "assets/pseudo-effects/rounded-rectangle/v7");
 const outputRoot = path.join(projectRoot, "public/host/pseudo-effects");
-const schema = JSON.parse(fs.readFileSync(path.join(sourceRoot, "schema.json"), "utf8"));
-const original = fs.readFileSync(path.join(sourceRoot, "../source/base-scribe.ffx"));
+const original = fs.readFileSync(path.join(
+  projectRoot, "assets/pseudo-effects/rounded-rectangle/source/base-scribe.ffx"
+));
+const templates = [
+  { source: "rounded-rectangle/v7", file: "rounded-rectangle-zh-CN.ffx", layout: "rectangle" },
+  { source: "circle/v3", file: "circle-zh-CN.ffx", layout: "circle" }
+];
 function numericParameter(parameter, percent) {
   return {
     label: parameter.label,
@@ -23,40 +28,61 @@ function numericParameter(parameter, percent) {
 }
 function businessParameter(parameter) {
   if (parameter.type === "checkbox") {
-    return { label: parameter.label, kind: 4, value: parameter.defaultValue };
+    return { id: parameter.id, label: parameter.label, kind: 4, value: parameter.defaultValue };
   }
   if (parameter.type === "color") {
-    return { label: parameter.label, kind: 5, source: 1, value: parameter.defaultValue };
+    return { id: parameter.id, label: parameter.label, kind: 5, source: 1, value: parameter.defaultValue };
   }
-  return numericParameter(parameter, parameter.type === "percent");
+  if (parameter.type === "slider" || parameter.type === "percent") {
+    return { id: parameter.id, ...numericParameter(parameter, parameter.type === "percent") };
+  }
+  throw new Error(`Unsupported pseudo-effect parameter type: ${parameter.type}`);
 }
-const params = [
-  { label: "", kind: 0, source: 0 },
-  ...schema.parameters.slice(0, 4).map(businessParameter),
-  { label: schema.group, kind: 13, source: 3 },
-  ...schema.parameters.slice(4, 8).map(businessParameter),
-  { label: "", kind: 14, source: 7 },
-  { label: schema.styleGroup, kind: 13, source: 3 },
-  ...schema.parameters.slice(8).map(businessParameter),
-  { label: schema.marker, kind: 14, source: 7 }
-];
 
-if (schema.parameters.length !== 13 || params.length !== 18) {
-  throw new Error("Rounded rectangle requires thirteen business parameters.");
-}
-for (const parameter of params) {
-  if (parameter.kind !== 10) continue;
-  const range = [
-    parameter.validMin, parameter.sliderMin, parameter.value,
-    parameter.sliderMax, parameter.validMax
-  ];
-  if (!range.every(Number.isFinite) ||
-      parameter.validMin > parameter.sliderMin ||
-      parameter.sliderMin > parameter.value ||
-      parameter.value > parameter.sliderMax ||
-      parameter.sliderMax > parameter.validMax) {
-    throw new Error(`Invalid numeric range for ${parameter.label}.`);
+function layoutParameters(schema, layout) {
+  validateShapeStrokeWidth(schema);
+  const business = schema.parameters.map(businessParameter);
+  const expected = layout === "rectangle"
+    ? ["width", "height", "radius", "separate", "topLeftPercent", "topRightPercent",
+      "bottomRightPercent", "bottomLeftPercent", "fillEnabled", "fillColor",
+      "strokeEnabled", "strokeColor", "strokeWidth"]
+    : ["radius", "fillEnabled", "fillColor", "strokeEnabled", "strokeColor", "strokeWidth"];
+  if (business.length !== expected.length ||
+      business.some((parameter, index) => parameter.id !== expected[index]) ||
+      new Set(business.map(parameter => parameter.id)).size !== business.length) {
+    throw new Error(`Invalid pseudo-effect parameter mapping: ${schema.templateId}`);
   }
+  const style = { label: schema.styleGroup, kind: 13, source: 3 };
+  const endGroup = { label: "", kind: 14, source: 7 };
+  const params = layout === "rectangle"
+    ? [
+        { label: "", kind: 0, source: 0 },
+        ...business.slice(0, 4),
+        { label: schema.group, kind: 13, source: 3 },
+        ...business.slice(4, 8),
+        endGroup, style, ...business.slice(8),
+        { label: schema.marker, kind: 14, source: 7 }
+      ]
+    : [
+        { label: "", kind: 0, source: 0 },
+        business[0], style, ...business.slice(1),
+        { label: schema.marker, kind: 14, source: 7 }
+      ];
+  for (const parameter of params) {
+    if (parameter.kind !== 10) continue;
+    const range = [
+      parameter.validMin, parameter.sliderMin, parameter.value,
+      parameter.sliderMax, parameter.validMax
+    ];
+    if (!range.every(Number.isFinite) ||
+        parameter.validMin > parameter.sliderMin ||
+        parameter.sliderMin > parameter.value ||
+        parameter.value > parameter.sliderMax ||
+        parameter.sliderMax > parameter.validMax) {
+      throw new Error(`Invalid numeric range for ${parameter.label}.`);
+    }
+  }
+  return params;
 }
 
 function parse(bytes, start = 0, end = bytes.length) {
@@ -114,6 +140,13 @@ function text(tag, value, length) {
   return leaf(tag, length ? fixed(value, length) : encoded(value));
 }
 
+const catalog = { templates: {} };
+for (const template of templates) {
+const schema = JSON.parse(fs.readFileSync(path.join(
+  projectRoot, "assets/pseudo-effects", template.source, "schema.json"
+), "utf8"));
+const params = layoutParameters(schema, template.layout);
+if (catalog.templates[schema.templateId]) throw new Error(`Duplicate template ID: ${schema.templateId}`);
 const root = parse(original)[0];
 const definitions = find(root, "parT");
 const values = find(root, "tdgp");
@@ -183,27 +216,22 @@ function renameContainer(node) {
 renameContainer(root);
 
 const bytes = pack(root);
-const file = "rounded-rectangle-zh-CN.ffx";
 const sha256 = createHash("sha256").update(bytes).digest("hex").toUpperCase();
-const catalog = {
-  templates: {
-    [schema.templateId]: {
-      file,
-      matchName: schema.matchName,
-      marker: { index: 17, name: schema.marker },
-      parameters: {
-        width: 1, height: 2, radius: 3, separate: 4,
-        topLeftPercent: 6, topRightPercent: 7,
-        bottomRightPercent: 8, bottomLeftPercent: 9,
-        fillEnabled: 12, fillColor: 13,
-        strokeEnabled: 14, strokeColor: 15, strokeWidth: 16
-      },
-      sha256
-    }
-  }
+const parameterMap = {};
+for (const [index, parameter] of params.entries()) {
+  if (parameter.id) parameterMap[parameter.id] = index;
+}
+catalog.templates[schema.templateId] = {
+  file: template.file,
+  matchName: schema.matchName,
+  marker: { index: params.length - 1, name: schema.marker },
+  parameters: parameterMap,
+  sha256
 };
 fs.mkdirSync(outputRoot, { recursive: true });
-fs.writeFileSync(path.join(outputRoot, file), bytes);
+fs.writeFileSync(path.join(outputRoot, template.file), bytes);
+console.log(`${template.file}: ${bytes.length} bytes, SHA-256 ${sha256}`);
+}
 fs.writeFileSync(path.join(outputRoot, "catalog.json"), `${JSON.stringify(catalog, null, 2)}\n`);
 for (const obsolete of [
   "rounded-rectangle-v1-zh-CN.ffx",
@@ -211,4 +239,3 @@ for (const obsolete of [
 ]) {
   fs.rmSync(path.join(outputRoot, obsolete), { force: true });
 }
-console.log(`${file}: ${bytes.length} bytes, SHA-256 ${sha256}`);

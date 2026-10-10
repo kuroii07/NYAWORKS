@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:pseudo-effects": "node scripts/build-shape-pseudo-effects.mjs",
     "build:watch": "vite build --watch",
     "setup:cep": "node scripts/setup-cep-dev.mjs",
     "dev:cep": "node scripts/dev-cep.mjs",

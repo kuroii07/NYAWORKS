@@ -23,6 +23,23 @@
         "strokeWidth": 16
       },
       "sha256": "D51226CC1DD15988215CFBD27254C1F7377F2C1334E939B01CF0FA8B199BDEB9"
+    },
+    "shape.circle/v3/zh-CN": {
+      "file": "circle-zh-CN.ffx",
+      "matchName": "Pseudo/NYA_Circle_v3_zhCN",
+      "marker": {
+        "index": 8,
+        "name": "__NYA_CIRCLE_V3__"
+      },
+      "parameters": {
+        "radius": 1,
+        "fillEnabled": 3,
+        "fillColor": 4,
+        "strokeEnabled": 5,
+        "strokeColor": 6,
+        "strokeWidth": 7
+      },
+      "sha256": "0B3F38341544AC1B13CF0D5E2F87CE734555EC388CE334C7F22BA8DE7E99E02E"
     }
   }
 }
