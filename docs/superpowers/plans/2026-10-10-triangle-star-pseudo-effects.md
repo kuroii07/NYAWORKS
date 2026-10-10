@@ -10,6 +10,8 @@
 
 **Spec:** 本文件的“已确认参数”记录 2026-10-10 用户最终调整；共享架构见[伪效果系统设计](../specs/2026-10-08-pseudo-effect-system-design.md)。
 
+**2026-10-10 原生范围校正：** 实现期间在 AE 25.6x101 对照原生 Polystar 与新伪效果后确认，星形和多边形的原生 Points 最小值均为 3。直接设置 2/2.5 会被 AE 拒绝，表达式返回 2/2.5 也会被限制为 3；此前方案将星形下限定为 2 不准确。为保持本计划的原生 Polystar 架构与“控件值等于实际角数”，星形拖动/输入下限更正为 3，默认仍为 5，上限不变。更正计划先推送，再修正实现。已被临时验证加载过的星形 v1 定义不覆盖，最终使用 v2 内部身份，公开文件名不变。原始证据保留在 `work/polygon-pseudo-20261010/points-boundary-result.json`。
+
 ## 执行顺序与基线
 
 - 基线提交为 `14b807d`，当前主工作树为 `main`。用户已经确认圆角矩形 v7、圆形 v3 正常。
@@ -35,7 +37,7 @@
 
 | 顺序 | ID | 效果控件标签 | 类型 | 默认值 | 拖动/滑杆范围 | 输入范围 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `points` | 角数 | 整数显示滑杆 | 5 | 2–20 | 2–100 |
+| 1 | `points` | 角数 | 整数显示滑杆 | 5 | 3–20 | 3–100 |
 | 2 | `outerRadius` | 外半径 | 滑杆 | 250 | 0–3000 | 0–5000 |
 | 3 | `innerRadius` | 内半径 | 滑杆 | 125 | 0–3000 | 0–5000 |
 | 4 | `rotation` | 旋转 | 原生角度 | 0° | 原生角度交互 | 支持负角度和多圈 |
@@ -71,9 +73,9 @@
 
 | 项目 | 三角形 | 星形 |
 | --- | --- | --- |
-| templateId | `shape.triangle/v1/zh-CN` | `shape.star/v1/zh-CN` |
-| matchName | `Pseudo/NYA_Triangle_v1_zhCN` | `Pseudo/NYA_Star_v1_zhCN` |
-| marker | `__NYA_TRIANGLE_V1__` | `__NYA_STAR_V1__` |
+| templateId | `shape.triangle/v1/zh-CN` | `shape.star/v2/zh-CN` |
+| matchName | `Pseudo/NYA_Triangle_v1_zhCN` | `Pseudo/NYA_Star_v2_zhCN` |
+| marker | `__NYA_TRIANGLE_V1__` | `__NYA_STAR_V2__` |
 | 几何索引 | points=1, rotation=2, outerRadius=3, outerRoundness=4 | points=1, outerRadius=2, innerRadius=3, rotation=4, outerRoundness=5, innerRoundness=6 |
 | 样式组 | 5 | 7 |
 | 样式索引 | fillEnabled=6, fillColor=7, strokeEnabled=8, strokeColor=9, strokeWidth=10 | fillEnabled=8, fillColor=9, strokeEnabled=10, strokeColor=11, strokeWidth=12 |
@@ -91,7 +93,7 @@
 
 ## Task 1：新模板资产与格式验证
 
-**Files:** Create `assets/pseudo-effects/triangle/v1/schema.json`、`assets/pseudo-effects/star/v1/schema.json`；Modify `scripts/build-shape-pseudo-effects.mjs`、`scripts/dist-contract.mjs`、`tests/pseudoEffectAssets.test.js`；Generate 两个 FFX 和合并 Catalog。
+**Files:** Create `assets/pseudo-effects/triangle/v1/schema.json`、`assets/pseudo-effects/star/v2/schema.json`；Modify `scripts/build-shape-pseudo-effects.mjs`、`scripts/dist-contract.mjs`、`tests/pseudoEffectAssets.test.js`；Generate 两个 FFX 和合并 Catalog。校正前的星形 v1 临时 schema 不保留为候选。
 
 **Interfaces:** `npm.cmd run build:pseudo-effects` 生成四个独立模板；`layoutParameters(schema, layout)` 支持 rectangle/circle/triangle/star，未知 layout 明确拒绝。Angle 使用原生角度类型，points 使用 precision=0，旧字段默认精度保持 2。
 
@@ -130,9 +132,9 @@
 
 **Interfaces:** 增加 star 白名单与 shift 显式路由，复用 Task 3 的 polygon 样式机制；为星形提供六个几何参数，删除已被完整替代的旧散装控件创建路径。
 
-- [ ] **Step 1:** 写星形独立合同和默认值测试；角数 2/5/20/100 与取整，内半径大于外半径、内外圆角、旋转、样式、两种 roundness 拼写和错误模板拒绝必须覆盖。
+- [ ] **Step 1:** 写星形独立合同和默认值测试；角数 3/5/20/100 与取整、2 被拒绝或在表达式中限制为 3，内半径大于外半径、内外圆角、旋转、样式、两种 roundness 拼写和错误模板拒绝必须覆盖。
 - [ ] **Step 2:** 运行同一 Host 测试命令并观察新增场景失败。
-- [ ] **Step 3:** 用 Type=1 和 `max(2, min(100, round(points)))`；外半径非负，内半径限制到 0..外半径，内外圆角限制到 0..100。将 Shift 接入已存在的预检/应用/清理链路。
+- [ ] **Step 3:** 用 Type=1 和 `max(3, min(100, round(points)))`；外半径非负，内半径限制到 0..外半径，内外圆角限制到 0..100。将 Shift 接入已存在的预检/应用/清理链路。
 - [ ] **Step 4:** 增加 none → alt → ctrl → shift → none → alt 连续创建测试，核对每次实际模板；四个 builder/路由的错配防线与错误恢复均通过。
 - [ ] **Step 5:** 运行三个相关测试文件并全部通过，审查本轮 diff 没有改写 v7/v3 的业务函数、规格或 FFX。
 
