@@ -9,7 +9,9 @@ async function loadLayerHost(app) {
     this.fsName = path;
     this.exists = !app.missingPreset &&
       !(app.missingCirclePreset && path.endsWith("/circle-zh-CN.ffx")) &&
-      /^C:\/CEP\/NYAWORKS\/host\/pseudo-effects\/(catalog\.json|rounded-rectangle-zh-CN\.ffx|circle-zh-CN\.ffx)$/.test(path);
+      !(app.missingTrianglePreset && path.endsWith("/triangle-zh-CN.ffx")) &&
+      !(app.missingStarPreset && path.endsWith("/star-zh-CN.ffx")) &&
+      /^C:\/CEP\/NYAWORKS\/host\/pseudo-effects\/(catalog\.json|rounded-rectangle-zh-CN\.ffx|circle-zh-CN\.ffx|triangle-zh-CN\.ffx|star-zh-CN\.ffx)$/.test(path);
     this.error = app.catalogUnreadable ? "Permission denied" : "";
     this.open = () => this.exists && !app.catalogUnreadable;
     this.read = () => app.catalogOverride || catalog;
@@ -31,6 +33,7 @@ return {
   getLastShapePseudoTrace: getLastShapePseudoTrace,
   createRoundedRectangleShape: createRoundedRectangleShape,
   createEllipseShape: createEllipseShape,
+  createPolygonShape: createPolygonShape,
   preflightPseudoEffectTemplate: typeof preflightPseudoEffectTemplate === "function" ? preflightPseudoEffectTemplate : null,
   applyPseudoEffectTemplate: typeof applyPseudoEffectTemplate === "function" ? applyPseudoEffectTemplate : null
 };`
@@ -44,6 +47,27 @@ async function loadRunLayerAction(app) {
 }
 
 class TestComp {}
+
+// Deliberately independent of the production catalog and schema: a shifted
+// group or parameter must fail the Host contract instead of moving the fixture.
+const polygonPresets = {
+  "triangle-zh-CN.ffx": {
+    matchName: "Pseudo/NYA_Triangle_v1_zhCN",
+    name: "Nya 三角形",
+    values: [3, 0, 250, 0, null, 1, [1, 1, 1, 1], 0, [0, 0, 0, 1], 5, null],
+    labels: ["点（边数）", "旋转", "外半径", "外圆度", "样式", "启用填充", "填充颜色", "启用描边", "描边颜色", "描边宽度", "__NYA_TRIANGLE_V1__"],
+    groups: [5, 11],
+    colors: [7, 9]
+  },
+  "star-zh-CN.ffx": {
+    matchName: "Pseudo/NYA_Star_v2_zhCN",
+    name: "Nya 星形",
+    values: [5, 250, 125, 0, 0, 0, null, 1, [1, 1, 1, 1], 0, [0, 0, 0, 1], 5, null],
+    labels: ["角数", "外半径", "内半径", "旋转", "外圆角", "内圆角", "样式", "启用填充", "填充颜色", "启用描边", "描边颜色", "描边宽度", "__NYA_STAR_V2__"],
+    groups: [7, 13],
+    colors: [9, 11]
+  }
+};
 
 function valueProperty(initial = null, backingState = null) {
   const state = backingState || {
@@ -83,7 +107,13 @@ function createShapeLayer({
   invalidCircleParameter = false,
   invalidRoundedHeightType = false,
   roundedEffectName = "Nya 圆角矩形",
-  roundedPathExpressionError = ""
+  roundedPathExpressionError = "",
+  polygonEffectName = null,
+  invalidPolygonParameter = false,
+  roundnessSpelling = "Roundess",
+  missingVectorProperty = "",
+  polygonExpressionError = "",
+  styleExpressionError = ""
 } = {}) {
   const controls = [];
   const vectors = [];
@@ -117,13 +147,18 @@ function createShapeLayer({
         propertyIndex: vectors.length + 1,
         values: {},
         property(name) {
+          if (name === missingVectorProperty) return null;
+          if (matchName === "ADBE Vector Shape - Star" && /Round(ness|ess)$/.test(name) &&
+              !name.endsWith(` ${roundnessSpelling}`)) return null;
           if (!states[name]) {
             states[name] = {
               value: null,
               expression: "",
               expressionEnabled: false,
               expressionError: matchName === "ADBE Vector Shape - Group" &&
-                name === "ADBE Vector Shape" ? roundedPathExpressionError : ""
+                name === "ADBE Vector Shape" ? roundedPathExpressionError :
+                matchName === "ADBE Vector Shape - Star" ? polygonExpressionError :
+                matchName.startsWith("ADBE Vector Graphic - ") ? styleExpressionError : ""
             };
           }
           if (!this.values[name] || !this.values[name].valid) {
@@ -157,28 +192,32 @@ function createShapeLayer({
     applyPreset(file) {
       if (!file.exists) throw new Error("missing-template");
       const circle = file.fsName.endsWith("/circle-zh-CN.ffx");
-      const matchName = circle ? "Pseudo/NYA_Circle_v3_zhCN" : "Pseudo/NYA_RRect_v7_zhCN";
-      const values = circle
+      const polygon = polygonPresets[file.fsName.split("/").pop()];
+      const matchName = polygon?.matchName || (circle ? "Pseudo/NYA_Circle_v3_zhCN" : "Pseudo/NYA_RRect_v7_zhCN");
+      const values = polygon?.values || (circle
         ? [250, null, 1, [1, 1, 1, 1], 0, [0, 0, 0, 1], 5, null]
         : [500, 500, 50, 0, null, 50, 50, 50, 50, null,
-          null, 1, [1, 1, 1, 1], 0, [0, 0, 0, 1], 5, null];
-      const labels = circle
+          null, 1, [1, 1, 1, 1], 0, [0, 0, 0, 1], 5, null]);
+      const labels = polygon?.labels || (circle
         ? ["半径", "样式", "启用填充", "填充颜色", "启用描边", "描边颜色", "描边宽度", "__NYA_CIRCLE_V3__"]
         : ["宽度", "高度", "圆角值", "分离圆角", "分离参数", "左上角", "右上角",
           "右下角", "左下角", "", "样式", "启用填充", "填充颜色", "启用描边",
-          "描边颜色", "描边宽度", "__NYA_RRECT_V7__"];
+          "描边颜色", "描边宽度", "__NYA_RRECT_V7__"]);
+      const groups = polygon?.groups || (circle ? [2, 8] : [5, 10, 11, 17]);
+      const colors = polygon?.colors || (circle ? [4, 6] : [13, 15]);
       const parameters = values.map((value, offset) => ({
         name: invalidPseudoSignature && offset === values.length - 1 ? "__INVALID__" : labels[offset],
-        matchName: invalidCircleParameter && circle && offset === 2
+        matchName: ((invalidCircleParameter && circle && offset === 2) ||
+          (invalidPolygonParameter && polygon && offset === 0))
           ? "Pseudo/Incorrect-0003"
           : `${matchName}-${String(offset + 1).padStart(4, "0")}`,
-        propertyValueType: (invalidRoundedHeightType && !circle && offset === 1) ||
-          (circle ? [2, 8] : [5, 10, 11, 17]).includes(offset + 1) ? 6412 : 6417,
-        value: invalidRoundedHeightType && !circle && offset === 1 ? null : value
+        propertyValueType: (invalidRoundedHeightType && !circle && !polygon && offset === 1) ||
+          groups.includes(offset + 1) ? 6412 : colors.includes(offset + 1) ? 6418 : 6417,
+        value: invalidRoundedHeightType && !circle && !polygon && offset === 1 ? null : value
       }));
       const effect = {
         matchName: invalidPseudoMatchName ? "Pseudo/Unexpected" : matchName,
-        name: circle ? "Nya 圆形" : roundedEffectName,
+        name: polygon ? (polygonEffectName || polygon.name) : circle ? "Nya 圆形" : roundedEffectName,
         numProperties: values.length + 1,
         property(index) { return parameters[index - 1] || null; },
         remove() {
@@ -262,6 +301,20 @@ function evaluateCircleSize(layer, radius) {
   );
 }
 
+function evaluateVectorProperty(layer, vectorMatchName, propertyName, overrides = {}) {
+  const vector = layer.vectors.find(item => item.matchName === vectorMatchName);
+  const property = vector.property(propertyName);
+  if (!property.expression) return property.value;
+  return Function("effect", `return (${property.expression});`)(name => {
+    const effect = layer.controls.find(item => item.name === name);
+    if (!effect) throw new Error(`Missing effect: ${name}`);
+    return index => Object.hasOwn(overrides, index) ? overrides[index] : effect.property(index).value;
+  });
+}
+
+const polygonProperty = (layer, name, overrides) =>
+  evaluateVectorProperty(layer, "ADBE Vector Shape - Star", `ADBE Vector Star ${name}`, overrides);
+
 describe("shape layer host action", () => {
   it("loads the AE-approved rounded rectangle identity alongside the circle candidate", async () => {
     const { app, created } = createApp();
@@ -287,6 +340,14 @@ describe("shape layer host action", () => {
       "C:/CEP/NYAWORKS",
       "shape.unknown/v1/zh-CN"
     )).toThrow("pseudo-template-not-allowed");
+  });
+
+  it("rejects the retired star v1 identity instead of reusing its loaded definition", async () => {
+    const { app, created } = createApp();
+    const { preflightPseudoEffectTemplate } = await loadLayerHost(app);
+    expect(() => preflightPseudoEffectTemplate("C:/CEP/NYAWORKS", "shape.star/v1/zh-CN"))
+      .toThrow("pseudo-template-not-allowed");
+    expect(created).toHaveLength(0);
   });
 
   it.each([
@@ -718,16 +779,321 @@ describe("shape layer host action", () => {
     expect(original.selected).toBe(true);
   });
 
-  it.each([
-    ["ctrl", "Nya 三角形", "ADBE Vector Shape - Star", ["Nya 半径", "Nya 旋转", "Nya 圆角"]],
-    ["shift", "Nya 星形", "ADBE Vector Shape - Star", ["Nya 角数", "Nya 外半径", "Nya 内半径", "Nya 旋转", "Nya 外圆角", "Nya 内圆角"]]
-  ])("creates the %s modifier variant with only useful controls", async (modifier, layerName, matchName, controlNames) => {
+  it("creates Ctrl as a centered polygon with one nine-parameter triangle pseudo effect", async () => {
     const { app, created } = createApp();
-    const runLayerAction = await loadRunLayerAction(app);
+    const host = await loadLayerHost(app);
+    expect(JSON.parse(host.runLayerAction(encoded("ctrl")))).toMatchObject({ ok: true, createdLayers: 1 });
+    const layer = created[0];
+    expect(layer.name).toBe("Nya 三角形");
+    expect(layer.position.value).toEqual([960, 540]);
+    expect(layer.anchor.value).toEqual([0, 0]);
+    expect(layer.controls.map(item => item.matchName)).toEqual(["Pseudo/NYA_Triangle_v1_zhCN"]);
+    const effect = layer.controls[0];
+    expect(Array.from({ length: 11 }, (_, i) => effect.property(i + 1).name)).toEqual(polygonPresets["triangle-zh-CN.ffx"].labels);
+    expect(polygonProperty(layer, "Type")).toBe(2);
+    expect(polygonProperty(layer, "Points")).toBe(3);
+    expect(polygonProperty(layer, "Outer Radius")).toBe(250);
+    expect(polygonProperty(layer, "Rotation")).toBe(0);
+    expect(polygonProperty(layer, "Outer Roundess")).toBe(0);
+    expect(host.preflightPseudoEffectTemplate("C:/CEP/NYAWORKS", "shape.triangle/v1/zh-CN").definition.parameters).toEqual({
+      points: 1, rotation: 2, outerRadius: 3, outerRoundness: 4,
+      fillEnabled: 6, fillColor: 7, strokeEnabled: 8, strokeColor: 9, strokeWidth: 10
+    });
+  });
 
-    expect(JSON.parse(runLayerAction(encoded(modifier))).ok).toBe(true);
-    expect(created[0].name).toBe(layerName);
-    expect(created[0].vectors.some((vector) => vector.matchName === matchName)).toBe(true);
-    expect(created[0].controls.map((control) => control.name)).toEqual(controlNames);
+  it("drives triangle sides, radius, native angles and roundness at boundaries", async () => {
+    const { app, created } = createApp();
+    const run = await loadRunLayerAction(app);
+    expect(JSON.parse(run(encoded("ctrl")))).toMatchObject({ ok: true });
+    const layer = created[0];
+    for (const [input, expected] of [[-1, 3], [3, 3], [4, 4], [4.6, 5], [20, 20], [100, 100], [120, 100]]) {
+      expect(polygonProperty(layer, "Points", { 1: input })).toBe(expected);
+    }
+    for (const radius of [0, 250, 3000, 5000]) {
+      expect(polygonProperty(layer, "Outer Radius", { 3: radius })).toBe(radius);
+    }
+    expect(polygonProperty(layer, "Outer Radius", { 3: -1 })).toBe(0);
+    for (const angle of [-720, -90, 0, 45.5, 720]) {
+      expect(polygonProperty(layer, "Rotation", { 2: angle })).toBe(angle);
+    }
+    for (const [input, expected] of [[-1, 0], [0, 0], [50, 50], [100, 100], [120, 100]]) {
+      expect(polygonProperty(layer, "Outer Roundess", { 4: input })).toBe(expected);
+    }
+  });
+
+  it("binds triangle geometry and style to the actual instance name, including escaped names", async () => {
+    const { app, created } = createApp({ polygonEffectName: '用户 "三角形" \\ 新名' });
+    const run = await loadRunLayerAction(app);
+    expect(JSON.parse(run(encoded("ctrl")))).toMatchObject({ ok: true });
+    const layer = created[0];
+    expect(polygonProperty(layer, "Points", { 1: 7 })).toBe(7);
+    expect(evaluateVectorProperty(layer, "ADBE Vector Graphic - Fill", "ADBE Vector Fill Color")).toEqual([1, 1, 1, 1]);
+    expect(evaluateVectorProperty(layer, "ADBE Vector Graphic - Stroke", "ADBE Vector Stroke Width")).toBe(5);
+  });
+
+  it.each(["Roundness", "Roundess"])("uses the available triangle outer %s property", async spelling => {
+    const { app, created } = createApp({ roundnessSpelling: spelling });
+    const run = await loadRunLayerAction(app);
+    expect(JSON.parse(run(encoded("ctrl")))).toMatchObject({ ok: true });
+    expect(polygonProperty(created[0], `Outer ${spelling}`, { 4: 67 })).toBe(67);
+  });
+
+  it("reacquires triangle paint properties and keeps its stroke above fill", async () => {
+    const { app, created } = createApp({ invalidateVectorReferences: true });
+    const run = await loadRunLayerAction(app);
+    expect(JSON.parse(run(encoded("ctrl")))).toMatchObject({ ok: true });
+    const layer = created[0];
+    expect(layer.vectors.map(item => item.matchName)).toEqual([
+      "ADBE Vector Shape - Star", "ADBE Vector Graphic - Stroke", "ADBE Vector Graphic - Fill"
+    ]);
+    const paint = (operator, property, overrides) => evaluateVectorProperty(
+      layer, `ADBE Vector Graphic - ${operator}`, `ADBE Vector ${operator} ${property}`, overrides
+    );
+    expect(paint("Fill", "Opacity")).toBe(100);
+    expect(paint("Stroke", "Opacity")).toBe(0);
+    expect(paint("Fill", "Opacity", { 6: 0 })).toBe(0);
+    expect(paint("Stroke", "Opacity", { 8: 1 })).toBe(100);
+    expect(paint("Fill", "Color")).toEqual([1, 1, 1, 1]);
+    expect(paint("Stroke", "Color")).toEqual([0, 0, 0, 1]);
+    expect(paint("Fill", "Color", { 7: [0.2, 0.4, 0.8, 1] })).toEqual([0.2, 0.4, 0.8, 1]);
+    expect(paint("Stroke", "Color", { 9: [1, 0.1, 0.3, 1] })).toEqual([1, 0.1, 0.3, 1]);
+    for (const width of [0, 5, 100, 500, 1000]) expect(paint("Stroke", "Width", { 10: width })).toBe(width);
+    expect(paint("Stroke", "Width", { 10: -5 })).toBe(0);
+    expect(polygonProperty(layer, "Points", { 1: 8 })).toBe(8);
+  });
+
+  it.each(["shape.circle/v3/zh-CN", "shape.roundedRectangle/v7/zh-CN"])(
+    "rejects %s in the triangle builder before adding geometry or effects", async wrongId => {
+      const { app } = createApp();
+      const host = await loadLayerHost(app);
+      const comp = app.project.activeItem;
+      const layer = comp.layers.addShape();
+      const contents = layer.property("ADBE Root Vectors Group").addProperty("ADBE Vector Group").property("ADBE Vectors Group");
+      const template = host.preflightPseudoEffectTemplate("C:/CEP/NYAWORKS", wrongId);
+      expect(() => host.createPolygonShape(layer, contents, false, { comp, selection: [] }, template))
+        .toThrow("pseudo-template-shape-mismatch");
+      expect(layer.controls).toHaveLength(0);
+      expect(layer.vectors).toHaveLength(0);
+    }
+  );
+
+  it("rejects a shifted triangle catalog before adding a layer", async () => {
+    const { app, created } = createApp();
+    const catalog = JSON.parse(await readFile("public/host/pseudo-effects/catalog.json", "utf8"));
+    catalog.templates["shape.triangle/v1/zh-CN"].parameters.rotation = 3;
+    app.catalogOverride = JSON.stringify(catalog);
+    const run = await loadRunLayerAction(app);
+    expect(JSON.parse(run(encoded("ctrl")))).toMatchObject({ ok: false, detail: expect.stringContaining("pseudo-template-invalid") });
+    expect(created).toHaveLength(0);
+  });
+
+  it.each([
+    ["missing template", "missingTrianglePreset", "pseudo-template-missing"],
+    ["missing root", "missingRoot", "pseudo-extension-root-unavailable"]
+  ])("rejects triangle %s before creating a layer", async (_label, flag, detail) => {
+    const { app, created } = createApp();
+    app[flag] = true;
+    const run = await loadRunLayerAction(app);
+    const payload = flag === "missingRoot" ? encodeURIComponent(JSON.stringify({ action: "create-shape", modifier: "ctrl" })) : encoded("ctrl");
+    expect(JSON.parse(run(payload))).toMatchObject({ ok: false, detail: expect.stringContaining(detail) });
+    expect(created).toHaveLength(0);
+  });
+
+  it.each([
+    ["signature", { invalidPseudoSignature: true }, "pseudo-effect-signature-mismatch"],
+    ["parameter", { invalidPolygonParameter: true }, "pseudo-parameter-mismatch-points"],
+    ["missing geometry", { missingVectorProperty: "ADBE Vector Star Outer Radius" }, "pseudo-geometry-properties-unavailable"],
+    ["missing roundness", { roundnessSpelling: "unavailable" }, "pseudo-geometry-properties-unavailable"],
+    ["geometry expression", { polygonExpressionError: "AE geometry failure" }, "pseudo-expression-invalid"],
+    ["missing style", { missingVectorProperty: "ADBE Vector Stroke Width" }, "pseudo-style-properties-unavailable"],
+    ["style expression", { styleExpressionError: "AE style failure" }, "pseudo-style-expression-invalid"]
+  ])("cleans only the new triangle and restores selection after %s failure", async (_label, options, detail) => {
+    const { app, created } = createApp(options);
+    const comp = app.project.activeItem;
+    const original = { selected: true, index: 1, inPoint: 0, outPoint: 10 };
+    const property = { selected: true };
+    comp.selectedLayers = [original];
+    comp.selectedProperties = [property];
+    const run = await loadRunLayerAction(app);
+    expect(JSON.parse(run(encoded("ctrl")))).toMatchObject({ ok: false, detail: expect.stringContaining(detail) });
+    expect(created).toHaveLength(0);
+    expect(original.selected).toBe(true);
+    expect(property.selected).toBe(true);
+  });
+
+  it("creates Shift as a centered star with one eleven-parameter pseudo effect", async () => {
+    const { app, created } = createApp();
+    const host = await loadLayerHost(app);
+    expect(JSON.parse(host.runLayerAction(encoded("shift")))).toMatchObject({ ok: true, createdLayers: 1 });
+    const layer = created[0];
+    expect(layer.name).toBe("Nya 星形");
+    expect(layer.position.value).toEqual([960, 540]);
+    expect(layer.anchor.value).toEqual([0, 0]);
+    expect(layer.controls.map(item => item.matchName)).toEqual(["Pseudo/NYA_Star_v2_zhCN"]);
+    const effect = layer.controls[0];
+    expect(Array.from({ length: 13 }, (_, i) => effect.property(i + 1).name)).toEqual(polygonPresets["star-zh-CN.ffx"].labels);
+    expect(polygonProperty(layer, "Type")).toBe(1);
+    expect(polygonProperty(layer, "Points")).toBe(5);
+    expect(polygonProperty(layer, "Outer Radius")).toBe(250);
+    expect(polygonProperty(layer, "Inner Radius")).toBe(125);
+    expect(polygonProperty(layer, "Rotation")).toBe(0);
+    expect(polygonProperty(layer, "Outer Roundess")).toBe(0);
+    expect(polygonProperty(layer, "Inner Roundess")).toBe(0);
+    const template = host.preflightPseudoEffectTemplate("C:/CEP/NYAWORKS", "shape.star/v2/zh-CN");
+    expect(template.definition.parameters).toEqual({
+      points: 1, outerRadius: 2, innerRadius: 3, rotation: 4, outerRoundness: 5, innerRoundness: 6,
+      fillEnabled: 8, fillColor: 9, strokeEnabled: 10, strokeColor: 11, strokeWidth: 12
+    });
+    expect(template.contract.marker).toEqual({ index: 13, name: "__NYA_STAR_V2__" });
+  });
+
+  it("drives star corners, independent radii, native angles and both roundness values at boundaries", async () => {
+    const { app, created } = createApp();
+    const run = await loadRunLayerAction(app);
+    expect(JSON.parse(run(encoded("shift")))).toMatchObject({ ok: true });
+    const layer = created[0];
+    // AE's native Polystar Points minimum is 3 for both polygon and star.
+    for (const [input, expected] of [[-1, 3], [2, 3], [2.5, 3], [3, 3], [5, 5], [5.6, 6], [20, 20], [100, 100], [120, 100]]) {
+      expect(polygonProperty(layer, "Points", { 1: input })).toBe(expected);
+    }
+    for (const radius of [0, 250, 3000, 5000]) {
+      expect(polygonProperty(layer, "Outer Radius", { 2: radius })).toBe(radius);
+    }
+    for (const [inner, outer, expected] of [[125, 250, 125], [350, 250, 250], [-1, 250, 0], [125, 0, 0], [125, -1, 0], [5000, 5000, 5000]]) {
+      expect(polygonProperty(layer, "Inner Radius", { 2: outer, 3: inner })).toBe(expected);
+    }
+    for (const angle of [-720, -90, 0, 45.5, 720]) {
+      expect(polygonProperty(layer, "Rotation", { 4: angle })).toBe(angle);
+    }
+    for (const [input, expected] of [[-1, 0], [0, 0], [50, 50], [100, 100], [120, 100]]) {
+      expect(polygonProperty(layer, "Outer Roundess", { 5: input })).toBe(expected);
+      expect(polygonProperty(layer, "Inner Roundess", { 6: input })).toBe(expected);
+    }
+  });
+
+  it("binds all star geometry and paint to its actual effect name after indexed-group invalidation", async () => {
+    const { app, created } = createApp({ polygonEffectName: '用户 "星形" \\ 新名', invalidateVectorReferences: true });
+    const run = await loadRunLayerAction(app);
+    expect(JSON.parse(run(encoded("shift")))).toMatchObject({ ok: true });
+    const layer = created[0];
+    expect(layer.vectors.map(item => item.matchName)).toEqual([
+      "ADBE Vector Shape - Star", "ADBE Vector Graphic - Stroke", "ADBE Vector Graphic - Fill"
+    ]);
+    expect(polygonProperty(layer, "Points", { 1: 9 })).toBe(9);
+    const paint = (operator, property, overrides) => evaluateVectorProperty(
+      layer, `ADBE Vector Graphic - ${operator}`, `ADBE Vector ${operator} ${property}`, overrides
+    );
+    expect(paint("Fill", "Opacity")).toBe(100);
+    expect(paint("Stroke", "Opacity")).toBe(0);
+    expect(paint("Fill", "Opacity", { 8: 0 })).toBe(0);
+    expect(paint("Stroke", "Opacity", { 10: 1 })).toBe(100);
+    expect(paint("Fill", "Color")).toEqual([1, 1, 1, 1]);
+    expect(paint("Stroke", "Color")).toEqual([0, 0, 0, 1]);
+    expect(paint("Fill", "Color", { 9: [0.2, 0.4, 0.8, 1] })).toEqual([0.2, 0.4, 0.8, 1]);
+    expect(paint("Stroke", "Color", { 11: [1, 0.1, 0.3, 1] })).toEqual([1, 0.1, 0.3, 1]);
+    for (const width of [0, 5, 100, 500, 1000]) expect(paint("Stroke", "Width", { 12: width })).toBe(width);
+    expect(paint("Stroke", "Width", { 12: -5 })).toBe(0);
+  });
+
+  it.each(["Roundness", "Roundess"])("uses the available star inner and outer %s properties", async spelling => {
+    const { app, created } = createApp({ roundnessSpelling: spelling });
+    const run = await loadRunLayerAction(app);
+    expect(JSON.parse(run(encoded("shift")))).toMatchObject({ ok: true });
+    expect(polygonProperty(created[0], `Outer ${spelling}`, { 5: 67 })).toBe(67);
+    expect(polygonProperty(created[0], `Inner ${spelling}`, { 6: 37 })).toBe(37);
+  });
+
+  it.each([
+    [true, "shape.triangle/v1/zh-CN"],
+    [true, "shape.circle/v3/zh-CN"],
+    [true, "shape.roundedRectangle/v7/zh-CN"],
+    [false, "shape.star/v2/zh-CN"]
+  ])("rejects cross-shape templates before polygon builder isStar=%s can add properties (%s)", async (isStar, wrongId) => {
+    const { app } = createApp();
+    const host = await loadLayerHost(app);
+    const comp = app.project.activeItem;
+    const layer = comp.layers.addShape();
+    const contents = layer.property("ADBE Root Vectors Group").addProperty("ADBE Vector Group").property("ADBE Vectors Group");
+    const template = host.preflightPseudoEffectTemplate("C:/CEP/NYAWORKS", wrongId);
+    expect(() => host.createPolygonShape(layer, contents, isStar, { comp, selection: [] }, template))
+      .toThrow("pseudo-template-shape-mismatch");
+    expect(layer.controls).toHaveLength(0);
+    expect(layer.vectors).toHaveLength(0);
+  });
+
+  it.each([
+    ["createRoundedRectangleShape", "shape.triangle/v1/zh-CN"],
+    ["createRoundedRectangleShape", "shape.star/v2/zh-CN"],
+    ["createEllipseShape", "shape.triangle/v1/zh-CN"],
+    ["createEllipseShape", "shape.star/v2/zh-CN"]
+  ])("%s rejects the new %s template before touching the approved geometry", async (builder, wrongId) => {
+    const { app } = createApp();
+    const host = await loadLayerHost(app);
+    const comp = app.project.activeItem;
+    const layer = comp.layers.addShape();
+    const contents = layer.property("ADBE Root Vectors Group").addProperty("ADBE Vector Group").property("ADBE Vectors Group");
+    const template = host.preflightPseudoEffectTemplate("C:/CEP/NYAWORKS", wrongId);
+    expect(() => host[builder](layer, contents, { comp, selection: [] }, template)).toThrow("pseudo-template-shape-mismatch");
+    expect(layer.controls).toHaveLength(0);
+    expect(layer.vectors).toHaveLength(0);
+  });
+
+  it("rejects a shifted star catalog and a missing star preset without creating a layer", async () => {
+    const { app, created } = createApp();
+    const catalog = JSON.parse(await readFile("public/host/pseudo-effects/catalog.json", "utf8"));
+    catalog.templates["shape.star/v2/zh-CN"].parameters.outerRoundness = 6;
+    app.catalogOverride = JSON.stringify(catalog);
+    const run = await loadRunLayerAction(app);
+    expect(JSON.parse(run(encoded("shift")))).toMatchObject({ ok: false, detail: expect.stringContaining("pseudo-template-invalid") });
+    app.catalogOverride = null;
+    app.missingStarPreset = true;
+    expect(JSON.parse(run(encoded("shift")))).toMatchObject({ ok: false, detail: expect.stringContaining("pseudo-template-missing") });
+    expect(created).toHaveLength(0);
+  });
+
+  it.each([
+    ["signature", { invalidPseudoSignature: true }, "pseudo-effect-signature-mismatch"],
+    ["parameter", { invalidPolygonParameter: true }, "pseudo-parameter-mismatch-points"],
+    ["missing inner radius", { missingVectorProperty: "ADBE Vector Star Inner Radius" }, "pseudo-geometry-properties-unavailable"],
+    ["missing roundness", { roundnessSpelling: "unavailable" }, "pseudo-geometry-properties-unavailable"],
+    ["geometry expression", { polygonExpressionError: "AE geometry failure" }, "pseudo-expression-invalid"],
+    ["missing style", { missingVectorProperty: "ADBE Vector Stroke Width" }, "pseudo-style-properties-unavailable"],
+    ["style expression", { styleExpressionError: "AE style failure" }, "pseudo-style-expression-invalid"]
+  ])("cleans only the new star and restores selection after %s failure", async (_label, options, detail) => {
+    const { app, created } = createApp(options);
+    const comp = app.project.activeItem;
+    const original = { selected: true, index: 1, inPoint: 0, outPoint: 10 };
+    const property = { selected: true };
+    comp.selectedLayers = [original];
+    comp.selectedProperties = [property];
+    const run = await loadRunLayerAction(app);
+    expect(JSON.parse(run(encoded("shift")))).toMatchObject({ ok: false, detail: expect.stringContaining(detail) });
+    expect(created).toHaveLength(0);
+    expect(original.selected).toBe(true);
+    expect(property.selected).toBe(true);
+  });
+
+  it("keeps all four template identities and geometry correct through none-alt-ctrl-shift-none-alt", async () => {
+    const { app, created } = createApp();
+    const host = await loadLayerHost(app);
+    const scenarios = [
+      ["none", "Pseudo/NYA_RRect_v7_zhCN"], ["alt", "Pseudo/NYA_Circle_v3_zhCN"],
+      ["ctrl", "Pseudo/NYA_Triangle_v1_zhCN"], ["shift", "Pseudo/NYA_Star_v2_zhCN"],
+      ["none", "Pseudo/NYA_RRect_v7_zhCN"], ["alt", "Pseudo/NYA_Circle_v3_zhCN"]
+    ];
+    const actual = [];
+    for (const [modifier, matchName] of scenarios) {
+      expect(JSON.parse(host.runLayerAction(encoded(modifier)))).toMatchObject({ ok: true, createdLayers: 1 });
+      const layer = created[0];
+      expect(layer.controls).toHaveLength(1);
+      actual.push(layer.controls[0].matchName);
+      expect(JSON.parse(host.getLastShapePseudoTrace()).expectedMatchName).toBe(matchName);
+      if (modifier === "none") expect(evaluateRoundedPath(layer, [null, 500, 500, 50, 0, null, 50, 50, 50, 50]).closed).toBe(true);
+      if (modifier === "alt") expect(evaluateCircleSize(layer, 250)).toEqual([500, 500]);
+      if (modifier === "ctrl") expect(polygonProperty(layer, "Points", { 1: 4 })).toBe(4);
+      if (modifier === "shift") expect(polygonProperty(layer, "Inner Radius", { 2: 100, 3: 200 })).toBe(100);
+    }
+    expect(actual).toEqual(scenarios.map(([, matchName]) => matchName));
+    expect(created).toHaveLength(6);
   });
 });

@@ -115,10 +115,14 @@ describe("layer host bridge", () => {
     expect(called).toBe(false);
   });
 
-  it.each(["ctrl", "shift"] as const)("does not require the extension path for %s shapes", async modifier => {
+  it.each(["ctrl", "shift"] as const)("passes the current CEP extension directory for %s shapes", async modifier => {
     let received = "";
     const bridge = createLayerHostBridge({
       __adobe_cep__: {
+        getSystemPath: (type) => {
+          expect(type).toBe("extension");
+          return "file:///D:/AE%E8%84%9A%E6%9C%AC/NYAWORKS";
+        },
         evalScript: (script, callback) => {
           received = script;
           callback(JSON.stringify({ ok: true, createdLayers: 1 }));
@@ -127,7 +131,50 @@ describe("layer host bridge", () => {
     });
     await expect(bridge.runLayerAction("create-shape", modifier)).resolves.toMatchObject({ ok: true });
     expect(JSON.parse(decodeURIComponent(received.match(/\("(.+)"\)$/)?.[1] ?? ""))).toEqual({
-      action: "create-shape", modifier
+      action: "create-shape",
+      modifier,
+      extensionRoot: "D:/AE脚本/NYAWORKS"
+    });
+  });
+
+  it.each(["ctrl", "shift"] as const)("does not call AE for %s shapes when the extension directory is unavailable", async modifier => {
+    let called = false;
+    const bridge = createLayerHostBridge({
+      __adobe_cep__: {
+        evalScript: (_script, callback) => {
+          called = true;
+          callback(JSON.stringify({ ok: true, createdLayers: 1 }));
+        }
+      }
+    });
+    await expect(bridge.runLayerAction("create-shape", modifier)).resolves.toEqual({
+      ok: false,
+      reason: "host-error",
+      detail: "pseudo-extension-root-unavailable"
+    });
+    expect(called).toBe(false);
+  });
+
+  it.each(["ctrl", "shift"] as const)("does not request the extension directory for non-shape %s actions", async modifier => {
+    let received = "";
+    let pathRequested = false;
+    const bridge = createLayerHostBridge({
+      __adobe_cep__: {
+        getSystemPath: () => {
+          pathRequested = true;
+          return "";
+        },
+        evalScript: (script, callback) => {
+          received = script;
+          callback(JSON.stringify({ ok: true, createdLayers: 1 }));
+        }
+      }
+    });
+    await expect(bridge.runLayerAction("create-solid", modifier)).resolves.toMatchObject({ ok: true });
+    expect(pathRequested).toBe(false);
+    expect(JSON.parse(decodeURIComponent(received.match(/\("(.+)"\)$/)?.[1] ?? ""))).toEqual({
+      action: "create-solid",
+      modifier
     });
   });
 

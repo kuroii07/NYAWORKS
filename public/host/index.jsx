@@ -1680,6 +1680,38 @@
   }
 
   function getPseudoEffectTemplateContract(templateId) {
+    if (templateId === "shape.star/v2/zh-CN") {
+      return {
+        templateId: templateId,
+        file: "star-zh-CN.ffx",
+        matchName: "Pseudo/NYA_Star_v2_zhCN",
+        marker: { index: 13, name: "__NYA_STAR_V2__" },
+        parameterIds: [
+          "points", "outerRadius", "innerRadius", "rotation", "outerRoundness", "innerRoundness",
+          "fillEnabled", "fillColor", "strokeEnabled", "strokeColor", "strokeWidth"
+        ],
+        parameterIndexes: {
+          points: 1, outerRadius: 2, innerRadius: 3, rotation: 4, outerRoundness: 5, innerRoundness: 6,
+          fillEnabled: 8, fillColor: 9, strokeEnabled: 10, strokeColor: 11, strokeWidth: 12
+        }
+      };
+    }
+    if (templateId === "shape.triangle/v1/zh-CN") {
+      return {
+        templateId: templateId,
+        file: "triangle-zh-CN.ffx",
+        matchName: "Pseudo/NYA_Triangle_v1_zhCN",
+        marker: { index: 11, name: "__NYA_TRIANGLE_V1__" },
+        parameterIds: [
+          "points", "rotation", "outerRadius", "outerRoundness",
+          "fillEnabled", "fillColor", "strokeEnabled", "strokeColor", "strokeWidth"
+        ],
+        parameterIndexes: {
+          points: 1, rotation: 2, outerRadius: 3, outerRoundness: 4,
+          fillEnabled: 6, fillColor: 7, strokeEnabled: 8, strokeColor: 9, strokeWidth: 10
+        }
+      };
+    }
     if (templateId === "shape.circle/v3/zh-CN") {
       return {
         templateId: templateId,
@@ -2081,7 +2113,40 @@
     }
   }
 
-  function createPolygonShape(layer, contents, isStar) {
+  function bindPolygonShapeStyle(contents, effectReference, parameters) {
+    var stroke = contents.addProperty("ADBE Vector Graphic - Stroke");
+    var strokeIndex = stroke && stroke.propertyIndex;
+    var fill = contents.addProperty("ADBE Vector Graphic - Fill");
+    var fillIndex = fill && fill.propertyIndex;
+    // Keep the stroke above the fill, and reacquire operators only after the
+    // indexed group is complete so no stale AE Property handles are reused.
+    stroke = strokeIndex ? contents.property(strokeIndex) : null;
+    fill = fillIndex ? contents.property(fillIndex) : null;
+    var fillColor = fill && fill.property("ADBE Vector Fill Color");
+    var fillOpacity = fill && fill.property("ADBE Vector Fill Opacity");
+    var strokeColor = stroke && stroke.property("ADBE Vector Stroke Color");
+    var strokeOpacity = stroke && stroke.property("ADBE Vector Stroke Opacity");
+    var strokeWidth = stroke && stroke.property("ADBE Vector Stroke Width");
+    if (!fillColor || !fillOpacity || !strokeColor || !strokeOpacity || !strokeWidth) {
+      throw new Error("pseudo-style-properties-unavailable");
+    }
+    setShapeExpression(fillOpacity, effectReference + '(' + parameters.fillEnabled + ')>0?100:0');
+    setShapeExpression(fillColor, effectReference + '(' + parameters.fillColor + ')');
+    setShapeExpression(strokeOpacity, effectReference + '(' + parameters.strokeEnabled + ')>0?100:0');
+    setShapeExpression(strokeColor, effectReference + '(' + parameters.strokeColor + ')');
+    setShapeExpression(strokeWidth, 'Math.max(0,' + effectReference + '(' + parameters.strokeWidth + '))');
+    if (fillOpacity.expressionError || fillColor.expressionError ||
+        strokeOpacity.expressionError || strokeColor.expressionError || strokeWidth.expressionError) {
+      throw new Error("pseudo-style-expression-invalid");
+    }
+  }
+
+  function createPolygonShape(layer, contents, isStar, context, template) {
+    var expectedTemplateId = "shape.triangle/v1/zh-CN";
+    if (isStar) expectedTemplateId = "shape.star/v2/zh-CN";
+    if (!template || template.templateId !== expectedTemplateId) {
+      throw new Error("pseudo-template-shape-mismatch: " + (isStar ? "star" : "triangle"));
+    }
     var star = contents.addProperty("ADBE Vector Shape - Star");
     var type = star.property("ADBE Vector Star Type");
     var points = star.property("ADBE Vector Star Points");
@@ -2091,33 +2156,40 @@
       star.property("ADBE Vector Star Outer Roundess");
     var innerRadius;
     var innerRoundness;
+    var pseudoEffect;
+    var effectReference;
+    var parameters;
+    var minimumPoints = 3;
     star.name = isStar ? "Nya 星形" : "Nya 三角形";
-    if (type && typeof type.setValue === "function") type.setValue(isStar ? 1 : 2);
-    if (points && typeof points.setValue === "function") points.setValue(isStar ? 5 : 3);
+    if (!type || !points || !outerRadius || !rotation || !outerRoundness) {
+      throw new Error("pseudo-geometry-properties-unavailable");
+    }
+    type.setValue(isStar ? 1 : 2);
     if (isStar) {
-      addLayerControl(layer, "ADBE Slider Control", "Nya 角数", 5);
-      addLayerControl(layer, "ADBE Slider Control", "Nya 外半径", 250);
-      addLayerControl(layer, "ADBE Slider Control", "Nya 内半径", 125);
-      addLayerControl(layer, "ADBE Angle Control", "Nya 旋转", 0);
-      addLayerControl(layer, "ADBE Slider Control", "Nya 外圆角", 0);
-      addLayerControl(layer, "ADBE Slider Control", "Nya 内圆角", 0);
       innerRadius = star.property("ADBE Vector Star Inner Radius");
       innerRoundness = star.property("ADBE Vector Star Inner Roundness") ||
         star.property("ADBE Vector Star Inner Roundess");
-      setShapeExpression(points, 'Math.max(2,Math.round(effect("Nya 角数")(1)))');
-      setShapeExpression(outerRadius, 'Math.max(0,effect("Nya 外半径")(1))');
-      setShapeExpression(innerRadius, 'Math.max(0,Math.min(effect("Nya 内半径")(1),effect("Nya 外半径")(1)))');
-      setShapeExpression(rotation, 'effect("Nya 旋转")(1)');
-      setShapeExpression(outerRoundness, 'Math.max(0,Math.min(100,effect("Nya 外圆角")(1)))');
-      setShapeExpression(innerRoundness, 'Math.max(0,Math.min(100,effect("Nya 内圆角")(1)))');
-    } else {
-      addLayerControl(layer, "ADBE Slider Control", "Nya 半径", 250);
-      addLayerControl(layer, "ADBE Angle Control", "Nya 旋转", 0);
-      addLayerControl(layer, "ADBE Slider Control", "Nya 圆角", 0);
-      setShapeExpression(outerRadius, 'Math.max(0,effect("Nya 半径")(1))');
-      setShapeExpression(rotation, 'effect("Nya 旋转")(1)');
-      setShapeExpression(outerRoundness, 'Math.max(0,Math.min(100,effect("Nya 圆角")(1)))');
+      if (!innerRadius || !innerRoundness) {
+        throw new Error("pseudo-geometry-properties-unavailable");
+      }
     }
+    pseudoEffect = applyPseudoEffectTemplate(layer, context, template);
+    effectReference = "effect(" + JSON.stringify(pseudoEffect.name) + ")";
+    parameters = template.definition.parameters;
+    if (lastShapePseudoTrace) lastShapePseudoTrace.effectReference = effectReference;
+    setShapeExpression(points, 'Math.max(' + minimumPoints + ',Math.min(100,Math.round(' + effectReference + '(' + parameters.points + '))))');
+    setShapeExpression(outerRadius, 'Math.max(0,' + effectReference + '(' + parameters.outerRadius + '))');
+    setShapeExpression(rotation, effectReference + '(' + parameters.rotation + ')');
+    setShapeExpression(outerRoundness, 'Math.max(0,Math.min(100,' + effectReference + '(' + parameters.outerRoundness + ')))');
+    if (isStar) {
+      setShapeExpression(innerRadius, 'Math.max(0,Math.min(' + effectReference + '(' + parameters.innerRadius + '),' + effectReference + '(' + parameters.outerRadius + ')))');
+      setShapeExpression(innerRoundness, 'Math.max(0,Math.min(100,' + effectReference + '(' + parameters.innerRoundness + ')))');
+    }
+    if (points.expressionError || outerRadius.expressionError || rotation.expressionError ||
+        outerRoundness.expressionError || (isStar && (innerRadius.expressionError || innerRoundness.expressionError))) {
+      throw new Error("pseudo-expression-invalid: polygon geometry");
+    }
+    bindPolygonShapeStyle(contents, effectReference, parameters);
   }
 
   function createShapeLayer(context, modifier, extensionRoot) {
@@ -2128,6 +2200,10 @@
       templateId = "shape.roundedRectangle/v7/zh-CN";
     } else if (modifier === "alt") {
       templateId = "shape.circle/v3/zh-CN";
+    } else if (modifier === "ctrl") {
+      templateId = "shape.triangle/v1/zh-CN";
+    } else if (modifier === "shift") {
+      templateId = "shape.star/v2/zh-CN";
     }
     var template = templateId ? preflightPseudoEffectTemplate(extensionRoot, templateId) : null;
     lastShapePseudoTrace = template ? {
@@ -2155,13 +2231,12 @@
       if (modifier === "alt") {
         createEllipseShape(layer, contents, context, template);
       } else if (modifier === "ctrl") {
-        createPolygonShape(layer, contents, false);
+        createPolygonShape(layer, contents, false, context, template);
       } else if (modifier === "shift") {
-        createPolygonShape(layer, contents, true);
+        createPolygonShape(layer, contents, true, context, template);
       } else {
         createRoundedRectangleShape(layer, contents, context, template);
       }
-      if (modifier === "ctrl" || modifier === "shift") addShapeFill(contents);
       setLayerCentered(layer, context.comp, [0, 0]);
       return finishCreatedLayer(layer, context);
     } catch (error) {

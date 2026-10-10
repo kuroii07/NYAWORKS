@@ -17,7 +17,7 @@
 - 基线提交为 `14b807d`，当前主工作树为 `main`。用户已经确认圆角矩形 v7、圆形 v3 正常。
 - 用户要求先把本开发步骤文档提交推送到 GitHub，再正式按路线开发；文档推送确认前不得修改实现。
 - 文档推送后，本会话直接执行：先资产和 Bridge，再三角形、星形，最后构建、真实 AE 回归与验收记录。独立的资产/Bridge 工作可分工，Host 和 AE 测试由主会话统一进行。
-- 本轮授权先推送计划并开发；功能代码保持本地候选，用户验收后再按后续提交授权处理。
+- 本轮先推送计划再开发；用户于 2026-10-10 下班前追加授权，将功能候选、模板和文档同步推送 GitHub，回家拉取后继续真实交互验收。
 - 先前提前修改的 Bridge 与测试已撤回；旧 v8 实验目录已按用户要求删除，不恢复旧失败候选。
 
 ## 已确认参数
@@ -97,11 +97,11 @@
 
 **Interfaces:** `npm.cmd run build:pseudo-effects` 生成四个独立模板；`layoutParameters(schema, layout)` 支持 rectangle/circle/triangle/star，未知 layout 明确拒绝。Angle 使用原生角度类型，points 使用 precision=0，旧字段默认精度保持 2。
 
-- [ ] **Step 1:** 补资产 RED 测试：断言上表中的身份、标签、参数顺序、默认值、范围、固定索引；新两个 FFX 必须在 dist 合同中，circle/v3 加入不可改写哈希保护。
-- [ ] **Step 2:** 运行 `npm.cmd run test -- tests/pseudoEffectAssets.test.js --exclude '**/.worktrees/**' --maxWorkers=1`，确认因新模板缺失而失败。
-- [ ] **Step 3:** 在隔离身份下确认 Angle 和颜色格式。已有 Angle 原型在 AE 25.6x101 对照原生控件通过 0、45.5、-90、±720、36000 及线性关键帧采样；该证据只验证格式，不能代替最终模板验收。颜色需实际读回白/黑 RGBA；若需调整编码，仅用于新模板，保留 v7/v3 字节。
-- [ ] **Step 4:** 按固定合同新增 schema，最小扩展生成器的多几何参数布局、Angle 和数字精度；每个模板独立解析基底，不复用可变生成树。执行 `npm.cmd run build:pseudo-effects`。
-- [ ] **Step 5:** 重跑该测试文件，全部通过；核对定义与流中的范围、颜色、Angle、精度，检查旧两份 FFX 哈希精确相同。
+- [x] **Step 1:** 补资产 RED 测试：断言上表中的身份、标签、参数顺序、默认值、范围、固定索引；新两个 FFX 必须在 dist 合同中，circle/v3 加入不可改写哈希保护。
+- [x] **Step 2:** 运行 `npm.cmd run test -- tests/pseudoEffectAssets.test.js --exclude '**/.worktrees/**' --maxWorkers=1`，确认因新模板缺失而失败。
+- [x] **Step 3:** 在隔离身份下确认 Angle 和颜色格式。已有 Angle 原型在 AE 25.6x101 对照原生控件通过 0、45.5、-90、±720、36000 及线性关键帧采样；该证据只验证格式，不能代替最终模板验收。颜色需实际读回白/黑 RGBA；若需调整编码，仅用于新模板，保留 v7/v3 字节。
+- [x] **Step 4:** 按固定合同新增 schema，最小扩展生成器的多几何参数布局、Angle 和数字精度；每个模板独立解析基底，不复用可变生成树。执行 `npm.cmd run build:pseudo-effects`。
+- [x] **Step 5:** 重跑该测试文件，全部通过；核对定义与流中的范围、颜色、Angle、精度，检查旧两份 FFX 哈希精确相同。
 
 ## Task 2：Bridge 的四形状路径合同
 
@@ -109,10 +109,10 @@
 
 **Interfaces:** `createLayerHostBridge().runLayerAction(action, modifier)` 签名不变；`create-shape` 的四种合法 modifier 都传 `extensionRoot`，其他 Action 继续原行为。
 
-- [ ] **Step 1:** 写 Ctrl/Shift 路径传递及缺路径拒绝测试，保留 none/alt；补其他 Action 不需要形状目录的回归。
-- [ ] **Step 2:** 运行 `npm.cmd run test -- tests/layerBridge.test.ts --exclude '**/.worktrees/**' --maxWorkers=1`，观察预期失败。
-- [ ] **Step 3:** 仅扩展 `pseudoShape` 判定，不修改结果解析、调用协议或其他 Action。
-- [ ] **Step 4:** 重跑并全部通过。
+- [x] **Step 1:** 写 Ctrl/Shift 路径传递及缺路径拒绝测试，保留 none/alt；补其他 Action 不需要形状目录的回归。
+- [x] **Step 2:** 运行 `npm.cmd run test -- tests/layerBridge.test.ts --exclude '**/.worktrees/**' --maxWorkers=1`，观察预期失败。
+- [x] **Step 3:** 仅扩展 `pseudoShape` 判定，不修改结果解析、调用协议或其他 Action。
+- [x] **Step 4:** 重跑并全部通过。
 
 ## Task 3：先接入可调边数的三角形
 
@@ -120,11 +120,11 @@
 
 **Interfaces:** 扩展 `getPseudoEffectTemplateContract(templateId)` 的 triangle 白名单；`createShapeLayer(context, modifier, extensionRoot)` 明确将 ctrl 路由到 triangle；polygon builder 使用 context/template，原矩形和圆形 builder 不改。
 
-- [ ] **Step 1:** 扩充 mock 的新 FFX 及参数读取能力；写三角形默认值、唯一效果、实际效果名绑定、固定合同、边数 3/4/20/100、分数取整、半径、负角/多圈旋转、外圆度、Fill/Stroke 绑定测试。与圆/矩形错配的模板在添加属性前拒绝。
-- [ ] **Step 2:** 运行 `npm.cmd run test -- tests/layerShapeHost.test.js --exclude '**/.worktrees/**' --maxWorkers=1`，确认新增场景失败。
-- [ ] **Step 3:** 三角形改用 Type=2 与 `max(3, min(100, round(points)))`，其余几何按合同索引绑定；取 `applyPseudoEffectTemplate()` 返回的实例名称构造表达式。保留原生外圆度属性名的兼容查找。
-- [ ] **Step 4:** 增加只供新 polygon 业务使用的样式绑定：真实 Stroke 位于 Fill 上方；完成全部添加后重新取得 Fill/Stroke 及属性。覆盖引用失效、缺参数、缺预设、表达式错误和只清理新层的测试。星形在此步骤仍保留旧入口，直到 Task 4 完成替换。
-- [ ] **Step 5:** 重跑该测试文件全部通过；矩形/圆形断言不能删减或降低，旧 FFX 哈希仍相同。
+- [x] **Step 1:** 扩充 mock 的新 FFX 及参数读取能力；写三角形默认值、唯一效果、实际效果名绑定、固定合同、边数 3/4/20/100、分数取整、半径、负角/多圈旋转、外圆度、Fill/Stroke 绑定测试。与圆/矩形错配的模板在添加属性前拒绝。
+- [x] **Step 2:** 运行 `npm.cmd run test -- tests/layerShapeHost.test.js --exclude '**/.worktrees/**' --maxWorkers=1`，确认新增场景失败。
+- [x] **Step 3:** 三角形改用 Type=2 与 `max(3, min(100, round(points)))`，其余几何按合同索引绑定；取 `applyPseudoEffectTemplate()` 返回的实例名称构造表达式。保留原生外圆度属性名的兼容查找。
+- [x] **Step 4:** 增加只供新 polygon 业务使用的样式绑定：真实 Stroke 位于 Fill 上方；完成全部添加后重新取得 Fill/Stroke 及属性。覆盖引用失效、缺参数、缺预设、表达式错误和只清理新层的测试。星形在此步骤仍保留旧入口，直到 Task 4 完成替换。
+- [x] **Step 5:** 重跑该测试文件全部通过；矩形/圆形断言不能删减或降低，旧 FFX 哈希仍相同。
 
 ## Task 4：接入星形并完成四路由
 
@@ -132,23 +132,32 @@
 
 **Interfaces:** 增加 star 白名单与 shift 显式路由，复用 Task 3 的 polygon 样式机制；为星形提供六个几何参数，删除已被完整替代的旧散装控件创建路径。
 
-- [ ] **Step 1:** 写星形独立合同和默认值测试；角数 3/5/20/100 与取整、2 被拒绝或在表达式中限制为 3，内半径大于外半径、内外圆角、旋转、样式、两种 roundness 拼写和错误模板拒绝必须覆盖。
-- [ ] **Step 2:** 运行同一 Host 测试命令并观察新增场景失败。
-- [ ] **Step 3:** 用 Type=1 和 `max(3, min(100, round(points)))`；外半径非负，内半径限制到 0..外半径，内外圆角限制到 0..100。将 Shift 接入已存在的预检/应用/清理链路。
-- [ ] **Step 4:** 增加 none → alt → ctrl → shift → none → alt 连续创建测试，核对每次实际模板；四个 builder/路由的错配防线与错误恢复均通过。
-- [ ] **Step 5:** 运行三个相关测试文件并全部通过，审查本轮 diff 没有改写 v7/v3 的业务函数、规格或 FFX。
+- [x] **Step 1:** 写星形独立合同和默认值测试；角数 3/5/20/100 与取整、2 被拒绝或在表达式中限制为 3，内半径大于外半径、内外圆角、旋转、样式、两种 roundness 拼写和错误模板拒绝必须覆盖。
+- [x] **Step 2:** 运行同一 Host 测试命令并观察新增场景失败。
+- [x] **Step 3:** 用 Type=1 和 `max(3, min(100, round(points)))`；外半径非负，内半径限制到 0..外半径，内外圆角限制到 0..100。将 Shift 接入已存在的预检/应用/清理链路。
+- [x] **Step 4:** 增加 none → alt → ctrl → shift → none → alt 连续创建测试，核对每次实际模板；四个 builder/路由的错配防线与错误恢复均通过。
+- [x] **Step 5:** 运行三个相关测试文件并全部通过，审查本轮 diff 没有改写 v7/v3 的业务函数、规格或 FFX。
 
 ## Task 5：构建、同一扩展同步与真实 AE 回归
 
 **Files:** Create `docs/testing/triangle-star-pseudo-effect-ae-test.md`；Update 本计划、`docs/current-feature-inventory.md`、`planning/02-roadmap.md`；真实探针与报告放本轮 work 目录。
 
-- [ ] **Step 1:** 运行 `npm.cmd run build`（含 TypeScript）、`npm.cmd run smoke:dist`，均通过；按现有 `NYAWORKS_CEP_DEV=1` / `NYAWORKS_CEP_DEV_OUT_DIR=dev-extension` 构建原开发扩展。
-- [ ] **Step 2:** 核对源码、dist、dev-extension、当前 CEP junction 的 Host、Catalog、四份 FFX 哈希一致；v7/v3 与基线严格相同。
-- [ ] **Step 3:** 在 AE 25.6x101 重载原开发 Host，按 none → alt → ctrl → shift → none → alt 创建。先逐个新形状检查名称、唯一效果、类型、标签、默认值和全部表达式，再核对旧形状仍正常。
-- [ ] **Step 4:** 对新形状采样点数端点/越界、半径 0/250/3000/5000、圆度 0/50/100、旋转 -90/720、描边 0/5/100/500/1000；星形另测内半径超过外半径。核对实际矢量属性、颜色/开关、关键帧采样与改名/复制；仅清理自己创建的对象，原有图层 ID 和选择保持一致。
-- [ ] **Step 5:** 运行 `npm.cmd run test -- --exclude '**/.worktrees/**' --maxWorkers=2`，等待完整退出并记录实际文件/测试数量；超时或中止不能算通过。随后 `git diff --check`。
-- [ ] **Step 6:** 将脚本结果、用户交互待验收项、原生 AE 版本和产物哈希写入测试记录。鼠标拖动、视觉、Undo、保存重开由实际操作记录确认，不能由 Node 或 Host 数值报告代替。
+- [x] **Step 1:** 运行 `npm.cmd run build`（含 TypeScript）、`npm.cmd run smoke:dist`，均通过；按现有 `NYAWORKS_CEP_DEV=1` / `NYAWORKS_CEP_DEV_OUT_DIR=dev-extension` 构建原开发扩展。
+- [x] **Step 2:** 核对源码、dist、dev-extension、当前 CEP junction 的 Host、Catalog、四份 FFX 哈希一致；v7/v3 与基线严格相同。
+- [x] **Step 3:** 在 AE 25.6x101 重载原开发 Host，按 none → alt → ctrl → shift → none → alt 创建。先逐个新形状检查名称、唯一效果、类型、标签、默认值和全部表达式，再核对旧形状仍正常。
+- [x] **Step 4:** 对新形状采样点数端点/越界、半径 0/250/3000/5000、圆度 0/50/100、旋转 -90/720、描边 0/5/100/500/1000；星形另测内半径超过外半径。核对实际矢量属性、颜色/开关、关键帧采样与改名/复制；仅清理自己创建的对象，原有图层 ID 和选择保持一致。
+- [x] **Step 5:** 运行 `npm.cmd run test -- --exclude '**/.worktrees/**' --maxWorkers=2`，等待完整退出并记录实际文件/测试数量；超时或中止不能算通过。随后 `git diff --check`。
+- [x] **Step 6:** 将脚本结果、用户交互待验收项、原生 AE 版本和产物哈希写入测试记录。鼠标拖动、视觉、Undo、保存重开由实际操作记录确认，不能由 Node 或 Host 数值报告代替。
 
 ## 完成标准
 
 按本文确认的参数实现两种新形状；资产、Bridge、Host、构建、同扩展同步及实际 AE 数值检查通过，旧两种形状回归通过。本轮不越过三角形/星形去开发摄像机或选择九宫格；功能候选交付后等待用户真实使用确认，不提前标记完整环境兼容或发布完成。
+
+## 2026-10-10 执行记录
+
+- 原开发计划提交 `436be1e3d3160b19cd8173d738e4480d2190fac4` 已先推送；星形原生下限修订提交 `168e224eefef01c5adb27321f35b1467248bdff7` 也已推送并核对远端，再继续修改实现。用户随后明确授权将功能候选与本节执行记录一并提交推送，回家拉取后继续测试。
+- Task 1–4 已完成：三角形 v1、星形 v2 使用独立模板、固定索引与四路显式路由；相关 3 个测试文件 / 131 项通过。原生颜色/复选框默认值修订只应用于新模板，圆角矩形 v7、圆形 v3 的 builder、schema 和 FFX 均与基线一致。
+- 生产构建、原开发扩展构建及 11 项资产 smoke 通过；Host、Catalog、四份 FFX 在 public / dist / dev-extension / 已安装 junction 的 24 个路径读取结果一致。
+- 真实 AE `25.6x101` / `extendscript` 于 20:03:51–20:03:55（UTC+08:00）完成 547 次断言、96 条数值/动画样本和 6 次正确模板创建。覆盖新旧形状、参数边界、关键帧、图层改名、复制及缺目录拒绝；临时对象已清理，原层和选择恢复。
+- 最终全量回归 130 个文件 / 772 项通过，退出码 0、Vitest 耗时 560.13 秒；命令于 20:12:40（UTC+08:00）完整结束。`git diff --check` 通过，未以此前中止的运行代替当前通过证据。
+- [验收记录](../../testing/triangle-star-pseudo-effect-ae-test.md)区分了脚本通过与 UI 待验收：面板鼠标操作、拖动/视觉、效果手动改名、重置/Undo、保存重开仍需实际确认。尚未开始其他功能范围。

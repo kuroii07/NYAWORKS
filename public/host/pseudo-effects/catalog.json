@@ -40,6 +40,48 @@
         "strokeWidth": 7
       },
       "sha256": "0B3F38341544AC1B13CF0D5E2F87CE734555EC388CE334C7F22BA8DE7E99E02E"
+    },
+    "shape.triangle/v1/zh-CN": {
+      "file": "triangle-zh-CN.ffx",
+      "matchName": "Pseudo/NYA_Triangle_v1_zhCN",
+      "marker": {
+        "index": 11,
+        "name": "__NYA_TRIANGLE_V1__"
+      },
+      "parameters": {
+        "points": 1,
+        "rotation": 2,
+        "outerRadius": 3,
+        "outerRoundness": 4,
+        "fillEnabled": 6,
+        "fillColor": 7,
+        "strokeEnabled": 8,
+        "strokeColor": 9,
+        "strokeWidth": 10
+      },
+      "sha256": "4F616CDF3BCA836F2887FE3866975658D7D0F9F06A2D57F1A5B85B90CEBC0476"
+    },
+    "shape.star/v2/zh-CN": {
+      "file": "star-zh-CN.ffx",
+      "matchName": "Pseudo/NYA_Star_v2_zhCN",
+      "marker": {
+        "index": 13,
+        "name": "__NYA_STAR_V2__"
+      },
+      "parameters": {
+        "points": 1,
+        "outerRadius": 2,
+        "innerRadius": 3,
+        "rotation": 4,
+        "outerRoundness": 5,
+        "innerRoundness": 6,
+        "fillEnabled": 8,
+        "fillColor": 9,
+        "strokeEnabled": 10,
+        "strokeColor": 11,
+        "strokeWidth": 12
+      },
+      "sha256": "3EFC6C9BB80A6319DA5FC5EE4CEBC53FE838B68228332C0265E61AA187E18C7E"
     }
   }
 }

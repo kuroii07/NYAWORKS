@@ -12,7 +12,9 @@ const original = fs.readFileSync(path.join(
 ));
 const templates = [
   { source: "rounded-rectangle/v7", file: "rounded-rectangle-zh-CN.ffx", layout: "rectangle" },
-  { source: "circle/v3", file: "circle-zh-CN.ffx", layout: "circle" }
+  { source: "circle/v3", file: "circle-zh-CN.ffx", layout: "circle" },
+  { source: "triangle/v1", file: "triangle-zh-CN.ffx", layout: "triangle", nativeDefaults: true },
+  { source: "star/v2", file: "star-zh-CN.ffx", layout: "star", nativeDefaults: true }
 ];
 function numericParameter(parameter, percent) {
   return {
@@ -23,6 +25,7 @@ function numericParameter(parameter, percent) {
     sliderMax: parameter.sliderMax,
     validMin: parameter.validMin,
     validMax: parameter.validMax,
+    precision: parameter.precision ?? 2,
     percent
   };
 }
@@ -33,6 +36,9 @@ function businessParameter(parameter) {
   if (parameter.type === "color") {
     return { id: parameter.id, label: parameter.label, kind: 5, source: 1, value: parameter.defaultValue };
   }
+  if (parameter.type === "angle") {
+    return { id: parameter.id, label: parameter.label, kind: 3, value: parameter.defaultValue };
+  }
   if (parameter.type === "slider" || parameter.type === "percent") {
     return { id: parameter.id, ...numericParameter(parameter, parameter.type === "percent") };
   }
@@ -42,11 +48,22 @@ function businessParameter(parameter) {
 function layoutParameters(schema, layout) {
   validateShapeStrokeWidth(schema);
   const business = schema.parameters.map(businessParameter);
-  const expected = layout === "rectangle"
-    ? ["width", "height", "radius", "separate", "topLeftPercent", "topRightPercent",
+  let expected;
+  if (layout === "rectangle") {
+    expected = ["width", "height", "radius", "separate", "topLeftPercent", "topRightPercent",
       "bottomRightPercent", "bottomLeftPercent", "fillEnabled", "fillColor",
-      "strokeEnabled", "strokeColor", "strokeWidth"]
-    : ["radius", "fillEnabled", "fillColor", "strokeEnabled", "strokeColor", "strokeWidth"];
+      "strokeEnabled", "strokeColor", "strokeWidth"];
+  } else if (layout === "circle") {
+    expected = ["radius", "fillEnabled", "fillColor", "strokeEnabled", "strokeColor", "strokeWidth"];
+  } else if (layout === "triangle") {
+    expected = ["points", "rotation", "outerRadius", "outerRoundness",
+      "fillEnabled", "fillColor", "strokeEnabled", "strokeColor", "strokeWidth"];
+  } else if (layout === "star") {
+    expected = ["points", "outerRadius", "innerRadius", "rotation", "outerRoundness", "innerRoundness",
+      "fillEnabled", "fillColor", "strokeEnabled", "strokeColor", "strokeWidth"];
+  } else {
+    throw new Error(`Unsupported pseudo-effect layout: ${layout}`);
+  }
   if (business.length !== expected.length ||
       business.some((parameter, index) => parameter.id !== expected[index]) ||
       new Set(business.map(parameter => parameter.id)).size !== business.length) {
@@ -54,20 +71,30 @@ function layoutParameters(schema, layout) {
   }
   const style = { label: schema.styleGroup, kind: 13, source: 3 };
   const endGroup = { label: "", kind: 14, source: 7 };
-  const params = layout === "rectangle"
-    ? [
+  let params;
+  if (layout === "rectangle") {
+    params = [
         { label: "", kind: 0, source: 0 },
         ...business.slice(0, 4),
         { label: schema.group, kind: 13, source: 3 },
         ...business.slice(4, 8),
         endGroup, style, ...business.slice(8),
         { label: schema.marker, kind: 14, source: 7 }
-      ]
-    : [
+      ];
+  } else if (layout === "circle") {
+    params = [
         { label: "", kind: 0, source: 0 },
         business[0], style, ...business.slice(1),
         { label: schema.marker, kind: 14, source: 7 }
       ];
+  } else {
+    const geometryCount = layout === "triangle" ? 4 : 6;
+    params = [
+      { label: "", kind: 0, source: 0 },
+      ...business.slice(0, geometryCount), style, ...business.slice(geometryCount),
+      { label: schema.marker, kind: 14, source: 7 }
+    ];
+  }
   for (const parameter of params) {
     if (parameter.kind !== 10) continue;
     const range = [
@@ -173,11 +200,27 @@ for (const [index, parameter] of params.entries()) {
     definition.data.writeFloatBE(parameter.sliderMin, 112);
     definition.data.writeFloatBE(parameter.sliderMax, 116);
     definition.data.writeFloatBE(parameter.value, 120);
-    definition.data.writeInt16BE(2, 124);
+    definition.data.writeInt16BE(parameter.precision, 124);
     definition.data.writeUInt16BE(parameter.percent ? 1 : 0, 126);
+  } else if (parameter.kind === 3) {
+    definition.data.fill(0, 56);
+    definition.data.writeInt32BE(parameter.value, 56);
   } else if (parameter.kind === 4) {
     definition.data.fill(0, 56);
     definition.data.writeUInt32BE(4, 48);
+    if (template.nativeDefaults) {
+      definition.data.writeUInt32BE(parameter.value, 56);
+      // PF_CheckBoxDef.dephault is a one-byte PF_Boolean, not a BE32 value.
+      definition.data.writeUInt8(parameter.value, 60);
+    }
+  } else if (parameter.kind === 5 && template.nativeDefaults) {
+    definition.data.fill(0, 56);
+    const color = [parameter.value[3], parameter.value[0], parameter.value[1], parameter.value[2]];
+    for (let channel = 0; channel < 4; channel += 1) {
+      const value = Math.round(color[channel] * 255);
+      definition.data.writeUInt8(value, 56 + channel);
+      definition.data.writeUInt8(value, 60 + channel);
+    }
   }
   definitions.children.push(text("tdmn", matchName, 40), definition);
   if (parameter.kind === 4) definitions.children.push(text("pdnm", ""));
@@ -186,8 +229,13 @@ for (const [index, parameter] of params.entries()) {
     if (child.tag === "tdsn") child.data = encoded(parameter.label);
     if (child.tag === "cdat" && parameter.kind === 5) {
       child.data.fill(0);
+      // New definitions use AE's native ARGB stream order. Keep the approved
+      // rectangle/circle definition bytes intact under their existing identity.
+      const color = template.nativeDefaults
+        ? [parameter.value[3], parameter.value[0], parameter.value[1], parameter.value[2]]
+        : parameter.value;
       for (let channel = 0; channel < 4; channel += 1) {
-        child.data.writeDoubleBE(parameter.value[channel] * 255, channel * 8);
+        child.data.writeDoubleBE(color[channel] * 255, channel * 8);
       }
     } else if (child.tag === "cdat" && parameter.value !== undefined) {
       child.data.fill(0);
