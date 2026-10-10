@@ -18,8 +18,8 @@
 | 新建图层九宫格 | 文字、纯色、形状、调整层、参考线空对象、摄像机控制器、灯光、预合成、解预合成共九个 Action。形状等按钮有修饰键变体；预合成与解预合成也供其他入口复用。 | 文字专项已有 AE 验收；九个 Action 的[完整场景检查表](testing/layer-creation-grid-ae-test.md)仍待填写，不能笼统写成全部通过。 |
 | 圆角矩形伪效果 | 普通点击新建圆角矩形加载 `rounded-rectangle-zh-CN.ffx`；支持总圆角、四角分离、填充与描边样式控制。 | 保留 v7 原验收资产与内部身份；已修复新增 Alt 后 ExtendScript 模板分支误选圆形的问题。2026-10-10 用户最终确认圆角矩形和圆形均正常，授权提交推送。[测试记录](testing/rounded-rectangle-pseudo-effect-ae-test.md) |
 | Alt 圆形伪效果 | 按住 Alt 新建正圆，当前内部模板为 `shape.circle/v3/zh-CN`，公开文件仍为 `circle-zh-CN.ffx`；半径、填充和描边共六项参数持续可调。 | v3 描边规格已与圆角矩形 v7 对齐；AE 25.6x101 的交替创建、描边数值边界与表达式绑定通过。2026-10-10 用户最终确认功能正常，本机本轮验收通过；逐项记录与其他环境边界见[检查表](testing/circle-pseudo-effect-ae-test.md)。 |
-| Ctrl 三角形/多边形伪效果 | 按住 Ctrl 新建默认三边的多边形，使用 `shape.triangle/v1/zh-CN` 与 `triangle-zh-CN.ffx`；点（边数）、旋转、外半径、外圆度及五项样式参数持续可调，点数拖动 3–20、输入 3–100。 | 已接入并同步原开发扩展，AE 25.6x101 脚本创建和参数回归通过；鼠标交互、视觉、效果手动改名、Undo 与保存重开仍待完整验收。见[三角形与星形检查表](testing/triangle-star-pseudo-effect-ae-test.md)。 |
-| Shift 星形伪效果 | 按住 Shift 新建星形，使用 `shape.star/v2/zh-CN` 与 `star-zh-CN.ffx`；角数、内外半径、旋转、内外圆角及五项样式共十一项参数。角数默认 5、拖动 3–20、输入 3–100；实际内半径限制在 0 至外半径。 | 已接入并同步原开发扩展，AE 25.6x101 脚本回归通过；下限 3 与原生 Polystar 的实际边界一致。完整交互验收仍待补，见[三角形与星形检查表](testing/triangle-star-pseudo-effect-ae-test.md)。 |
+| Ctrl 三角形/多边形伪效果 | 按住 Ctrl 新建默认三边的多边形，使用 `shape.triangle/v1/zh-CN` 与 `triangle-zh-CN.ffx`；点（边数）、旋转、外半径、外圆度及五项样式参数持续可调，点数拖动 3–20、输入 3–100。 | AE 25.6x101 脚本创建和参数回归通过；用户在家里电脑完成同步后的总体交互测试，反馈基本没有问题，本轮 Windows / 中文 AE 2025 验收通过。见[三角形与星形检查表](testing/triangle-star-pseudo-effect-ae-test.md)。 |
+| Shift 星形伪效果 | 按住 Shift 新建星形，使用 `shape.star/v2/zh-CN` 与 `star-zh-CN.ffx`；角数、内外半径、旋转、内外圆角及五项样式共十一项参数。角数默认 5、拖动 3–20、输入 3–100；实际内半径限制在 0 至外半径。 | AE 25.6x101 脚本回归通过，下限 3 与原生 Polystar 的实际边界一致；用户在家里电脑完成总体交互测试，本轮 Windows / 中文 AE 2025 验收通过。见[三角形与星形检查表](testing/triangle-star-pseudo-effect-ae-test.md)。 |
 
 四种形状的描边统一为默认 `5`、数值拖动/滑杆 `0–100`、键盘输入 `0–1000`，源数据与公共构建资产共同校验此规则；已验收矩形 v7、圆形 v3 的规格与 FFX 字节保持不变。
 
