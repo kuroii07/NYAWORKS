@@ -90,9 +90,11 @@ function createLayer(kind, options = {}) {
       return effect;
     }
   };
-  const textDocument = options.textDocument
-    ? property(options.textDocument)
-    : null;
+  const textDocument = options.textDocumentProperty !== undefined
+    ? options.textDocumentProperty
+    : options.textDocument
+      ? property(options.textDocument)
+      : null;
   return {
     kind,
     get name() { return layerName; },
@@ -292,6 +294,104 @@ describe("basic layer creation host actions", () => {
       fillColor: [1, 0, 0]
     });
     expect(selected.nameSetCount).toBe(0);
+  });
+
+  it("reads keyed source text at the current composition time", async () => {
+    const readTimes = [];
+    const textDocumentProperty = {
+      numKeys: 2,
+      value: { text: "Stale text", fontSize: 42 },
+      valueAtTime(time) {
+        readTimes.push(time);
+        return { text: "Current keyed text", fontSize: 84 };
+      },
+      setValue() {},
+      setValueAtTime() {}
+    };
+    const selected = createLayer("text", {
+      textDocumentProperty,
+      name: "Animated text"
+    });
+    const { comp } = createComp([selected]);
+    comp.time = 3.25;
+    const host = await loadLayerHost({ project: { activeItem: comp } }, TestComp);
+
+    expect(JSON.parse(host.readSelectedTextLayer())).toMatchObject({
+      ok: true,
+      text: "Current keyed text"
+    });
+    expect(readTimes).toEqual([3.25]);
+  });
+
+  it("applies keyed source text at the current composition time", async () => {
+    const staticWrites = [];
+    const timedWrites = [];
+    const textDocumentProperty = {
+      numKeys: 2,
+      value: { text: "Stale text", fontSize: 42, fillColor: [1, 0, 0] },
+      valueAtTime: () => ({
+        text: "Current keyed text",
+        fontSize: 84,
+        fillColor: [0, 1, 0]
+      }),
+      setValue(value) { staticWrites.push(value); },
+      setValueAtTime(time, value) {
+        timedWrites.push({
+          time,
+          value: { ...value, fillColor: [...value.fillColor] }
+        });
+      }
+    };
+    const selected = createLayer("text", {
+      textDocumentProperty,
+      name: "Animated text"
+    });
+    const { comp } = createComp([selected]);
+    comp.time = 4.5;
+    const host = await loadLayerHost({
+      project: { activeItem: comp },
+      beginUndoGroup() {},
+      endUndoGroup() {}
+    }, TestComp);
+    const read = JSON.parse(host.readSelectedTextLayer());
+
+    expect(JSON.parse(host.applyTextLayerEdit(
+      encodeURIComponent(JSON.stringify({
+        targetId: read.targetId,
+        text: "Updated keyed text"
+      }))
+    ))).toMatchObject({ ok: true, updatedLayers: 1 });
+    expect(staticWrites).toEqual([]);
+    expect(timedWrites).toEqual([{
+      time: 4.5,
+      value: {
+        text: "Updated keyed text",
+        fontSize: 84,
+        fillColor: [0, 1, 0]
+      }
+    }]);
+  });
+
+  it("allows Apply to clear an existing text layer", async () => {
+    const selected = createLayer("text", {
+      textDocument: { text: "Remove me", fontSize: 84 },
+      name: "Remove me"
+    });
+    const { comp } = createComp([selected]);
+    const host = await loadLayerHost({
+      project: { activeItem: comp },
+      beginUndoGroup() {},
+      endUndoGroup() {}
+    }, TestComp);
+    const read = JSON.parse(host.readSelectedTextLayer());
+
+    expect(JSON.parse(host.applyTextLayerEdit(
+      encodeURIComponent(JSON.stringify({ targetId: read.targetId, text: "" }))
+    ))).toMatchObject({ ok: true, updatedLayers: 1 });
+    expect(selected.textDocument.value).toEqual({ text: "", fontSize: 84 });
+    expect(JSON.parse(host.createTextLayerFromEditor(
+      encodeURIComponent(JSON.stringify({ text: "" }))
+    ))).toEqual({ ok: false, reason: "empty-text" });
   });
 
   it("always creates a new layer after reading instead of changing the target", async () => {

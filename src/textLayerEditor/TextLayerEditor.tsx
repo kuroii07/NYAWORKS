@@ -19,7 +19,7 @@ interface TextLayerEditorProps {
   prepareKeyboard?: () => void;
 }
 
-type StatusTone = "neutral" | "success" | "error";
+type StatusTone = "neutral" | "success" | "error" | "dirty";
 
 export function TextLayerEditor({
   bridge = textLayerEditorBridge,
@@ -30,7 +30,11 @@ export function TextLayerEditor({
   const { setTheme } = useTheme();
   const labels = copy.home.textLayerDialog;
   const [text, setText] = useState("");
-  const [target, setTarget] = useState<{ id: string; name: string } | null>(null);
+  const [target, setTarget] = useState<{
+    id: string;
+    name: string;
+    appliedText: string;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState(labels.idleStatus);
   const [statusTone, setStatusTone] = useState<StatusTone>("neutral");
@@ -39,6 +43,8 @@ export function TextLayerEditor({
 
   useEffect(() => {
     prepareKeyboard();
+    textAreaRef.current?.focus();
+    void handleRead(true);
   }, [prepareKeyboard]);
 
   useEffect(
@@ -72,47 +78,80 @@ export function TextLayerEditor({
     setStatusTone("error");
   }
 
-  async function handleRead() {
+  async function handleRead(silent = false) {
     setBusy(true);
-    const result = await bridge.readSelectedTextLayer();
-    setBusy(false);
-    if (!result.ok) {
+    try {
+      const result = await bridge.readSelectedTextLayer();
+      if (!result.ok) {
+        setTarget(null);
+        if (!silent) showFailure(result.reason);
+        return;
+      }
+      setText(result.text);
+      setTarget({
+        id: result.targetId,
+        name: result.layerName,
+        appliedText: result.text
+      });
+      setStatus(labels.readSuccess.replace("{name}", result.layerName));
+      setStatusTone("success");
+      textAreaRef.current?.focus();
+    } catch {
       setTarget(null);
-      showFailure(result.reason);
-      return;
+      if (!silent) showFailure("host-error");
+    } finally {
+      setBusy(false);
     }
-    setText(result.text);
-    setTarget({ id: result.targetId, name: result.layerName });
-    setStatus(labels.readSuccess.replace("{name}", result.layerName));
-    setStatusTone("success");
-    textAreaRef.current?.focus();
   }
 
   async function handleApply() {
-    if (!target || !hasText || busy) return;
+    if (!target || busy) return;
+    const currentTarget = target;
     setBusy(true);
-    const result = await bridge.applyText(target.id, text);
-    setBusy(false);
-    if (!result.ok) {
-      if (result.reason === "invalid-target") setTarget(null);
-      showFailure(result.reason);
-      return;
+    try {
+      const result = await bridge.applyText(currentTarget.id, text);
+      if (!result.ok) {
+        if (result.reason === "invalid-target") setTarget(null);
+        showFailure(result.reason);
+        return;
+      }
+      setTarget({ ...currentTarget, appliedText: text });
+      setStatus(labels.applySuccess.replace("{name}", currentTarget.name));
+      setStatusTone("success");
+    } catch {
+      showFailure("host-error");
+    } finally {
+      setBusy(false);
     }
-    setStatus(labels.applySuccess.replace("{name}", target.name));
-    setStatusTone("success");
   }
 
   async function handleCreate() {
     if (!hasText || busy) return;
     setBusy(true);
-    const result = await bridge.createText(text);
-    setBusy(false);
-    if (!result.ok) {
-      showFailure(result.reason);
-      return;
+    try {
+      const result = await bridge.createText(text);
+      if (!result.ok) {
+        showFailure(result.reason);
+        return;
+      }
+      setStatus(labels.createSuccess);
+      setStatusTone("success");
+    } catch {
+      showFailure("host-error");
+    } finally {
+      setBusy(false);
     }
-    setStatus(labels.createSuccess);
-    setStatusTone("success");
+  }
+
+  function handleTextChange(nextText: string) {
+    setText(nextText);
+    if (!target) return;
+    setStatus(
+      nextText === target.appliedText
+        ? labels.readSuccess.replace("{name}", target.name)
+        : labels.dirtyStatus
+    );
+    setStatusTone(nextText === target.appliedText ? "success" : "dirty");
   }
 
   return (
@@ -136,11 +175,15 @@ export function TextLayerEditor({
             prepareKeyboard();
             event.currentTarget.focus();
           }}
-          onInput={(event) => setText(event.currentTarget.value)}
+          onInput={(event) => handleTextChange(event.currentTarget.value)}
           onKeyDown={(event) => {
             if (event.ctrlKey && event.key === "Enter") {
               event.preventDefault();
-              void handleApply();
+              if (target) {
+                void handleApply();
+              } else {
+                void handleCreate();
+              }
             }
           }}
         />
@@ -154,13 +197,13 @@ export function TextLayerEditor({
 
         <div className="text-editor-footer">
           <div className="text-editor-actions">
-            <button type="button" disabled={busy} onClick={() => void handleRead()}>
+            <button type="button" disabled={busy} onClick={() => void handleRead(false)}>
               {labels.read}
             </button>
             <button
               className="text-editor-action--apply"
               type="button"
-              disabled={busy || !target || !hasText}
+              disabled={busy || !target}
               onClick={() => void handleApply()}
             >
               {labels.apply}

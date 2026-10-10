@@ -1503,14 +1503,26 @@
     return textGroup && textGroup.property("ADBE Text Document");
   }
 
-  function updateTextLayerContent(layer, text) {
+  function getTextDocumentAtTime(textDocumentProperty, time) {
+    if (!textDocumentProperty) return null;
+    if (Number(textDocumentProperty.numKeys || 0) > 0 && textDocumentProperty.valueAtTime) {
+      return textDocumentProperty.valueAtTime(time, false);
+    }
+    return textDocumentProperty.value;
+  }
+
+  function updateTextLayerContent(layer, text, time) {
     var textDocumentProperty = getTextDocumentProperty(layer);
-    var textDocument = textDocumentProperty && textDocumentProperty.value;
+    var textDocument = getTextDocumentAtTime(textDocumentProperty, time);
     if (!textDocumentProperty || !textDocument) {
       throw new Error("not-a-text-layer");
     }
     textDocument.text = text;
-    textDocumentProperty.setValue(textDocument);
+    if (Number(textDocumentProperty.numKeys || 0) > 0) {
+      textDocumentProperty.setValueAtTime(time, textDocument);
+    } else {
+      textDocumentProperty.setValue(textDocument);
+    }
   }
 
   function createTextLayer(context, text) {
@@ -1543,7 +1555,7 @@
     }
     layer = selection[0];
     textDocumentProperty = getTextDocumentProperty(layer);
-    textDocument = textDocumentProperty && textDocumentProperty.value;
+    textDocument = getTextDocumentAtTime(textDocumentProperty, Number(comp.time || 0));
     if (!textDocument) {
       return JSON.stringify({ ok: false, reason: "unsupported-layer-type" });
     }
@@ -1570,9 +1582,6 @@
     if (!payload || typeof payload.targetId !== "string" || typeof payload.text !== "string") {
       return JSON.stringify({ ok: false, reason: "host-error", detail: "invalid-payload" });
     }
-    if (!payload.text.length) {
-      return JSON.stringify({ ok: false, reason: "empty-text" });
-    }
     if (!target || target.token !== payload.targetId || activeComp !== target.comp) {
       return JSON.stringify({ ok: false, reason: "invalid-target" });
     }
@@ -1583,7 +1592,7 @@
       }
       app.beginUndoGroup("NYAWORKS Apply Text");
       undoStarted = true;
-      updateTextLayerContent(target.layer, payload.text);
+      updateTextLayerContent(target.layer, payload.text, Number(target.comp.time || 0));
       return JSON.stringify({ ok: true, createdLayers: 0, updatedLayers: 1 });
     } catch (error) {
       return JSON.stringify({

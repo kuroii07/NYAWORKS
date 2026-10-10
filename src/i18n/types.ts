@@ -268,6 +268,7 @@ export interface UiCopy {
       noTarget: string;
       targetLabel: string;
       readSuccess: string;
+      dirtyStatus: string;
       applySuccess: string;
       createSuccess: string;
       processing: string;
