@@ -1446,7 +1446,7 @@
       scaleProperty = transform && transform.property("ADBE Scale");
       rotationProperty = transform && (transform.property("ADBE Rotate Z") || transform.property("ADBE Rotation"));
       anchor = anchorProperty && anchorProperty.value;
-      position = positionProperty && positionProperty.value;
+      position = positionProperty && (positionProperty.dimensionsSeparated ? readNullAnchorPosition(layer) : positionProperty.value);
       scale = scaleProperty && scaleProperty.value || [100, 100];
       rotation = Number(rotationProperty && rotationProperty.value || 0);
       if (!anchor || !position || anchor.length < 2 || position.length < 2) return null;
@@ -2469,19 +2469,28 @@
 
   function createGuideNull(context, position, isThreeD, name) {
     var layer = context.comp.layers.addNull(context.comp.duration);
-    var anchor = [Number(layer.width || 100) / 2, Number(layer.height || 100) / 2];
-    var targetPosition = [position[0], position[1]];
-    layer.name = uniqueLayerName(context.comp, name || getLayerDisplayName("null", context.languageId), layer);
-    layer.guideLayer = true;
-    layer.threeDLayer = !!isThreeD;
-    if (isThreeD) {
-      anchor.push(0);
-      targetPosition.push(position.length > 2 ? position[2] : 0);
+    var anchor;
+    var targetPosition;
+    try {
+      anchor = [Number(layer.width || 100) / 2, Number(layer.height || 100) / 2];
+      targetPosition = [position[0], position[1]];
+      layer.name = uniqueLayerName(context.comp, name || getLayerDisplayName("null", context.languageId), layer);
+      layer.guideLayer = true;
+      layer.threeDLayer = !!isThreeD;
+      if (isThreeD) {
+        anchor.push(0);
+        targetPosition.push(position.length > 2 ? position[2] : 0);
+      }
+      layerTransformProperty(layer, "ADBE Anchor Point").setValue(anchor);
+      layerTransformProperty(layer, "ADBE Position").setValue(targetPosition);
+      applyLayerTiming(layer, context);
+      return layer;
+    } catch (error) {
+      try { layer.remove(); } catch (cleanupError) {
+        throw new Error("null-initialization-rollback-failed: " + error.toString());
+      }
+      throw error;
     }
-    layerTransformProperty(layer, "ADBE Anchor Point").setValue(anchor);
-    layerTransformProperty(layer, "ADBE Position").setValue(targetPosition);
-    applyLayerTiming(layer, context);
-    return layer;
   }
 
   function validateControllerSelection(selection) {
@@ -2494,54 +2503,158 @@
     return { ok: true };
   }
 
+  function nullTransformSnapshot(layer) {
+    var names = ["ADBE Anchor Point", "ADBE Position", "ADBE Position_0", "ADBE Position_1", "ADBE Position_2",
+      "ADBE Scale", "ADBE Orientation", "ADBE Rotate X", "ADBE Rotate Y", "ADBE Rotate Z", "ADBE Skew", "ADBE Skew Axis"];
+    var values = [];
+    var index;
+    var property;
+    var value;
+    var position = layerTransformProperty(layer, "ADBE Position");
+    for (index = 0; index < names.length; index += 1) {
+      if (names[index].indexOf("ADBE Position_") === 0 && !(position && position.dimensionsSeparated)) continue;
+      if (!layer.threeDLayer && (names[index] === "ADBE Position_2" || names[index] === "ADBE Orientation" ||
+          names[index] === "ADBE Rotate X" || names[index] === "ADBE Rotate Y")) continue;
+      property = layerTransformProperty(layer, names[index]);
+      if (!property) continue;
+      // Native parenting compensates transforms. Animated/expression-driven
+      // transforms need an animation-aware reparenting tool, not this creator.
+      if (Number(property.numKeys || 0) > 0 || property.expressionEnabled) return null;
+      if (names[index] === "ADBE Position" && property.dimensionsSeparated) continue;
+      value = property.value;
+      if (typeof property.setValue === "function") {
+        values.push({ name: names[index], value: value && typeof value.slice === "function" ? value.slice(0) : value });
+      }
+    }
+    return { layer: layer, parent: layer.parent, values: values };
+  }
+
+  function readNullAnchorPosition(layer) {
+    var property = layerTransformProperty(layer, "ADBE Position");
+    var value;
+    var axis;
+    var index;
+    var dimensions = layer.threeDLayer ? 3 : 2;
+    if (!property || !layerTransformProperty(layer, "ADBE Anchor Point")) return null;
+    if (property.dimensionsSeparated) {
+      value = [];
+      for (index = 0; index < dimensions; index += 1) {
+        axis = layerTransformProperty(layer, "ADBE Position_" + index);
+        if (!axis) return null;
+        value.push(axis.value);
+      }
+    } else {
+      value = property.value;
+    }
+    if (!value || value.length < dimensions) return null;
+    for (index = 0; index < dimensions; index += 1) {
+      if (!isFinite(Number(value[index]))) return null;
+    }
+    // Preflight excludes existing parents: these are world anchor coordinates,
+    // never camera-projected screen coordinates (particularly important in 3D).
+    return [Number(value[0]), Number(value[1]), dimensions === 3 ? Number(value[2]) : 0];
+  }
+
   function createNullLayer(context, modifier) {
     var validation = validateControllerSelection(context.selection);
     var controllers = [];
+    var snapshots = [];
+    var positions = [];
+    var attempted = [];
     var controller;
     var target;
     var position;
     var targetContext;
     var index;
+    var propertyIndex;
+    var snapshot;
+    var bounds;
+    var total = [0, 0, 0];
+    var hasThreeD = false;
+    var rollbackFailed = false;
     var isThreeD = modifier === "shift";
-    if (!validation.ok) return validation;
+    if (!validation.ok) return { ok: false, reason: "invalid-selection", detail: "null-unsafe-selection" };
 
-    if (modifier === "alt" && context.selection.length > 0) {
-      for (index = 0; index < context.selection.length; index += 1) {
-        target = context.selection[index];
-        position = readLayerPositionForController(target) || [context.comp.width / 2, context.comp.height / 2, 0];
-        targetContext = {
-          comp: context.comp,
-          selection: [target],
-          start: Number(target.inPoint),
-          end: Number(target.outPoint),
-          insertionIndex: Number(target.index),
-          insertionLayer: target
-        };
-        controller = createGuideNull(targetContext, position, !!target.threeDLayer, getLayerDisplayName("null", context.languageId));
-        placeLayerAboveSelection(controller, targetContext);
-        target.parent = controller;
-        controllers.push(controller);
+    // Prepare the entire batch before adding a layer; Alt must not fail halfway
+    // through because a later selected layer is unsafe or has no usable position.
+    for (index = 0; index < context.selection.length; index += 1) {
+      target = context.selection[index];
+      snapshot = nullTransformSnapshot(target);
+      if (!snapshot) return { ok: false, reason: "invalid-selection", detail: "null-unsafe-transform" };
+      position = readNullAnchorPosition(target);
+      if (!position || !isFinite(Number(target.inPoint)) || !isFinite(Number(target.outPoint))) {
+        return { ok: false, reason: "invalid-selection", detail: "null-position-unavailable" };
       }
-    } else {
-      for (index = 0; index < context.selection.length; index += 1) {
-        if (context.selection[index].threeDLayer) isThreeD = true;
-      }
-      position = averageControllerPosition(context.selection, context.comp);
-      controller = createGuideNull(context, position, isThreeD, getLayerDisplayName("null", context.languageId));
-      placeLayerAboveSelection(controller, context);
-      for (index = 0; index < context.selection.length; index += 1) {
-        context.selection[index].parent = controller;
-      }
-      controllers.push(controller);
+      snapshots.push(snapshot);
+      positions.push(position);
+      total[0] += position[0]; total[1] += position[1]; total[2] += position[2];
+      if (target.threeDLayer) hasThreeD = true;
+    }
+    isThreeD = isThreeD || hasThreeD;
+    position = context.selection.length
+      ? [total[0] / context.selection.length, total[1] / context.selection.length, total[2] / context.selection.length]
+      : [context.comp.width / 2, context.comp.height / 2, 0];
+    if (modifier !== "alt" && modifier !== "ctrl" && context.selection.length && !hasThreeD) {
+      bounds = selectionCompBounds(context);
+      if (!bounds) return { ok: false, reason: "invalid-selection", detail: "null-position-unavailable" };
+      position = [(bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2, 0];
     }
 
-    selectOnlyLayers(controllers, context.comp);
-    return {
-      ok: true,
-      createdLayers: controllers.length,
-      updatedLayers: context.selection.length,
-      createdItems: 0
-    };
+    try {
+      if (modifier === "alt" && context.selection.length > 0) {
+        for (index = 0; index < context.selection.length; index += 1) {
+          target = context.selection[index];
+          position = positions[index];
+          targetContext = {
+            comp: context.comp,
+            selection: [target],
+            start: Number(target.inPoint),
+            end: Number(target.outPoint),
+            insertionIndex: Number(target.index),
+            insertionLayer: target
+          };
+          controller = createGuideNull(targetContext, position, !!target.threeDLayer, getLayerDisplayName("null", context.languageId));
+          controllers.push(controller);
+          placeLayerAboveSelection(controller, targetContext);
+          attempted.push(snapshots[index]);
+          // Assign .parent, not setParentWithJump: AE compensates the local
+          // transform so the original image stays in place.
+          target.parent = controller;
+        }
+      } else {
+        controller = createGuideNull(context, position, isThreeD, getLayerDisplayName("null", context.languageId));
+        controllers.push(controller);
+        placeLayerAboveSelection(controller, context);
+        for (index = 0; index < context.selection.length; index += 1) {
+          attempted.push(snapshots[index]);
+          context.selection[index].parent = controller;
+        }
+      }
+
+      selectOnlyLayers(controllers, context.comp);
+      return {
+        ok: true,
+        createdLayers: controllers.length,
+        updatedLayers: context.selection.length,
+        createdItems: 0
+      };
+    } catch (error) {
+      if (String(error).indexOf("null-initialization-rollback-failed") >= 0) rollbackFailed = true;
+      for (index = attempted.length - 1; index >= 0; index -= 1) {
+        snapshot = attempted[index];
+        try {
+          snapshot.layer.parent = snapshot.parent;
+          for (propertyIndex = 0; propertyIndex < snapshot.values.length; propertyIndex += 1) {
+            layerTransformProperty(snapshot.layer, snapshot.values[propertyIndex].name).setValue(snapshot.values[propertyIndex].value);
+          }
+        } catch (restoreError) { rollbackFailed = true; }
+      }
+      for (index = controllers.length - 1; index >= 0; index -= 1) {
+        try { controllers[index].remove(); } catch (removeError) { rollbackFailed = true; }
+      }
+      selectOnlyLayers(context.selection, context.comp);
+      return { ok: false, reason: "host-error", detail: rollbackFailed ? "null-rollback-failed" : "null-create-failed" };
+    }
   }
 
   function expressionLayerName(name) {

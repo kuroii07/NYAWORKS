@@ -74,6 +74,20 @@ afterEach(() => {
 });
 
 describe("HomePage layer actions", () => {
+  it.each(LANGUAGE_IDS)("dispatches all four Null modes and retains the %s tooltip", async language => {
+    const runs: Array<{ actionId: string; options?: ActionRunOptions }> = [];
+    const buttons = await renderGrid(runs, language);
+    expect(buttons[4].title).toBe(UI_COPY[language].home.layerActionTooltips.nullObject);
+    expect(buttons[4].title).toContain("Ctrl");
+    for (const modifier of ["none", "alt", "ctrl", "shift"] as const) {
+      await act(async () => buttons[4].dispatchEvent(new MouseEvent("click", {
+        bubbles: true, altKey: modifier === "alt", ctrlKey: modifier === "ctrl", shiftKey: modifier === "shift"
+      })));
+    }
+    expect(runs).toEqual(["none", "alt", "ctrl", "shift"].map(layerModifier => ({
+      actionId: "layer.createNull", options: { layerModifier, languageId: language }
+    })));
+  });
   it.each(["ja", "ko"] as const)("shows the explicit %s English-controls notice after a successful creation", async language => {
     const buttons = await renderGrid([], language, "shape-controls-english");
     await act(async () => buttons[2].click());

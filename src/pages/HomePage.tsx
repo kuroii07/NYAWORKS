@@ -109,7 +109,7 @@ const CREATE_TOOLS: readonly {
   { id: "solidLayer", icon: SolidLayerIcon, action: "create-solid", modifiers: ["none"] },
   { id: "shapeLayer", icon: ShapeLayerIcon, action: "create-shape", modifiers: ["none", "alt", "ctrl", "shift"] },
   { id: "adjustmentLayer", icon: AdjustmentLayerIcon, action: "create-adjustment", modifiers: ["none"] },
-  { id: "nullObject", icon: NullObjectIcon, action: "create-null", modifiers: ["none", "alt", "shift"] },
+  { id: "nullObject", icon: NullObjectIcon, action: "create-null", modifiers: ["none", "alt", "ctrl", "shift"] },
   { id: "camera", icon: CameraLayerIcon, action: "create-camera-rig", modifiers: ["none", "ctrl"] },
   { id: "light", icon: Lightbulb, action: "create-light", modifiers: ["none", "alt", "ctrl", "shift"] },
   { id: "precompose", icon: PrecomposeIcon, action: "precompose-selected", modifiers: ["none", "alt", "settings"] },

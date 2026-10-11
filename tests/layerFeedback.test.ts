@@ -4,6 +4,16 @@ import { UI_COPY } from "../src/i18n/translations";
 import { LANGUAGE_IDS } from "../src/i18n/languages";
 
 describe("localized shape capability feedback", () => {
+  it.each(LANGUAGE_IDS)("explains %s Null preflight and recovery failures", language => {
+    const feedback = UI_COPY[language].home.layerFeedback;
+    const messages = [feedback.nullUnsafeSelection, feedback.nullUnsafeTransform, feedback.nullPositionUnavailable, feedback.nullCreateFailed, feedback.nullRollbackFailed];
+    const details = ["null-unsafe-selection", "null-unsafe-transform", "null-position-unavailable", "null-create-failed", "null-rollback-failed"];
+    details.forEach((detail, index) => {
+      expect(messages[index]).toBeTruthy();
+      expect(getLayerFailureMessage({ code: "invalid-selection", detail }, feedback)).toBe(messages[index]);
+    });
+    expect(new Set(messages).size).toBe(5);
+  });
   it.each(LANGUAGE_IDS)("explains the explicit %s English-controls notice and ignores other data", language => {
     const feedback = UI_COPY[language].home.layerFeedback;
     expect(getLayerSuccessMessage({ notice: "shape-controls-english" }, feedback)).toBe(feedback.shapeControlsEnglish);

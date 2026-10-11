@@ -14,6 +14,14 @@ export function getLayerFailureMessage(
   feedback: LayerFailureCopy
 ): string {
   const detail = error?.detail ?? "";
+  const nullMessages: Record<string, string> = {
+    "null-unsafe-selection": feedback.nullUnsafeSelection,
+    "null-unsafe-transform": feedback.nullUnsafeTransform,
+    "null-position-unavailable": feedback.nullPositionUnavailable,
+    "null-create-failed": feedback.nullCreateFailed,
+    "null-rollback-failed": feedback.nullRollbackFailed
+  };
+  if (Object.prototype.hasOwnProperty.call(nullMessages, detail)) return nullMessages[detail];
   if (error?.code === "pseudo-template-locale-unavailable" ||
       /^Error: pseudo-template-locale-unavailable(?:[:;]|$)/.test(detail) ||
       /^pseudo-template-locale-unavailable(?:[:;]|$)/.test(detail)) {
