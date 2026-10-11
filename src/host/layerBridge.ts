@@ -3,6 +3,12 @@ import type {
   LayerAction,
   LayerActionModifier
 } from "../actions/layerActionTypes";
+import type { LanguageId } from "../i18n/languages";
+import { resolveLayerLanguage } from "../layers/layerLanguage";
+
+export interface LayerHostOptions {
+  languageId?: LanguageId;
+}
 
 export type LayerHostFailureReason =
   | "unavailable"
@@ -21,6 +27,7 @@ export type LayerHostActionResult =
       createdLayers: number;
       updatedLayers: number;
       createdItems: number;
+      notice?: "shape-controls-english";
     }
   | {
       ok: false;
@@ -31,7 +38,8 @@ export type LayerHostActionResult =
 export interface LayerHostBridge {
   runLayerAction(
     action: LayerAction,
-    modifier: LayerActionModifier
+    modifier: LayerActionModifier,
+    options?: LayerHostOptions
   ): Promise<LayerHostActionResult>;
 }
 
@@ -69,7 +77,8 @@ function parseResult(value: string | null): LayerHostActionResult {
         ok: true,
         createdLayers: numericCount(parsed.createdLayers),
         updatedLayers: numericCount(parsed.updatedLayers),
-        createdItems: numericCount(parsed.createdItems)
+        createdItems: numericCount(parsed.createdItems),
+        ...(parsed.notice === "shape-controls-english" ? { notice: parsed.notice } : {})
       };
     }
 
@@ -90,17 +99,24 @@ export function createLayerHostBridge(
   environment?: CepEnvironment
 ): LayerHostBridge {
   return {
-    async runLayerAction(action, modifier) {
+    async runLayerAction(action, modifier, options) {
       const pseudoShape = action === "create-shape" &&
         (modifier === "none" || modifier === "alt" || modifier === "ctrl" || modifier === "shift");
       const extensionRoot = pseudoShape ? getCepExtensionRoot(environment) : null;
       if (pseudoShape && !extensionRoot) {
         return { ok: false, reason: "host-error", detail: "pseudo-extension-root-unavailable" };
       }
+      // Keep the legacy wire payload unchanged when no language was supplied.
+      // The Host defaults missing values to zh-CN independently.
+      const languagePayload = options?.languageId === undefined
+        ? {}
+        : { languageId: resolveLayerLanguage(options.languageId) };
       return parseResult(
         await evaluateHostScript(
           `NYAWORKS.runLayerAction("${encodedPayload(
-            extensionRoot ? { action, modifier, extensionRoot } : { action, modifier }
+            extensionRoot
+              ? { action, modifier, extensionRoot, ...languagePayload }
+              : { action, modifier, ...languagePayload }
           )}")`,
           environment
         )

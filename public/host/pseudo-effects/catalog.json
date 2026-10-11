@@ -82,6 +82,2034 @@
         "strokeWidth": 12
       },
       "sha256": "3EFC6C9BB80A6319DA5FC5EE4CEBC53FE838B68228332C0265E61AA187E18C7E"
+    },
+    "shape.roundedRectangle/v7/en": {
+      "file": "en/rounded-rectangle.ffx",
+      "matchName": "Pseudo/NYA_RRect_v7_en_r2",
+      "marker": {
+        "index": 17,
+        "name": "__NYA_RRECT_V7__"
+      },
+      "parameters": {
+        "width": 1,
+        "height": 2,
+        "radius": 3,
+        "separate": 4,
+        "topLeftPercent": 6,
+        "topRightPercent": 7,
+        "bottomRightPercent": 8,
+        "bottomLeftPercent": 9,
+        "fillEnabled": 12,
+        "fillColor": 13,
+        "strokeEnabled": 14,
+        "strokeColor": 15,
+        "strokeWidth": 16
+      },
+      "sha256": "2F75EF2D9C9EFFA7486D3AB8752A943A2623A9E80942AB21A432ED753B62BAEA",
+      "effectId": "shape.roundedRectangle",
+      "shape": "rounded-rectangle",
+      "schemaVersion": 7,
+      "definitionRevision": 2,
+      "locale": "en",
+      "displayName": "Nya Rounded Rectangle",
+      "parameterDefinitions": [
+        {
+          "id": "width",
+          "label": "Nya Width",
+          "type": "slider",
+          "defaultValue": 500,
+          "sliderMin": 0,
+          "sliderMax": 4000,
+          "validMin": 0,
+          "validMax": 10000
+        },
+        {
+          "id": "height",
+          "label": "Nya Height",
+          "type": "slider",
+          "defaultValue": 500,
+          "sliderMin": 0,
+          "sliderMax": 4000,
+          "validMin": 0,
+          "validMax": 10000
+        },
+        {
+          "id": "radius",
+          "label": "Nya Corner Radius",
+          "type": "slider",
+          "defaultValue": 50,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "separate",
+          "label": "Nya Separate Corners",
+          "type": "checkbox",
+          "defaultValue": 0
+        },
+        {
+          "id": "topLeftPercent",
+          "label": "Nya Top Left",
+          "type": "percent",
+          "defaultValue": 50,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "topRightPercent",
+          "label": "Nya Top Right",
+          "type": "percent",
+          "defaultValue": 50,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "bottomRightPercent",
+          "label": "Nya Bottom Right",
+          "type": "percent",
+          "defaultValue": 50,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "bottomLeftPercent",
+          "label": "Nya Bottom Left",
+          "type": "percent",
+          "defaultValue": 50,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "fillEnabled",
+          "label": "Nya Enable Fill",
+          "type": "checkbox",
+          "defaultValue": 1
+        },
+        {
+          "id": "fillColor",
+          "label": "Nya Fill Color",
+          "type": "color",
+          "defaultValue": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "strokeEnabled",
+          "label": "Nya Enable Stroke",
+          "type": "checkbox",
+          "defaultValue": 0
+        },
+        {
+          "id": "strokeColor",
+          "label": "Nya Stroke Color",
+          "type": "color",
+          "defaultValue": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "strokeWidth",
+          "label": "Nya Stroke Width",
+          "type": "slider",
+          "defaultValue": 5,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 1000
+        }
+      ],
+      "validation": {
+        "status": "candidate",
+        "realAE": "pending",
+        "platforms": [
+          "Windows"
+        ],
+        "targetAE": "2022–2026+"
+      }
+    },
+    "shape.circle/v3/en": {
+      "file": "en/circle.ffx",
+      "matchName": "Pseudo/NYA_Circle_v3_en_r2",
+      "marker": {
+        "index": 8,
+        "name": "__NYA_CIRCLE_V3__"
+      },
+      "parameters": {
+        "radius": 1,
+        "fillEnabled": 3,
+        "fillColor": 4,
+        "strokeEnabled": 5,
+        "strokeColor": 6,
+        "strokeWidth": 7
+      },
+      "sha256": "0D252AD50CF22A92816F1D0A9ECA3C8BD88F587E1BA88DA4041B4D22D0888487",
+      "effectId": "shape.circle",
+      "shape": "circle",
+      "schemaVersion": 3,
+      "definitionRevision": 2,
+      "locale": "en",
+      "displayName": "Nya Circle",
+      "parameterDefinitions": [
+        {
+          "id": "radius",
+          "label": "Nya Radius",
+          "type": "slider",
+          "defaultValue": 250,
+          "sliderMin": 0,
+          "sliderMax": 3000,
+          "validMin": 0,
+          "validMax": 5000
+        },
+        {
+          "id": "fillEnabled",
+          "label": "Nya Enable Fill",
+          "type": "checkbox",
+          "defaultValue": 1
+        },
+        {
+          "id": "fillColor",
+          "label": "Nya Fill Color",
+          "type": "color",
+          "defaultValue": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "strokeEnabled",
+          "label": "Nya Enable Stroke",
+          "type": "checkbox",
+          "defaultValue": 0
+        },
+        {
+          "id": "strokeColor",
+          "label": "Nya Stroke Color",
+          "type": "color",
+          "defaultValue": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "strokeWidth",
+          "label": "Nya Stroke Width",
+          "type": "slider",
+          "defaultValue": 5,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 1000
+        }
+      ],
+      "validation": {
+        "status": "candidate",
+        "realAE": "pending",
+        "platforms": [
+          "Windows"
+        ],
+        "targetAE": "2022–2026+"
+      }
+    },
+    "shape.triangle/v1/en": {
+      "file": "en/triangle.ffx",
+      "matchName": "Pseudo/NYA_Triangle_v1_en_r2",
+      "marker": {
+        "index": 11,
+        "name": "__NYA_TRIANGLE_V1__"
+      },
+      "parameters": {
+        "points": 1,
+        "rotation": 2,
+        "outerRadius": 3,
+        "outerRoundness": 4,
+        "fillEnabled": 6,
+        "fillColor": 7,
+        "strokeEnabled": 8,
+        "strokeColor": 9,
+        "strokeWidth": 10
+      },
+      "sha256": "F8C4007DA64097CC59AE37F7A957BF35B6550392FB3846D0B33CE4C686FB094E",
+      "effectId": "shape.triangle",
+      "shape": "triangle",
+      "schemaVersion": 1,
+      "definitionRevision": 2,
+      "locale": "en",
+      "displayName": "Nya Triangle",
+      "parameterDefinitions": [
+        {
+          "id": "points",
+          "label": "Nya Points",
+          "type": "slider",
+          "defaultValue": 3,
+          "sliderMin": 3,
+          "sliderMax": 20,
+          "validMin": 3,
+          "validMax": 100,
+          "precision": 0
+        },
+        {
+          "id": "rotation",
+          "label": "Nya Rotation",
+          "type": "angle",
+          "defaultValue": 0
+        },
+        {
+          "id": "outerRadius",
+          "label": "Nya Outer Radius",
+          "type": "slider",
+          "defaultValue": 250,
+          "sliderMin": 0,
+          "sliderMax": 3000,
+          "validMin": 0,
+          "validMax": 5000
+        },
+        {
+          "id": "outerRoundness",
+          "label": "Nya Outer Roundness",
+          "type": "percent",
+          "defaultValue": 0,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "fillEnabled",
+          "label": "Nya Enable Fill",
+          "type": "checkbox",
+          "defaultValue": 1
+        },
+        {
+          "id": "fillColor",
+          "label": "Nya Fill Color",
+          "type": "color",
+          "defaultValue": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "strokeEnabled",
+          "label": "Nya Enable Stroke",
+          "type": "checkbox",
+          "defaultValue": 0
+        },
+        {
+          "id": "strokeColor",
+          "label": "Nya Stroke Color",
+          "type": "color",
+          "defaultValue": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "strokeWidth",
+          "label": "Nya Stroke Width",
+          "type": "slider",
+          "defaultValue": 5,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 1000
+        }
+      ],
+      "validation": {
+        "status": "candidate",
+        "realAE": "pending",
+        "platforms": [
+          "Windows"
+        ],
+        "targetAE": "2022–2026+"
+      }
+    },
+    "shape.star/v2/en": {
+      "file": "en/star.ffx",
+      "matchName": "Pseudo/NYA_Star_v2_en_r2",
+      "marker": {
+        "index": 13,
+        "name": "__NYA_STAR_V2__"
+      },
+      "parameters": {
+        "points": 1,
+        "outerRadius": 2,
+        "innerRadius": 3,
+        "rotation": 4,
+        "outerRoundness": 5,
+        "innerRoundness": 6,
+        "fillEnabled": 8,
+        "fillColor": 9,
+        "strokeEnabled": 10,
+        "strokeColor": 11,
+        "strokeWidth": 12
+      },
+      "sha256": "26E6CDA0ADE6C92DC646F208BF4C7D497DF2296C4EAFB20687C92B8B930C5188",
+      "effectId": "shape.star",
+      "shape": "star",
+      "schemaVersion": 2,
+      "definitionRevision": 2,
+      "locale": "en",
+      "displayName": "Nya Star",
+      "parameterDefinitions": [
+        {
+          "id": "points",
+          "label": "Nya Points",
+          "type": "slider",
+          "defaultValue": 5,
+          "sliderMin": 3,
+          "sliderMax": 20,
+          "validMin": 3,
+          "validMax": 100,
+          "precision": 0
+        },
+        {
+          "id": "outerRadius",
+          "label": "Nya Outer Radius",
+          "type": "slider",
+          "defaultValue": 250,
+          "sliderMin": 0,
+          "sliderMax": 3000,
+          "validMin": 0,
+          "validMax": 5000
+        },
+        {
+          "id": "innerRadius",
+          "label": "Nya Inner Radius",
+          "type": "slider",
+          "defaultValue": 125,
+          "sliderMin": 0,
+          "sliderMax": 3000,
+          "validMin": 0,
+          "validMax": 5000
+        },
+        {
+          "id": "rotation",
+          "label": "Nya Rotation",
+          "type": "angle",
+          "defaultValue": 0
+        },
+        {
+          "id": "outerRoundness",
+          "label": "Nya Outer Roundness",
+          "type": "percent",
+          "defaultValue": 0,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "innerRoundness",
+          "label": "Nya Inner Roundness",
+          "type": "percent",
+          "defaultValue": 0,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "fillEnabled",
+          "label": "Nya Enable Fill",
+          "type": "checkbox",
+          "defaultValue": 1
+        },
+        {
+          "id": "fillColor",
+          "label": "Nya Fill Color",
+          "type": "color",
+          "defaultValue": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "strokeEnabled",
+          "label": "Nya Enable Stroke",
+          "type": "checkbox",
+          "defaultValue": 0
+        },
+        {
+          "id": "strokeColor",
+          "label": "Nya Stroke Color",
+          "type": "color",
+          "defaultValue": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "strokeWidth",
+          "label": "Nya Stroke Width",
+          "type": "slider",
+          "defaultValue": 5,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 1000
+        }
+      ],
+      "validation": {
+        "status": "candidate",
+        "realAE": "pending",
+        "platforms": [
+          "Windows"
+        ],
+        "targetAE": "2022–2026+"
+      }
+    },
+    "shape.roundedRectangle/v7/zh-TW": {
+      "file": "zh-TW/rounded-rectangle.ffx",
+      "matchName": "Pseudo/NYA_RRect_v7_zhTW",
+      "marker": {
+        "index": 17,
+        "name": "__NYA_RRECT_V7__"
+      },
+      "parameters": {
+        "width": 1,
+        "height": 2,
+        "radius": 3,
+        "separate": 4,
+        "topLeftPercent": 6,
+        "topRightPercent": 7,
+        "bottomRightPercent": 8,
+        "bottomLeftPercent": 9,
+        "fillEnabled": 12,
+        "fillColor": 13,
+        "strokeEnabled": 14,
+        "strokeColor": 15,
+        "strokeWidth": 16
+      },
+      "sha256": "5228500A670619067C094CAEB8F26753415B4B5F961E79A51506540E78B50DB5",
+      "effectId": "shape.roundedRectangle",
+      "shape": "rounded-rectangle",
+      "schemaVersion": 7,
+      "definitionRevision": 1,
+      "locale": "zh-TW",
+      "displayName": "Nya 圓角矩形",
+      "parameterDefinitions": [
+        {
+          "id": "width",
+          "label": "Nya 寬度",
+          "type": "slider",
+          "defaultValue": 500,
+          "sliderMin": 0,
+          "sliderMax": 4000,
+          "validMin": 0,
+          "validMax": 10000
+        },
+        {
+          "id": "height",
+          "label": "Nya 高度",
+          "type": "slider",
+          "defaultValue": 500,
+          "sliderMin": 0,
+          "sliderMax": 4000,
+          "validMin": 0,
+          "validMax": 10000
+        },
+        {
+          "id": "radius",
+          "label": "Nya 圓角值",
+          "type": "slider",
+          "defaultValue": 50,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "separate",
+          "label": "Nya 分離圓角",
+          "type": "checkbox",
+          "defaultValue": 0
+        },
+        {
+          "id": "topLeftPercent",
+          "label": "Nya 左上角",
+          "type": "percent",
+          "defaultValue": 50,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "topRightPercent",
+          "label": "Nya 右上角",
+          "type": "percent",
+          "defaultValue": 50,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "bottomRightPercent",
+          "label": "Nya 右下角",
+          "type": "percent",
+          "defaultValue": 50,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "bottomLeftPercent",
+          "label": "Nya 左下角",
+          "type": "percent",
+          "defaultValue": 50,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "fillEnabled",
+          "label": "Nya 啟用填色",
+          "type": "checkbox",
+          "defaultValue": 1
+        },
+        {
+          "id": "fillColor",
+          "label": "Nya 填色顏色",
+          "type": "color",
+          "defaultValue": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "strokeEnabled",
+          "label": "Nya 啟用描邊",
+          "type": "checkbox",
+          "defaultValue": 0
+        },
+        {
+          "id": "strokeColor",
+          "label": "Nya 描邊顏色",
+          "type": "color",
+          "defaultValue": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "strokeWidth",
+          "label": "Nya 描邊寬度",
+          "type": "slider",
+          "defaultValue": 5,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 1000
+        }
+      ],
+      "validation": {
+        "status": "candidate",
+        "realAE": "pending",
+        "platforms": [
+          "Windows"
+        ],
+        "targetAE": "2022–2026+"
+      }
+    },
+    "shape.circle/v3/zh-TW": {
+      "file": "zh-TW/circle.ffx",
+      "matchName": "Pseudo/NYA_Circle_v3_zhTW",
+      "marker": {
+        "index": 8,
+        "name": "__NYA_CIRCLE_V3__"
+      },
+      "parameters": {
+        "radius": 1,
+        "fillEnabled": 3,
+        "fillColor": 4,
+        "strokeEnabled": 5,
+        "strokeColor": 6,
+        "strokeWidth": 7
+      },
+      "sha256": "2293B924A557D81502CB199BAC7231CEE5F46C3E6CC357D7A3038AC4F7168509",
+      "effectId": "shape.circle",
+      "shape": "circle",
+      "schemaVersion": 3,
+      "definitionRevision": 1,
+      "locale": "zh-TW",
+      "displayName": "Nya 圓",
+      "parameterDefinitions": [
+        {
+          "id": "radius",
+          "label": "Nya 半徑",
+          "type": "slider",
+          "defaultValue": 250,
+          "sliderMin": 0,
+          "sliderMax": 3000,
+          "validMin": 0,
+          "validMax": 5000
+        },
+        {
+          "id": "fillEnabled",
+          "label": "Nya 啟用填色",
+          "type": "checkbox",
+          "defaultValue": 1
+        },
+        {
+          "id": "fillColor",
+          "label": "Nya 填色顏色",
+          "type": "color",
+          "defaultValue": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "strokeEnabled",
+          "label": "Nya 啟用描邊",
+          "type": "checkbox",
+          "defaultValue": 0
+        },
+        {
+          "id": "strokeColor",
+          "label": "Nya 描邊顏色",
+          "type": "color",
+          "defaultValue": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "strokeWidth",
+          "label": "Nya 描邊寬度",
+          "type": "slider",
+          "defaultValue": 5,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 1000
+        }
+      ],
+      "validation": {
+        "status": "candidate",
+        "realAE": "pending",
+        "platforms": [
+          "Windows"
+        ],
+        "targetAE": "2022–2026+"
+      }
+    },
+    "shape.triangle/v1/zh-TW": {
+      "file": "zh-TW/triangle.ffx",
+      "matchName": "Pseudo/NYA_Triangle_v1_zhTW",
+      "marker": {
+        "index": 11,
+        "name": "__NYA_TRIANGLE_V1__"
+      },
+      "parameters": {
+        "points": 1,
+        "rotation": 2,
+        "outerRadius": 3,
+        "outerRoundness": 4,
+        "fillEnabled": 6,
+        "fillColor": 7,
+        "strokeEnabled": 8,
+        "strokeColor": 9,
+        "strokeWidth": 10
+      },
+      "sha256": "FC0F2C54D70F17573DD5AEC1F342FCDB5A87D976273C610D9C8A47F6A0A38BDC",
+      "effectId": "shape.triangle",
+      "shape": "triangle",
+      "schemaVersion": 1,
+      "definitionRevision": 1,
+      "locale": "zh-TW",
+      "displayName": "Nya 三角形",
+      "parameterDefinitions": [
+        {
+          "id": "points",
+          "label": "Nya 點數",
+          "type": "slider",
+          "defaultValue": 3,
+          "sliderMin": 3,
+          "sliderMax": 20,
+          "validMin": 3,
+          "validMax": 100,
+          "precision": 0
+        },
+        {
+          "id": "rotation",
+          "label": "Nya 旋轉",
+          "type": "angle",
+          "defaultValue": 0
+        },
+        {
+          "id": "outerRadius",
+          "label": "Nya 外半徑",
+          "type": "slider",
+          "defaultValue": 250,
+          "sliderMin": 0,
+          "sliderMax": 3000,
+          "validMin": 0,
+          "validMax": 5000
+        },
+        {
+          "id": "outerRoundness",
+          "label": "Nya 外圓度",
+          "type": "percent",
+          "defaultValue": 0,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "fillEnabled",
+          "label": "Nya 啟用填色",
+          "type": "checkbox",
+          "defaultValue": 1
+        },
+        {
+          "id": "fillColor",
+          "label": "Nya 填色顏色",
+          "type": "color",
+          "defaultValue": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "strokeEnabled",
+          "label": "Nya 啟用描邊",
+          "type": "checkbox",
+          "defaultValue": 0
+        },
+        {
+          "id": "strokeColor",
+          "label": "Nya 描邊顏色",
+          "type": "color",
+          "defaultValue": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "strokeWidth",
+          "label": "Nya 描邊寬度",
+          "type": "slider",
+          "defaultValue": 5,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 1000
+        }
+      ],
+      "validation": {
+        "status": "candidate",
+        "realAE": "pending",
+        "platforms": [
+          "Windows"
+        ],
+        "targetAE": "2022–2026+"
+      }
+    },
+    "shape.star/v2/zh-TW": {
+      "file": "zh-TW/star.ffx",
+      "matchName": "Pseudo/NYA_Star_v2_zhTW",
+      "marker": {
+        "index": 13,
+        "name": "__NYA_STAR_V2__"
+      },
+      "parameters": {
+        "points": 1,
+        "outerRadius": 2,
+        "innerRadius": 3,
+        "rotation": 4,
+        "outerRoundness": 5,
+        "innerRoundness": 6,
+        "fillEnabled": 8,
+        "fillColor": 9,
+        "strokeEnabled": 10,
+        "strokeColor": 11,
+        "strokeWidth": 12
+      },
+      "sha256": "B8B8CD4A545D0F25FC9BD0180DF7654E672F69C4BBF0BD02C7F16C6DE568FE2D",
+      "effectId": "shape.star",
+      "shape": "star",
+      "schemaVersion": 2,
+      "definitionRevision": 1,
+      "locale": "zh-TW",
+      "displayName": "Nya 星形",
+      "parameterDefinitions": [
+        {
+          "id": "points",
+          "label": "Nya 點數",
+          "type": "slider",
+          "defaultValue": 5,
+          "sliderMin": 3,
+          "sliderMax": 20,
+          "validMin": 3,
+          "validMax": 100,
+          "precision": 0
+        },
+        {
+          "id": "outerRadius",
+          "label": "Nya 外半徑",
+          "type": "slider",
+          "defaultValue": 250,
+          "sliderMin": 0,
+          "sliderMax": 3000,
+          "validMin": 0,
+          "validMax": 5000
+        },
+        {
+          "id": "innerRadius",
+          "label": "Nya 內半徑",
+          "type": "slider",
+          "defaultValue": 125,
+          "sliderMin": 0,
+          "sliderMax": 3000,
+          "validMin": 0,
+          "validMax": 5000
+        },
+        {
+          "id": "rotation",
+          "label": "Nya 旋轉",
+          "type": "angle",
+          "defaultValue": 0
+        },
+        {
+          "id": "outerRoundness",
+          "label": "Nya 外圓度",
+          "type": "percent",
+          "defaultValue": 0,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "innerRoundness",
+          "label": "Nya 內圓度",
+          "type": "percent",
+          "defaultValue": 0,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "fillEnabled",
+          "label": "Nya 啟用填色",
+          "type": "checkbox",
+          "defaultValue": 1
+        },
+        {
+          "id": "fillColor",
+          "label": "Nya 填色顏色",
+          "type": "color",
+          "defaultValue": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "strokeEnabled",
+          "label": "Nya 啟用描邊",
+          "type": "checkbox",
+          "defaultValue": 0
+        },
+        {
+          "id": "strokeColor",
+          "label": "Nya 描邊顏色",
+          "type": "color",
+          "defaultValue": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "strokeWidth",
+          "label": "Nya 描邊寬度",
+          "type": "slider",
+          "defaultValue": 5,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 1000
+        }
+      ],
+      "validation": {
+        "status": "candidate",
+        "realAE": "pending",
+        "platforms": [
+          "Windows"
+        ],
+        "targetAE": "2022–2026+"
+      }
+    },
+    "shape.roundedRectangle/v7/ja": {
+      "file": "en/rounded-rectangle.ffx",
+      "matchName": "Pseudo/NYA_RRect_v7_en_r2",
+      "marker": {
+        "index": 17,
+        "name": "__NYA_RRECT_V7__"
+      },
+      "parameters": {
+        "width": 1,
+        "height": 2,
+        "radius": 3,
+        "separate": 4,
+        "topLeftPercent": 6,
+        "topRightPercent": 7,
+        "bottomRightPercent": 8,
+        "bottomLeftPercent": 9,
+        "fillEnabled": 12,
+        "fillColor": 13,
+        "strokeEnabled": 14,
+        "strokeColor": 15,
+        "strokeWidth": 16
+      },
+      "sha256": "2F75EF2D9C9EFFA7486D3AB8752A943A2623A9E80942AB21A432ED753B62BAEA",
+      "effectId": "shape.roundedRectangle",
+      "shape": "rounded-rectangle",
+      "schemaVersion": 7,
+      "definitionRevision": 2,
+      "locale": "ja",
+      "displayName": "Nya 角丸長方形",
+      "parameterDefinitions": [
+        {
+          "id": "width",
+          "label": "Nya Width",
+          "type": "slider",
+          "defaultValue": 500,
+          "sliderMin": 0,
+          "sliderMax": 4000,
+          "validMin": 0,
+          "validMax": 10000
+        },
+        {
+          "id": "height",
+          "label": "Nya Height",
+          "type": "slider",
+          "defaultValue": 500,
+          "sliderMin": 0,
+          "sliderMax": 4000,
+          "validMin": 0,
+          "validMax": 10000
+        },
+        {
+          "id": "radius",
+          "label": "Nya Corner Radius",
+          "type": "slider",
+          "defaultValue": 50,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "separate",
+          "label": "Nya Separate Corners",
+          "type": "checkbox",
+          "defaultValue": 0
+        },
+        {
+          "id": "topLeftPercent",
+          "label": "Nya Top Left",
+          "type": "percent",
+          "defaultValue": 50,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "topRightPercent",
+          "label": "Nya Top Right",
+          "type": "percent",
+          "defaultValue": 50,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "bottomRightPercent",
+          "label": "Nya Bottom Right",
+          "type": "percent",
+          "defaultValue": 50,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "bottomLeftPercent",
+          "label": "Nya Bottom Left",
+          "type": "percent",
+          "defaultValue": 50,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "fillEnabled",
+          "label": "Nya Enable Fill",
+          "type": "checkbox",
+          "defaultValue": 1
+        },
+        {
+          "id": "fillColor",
+          "label": "Nya Fill Color",
+          "type": "color",
+          "defaultValue": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "strokeEnabled",
+          "label": "Nya Enable Stroke",
+          "type": "checkbox",
+          "defaultValue": 0
+        },
+        {
+          "id": "strokeColor",
+          "label": "Nya Stroke Color",
+          "type": "color",
+          "defaultValue": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "strokeWidth",
+          "label": "Nya Stroke Width",
+          "type": "slider",
+          "defaultValue": 5,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 1000
+        }
+      ],
+      "validation": {
+        "status": "candidate",
+        "realAE": "pending",
+        "platforms": [
+          "Windows"
+        ],
+        "targetAE": "2022–2026+"
+      },
+      "controlLocale": "en",
+      "sourceTemplateId": "shape.roundedRectangle/v7/en"
+    },
+    "shape.circle/v3/ja": {
+      "file": "en/circle.ffx",
+      "matchName": "Pseudo/NYA_Circle_v3_en_r2",
+      "marker": {
+        "index": 8,
+        "name": "__NYA_CIRCLE_V3__"
+      },
+      "parameters": {
+        "radius": 1,
+        "fillEnabled": 3,
+        "fillColor": 4,
+        "strokeEnabled": 5,
+        "strokeColor": 6,
+        "strokeWidth": 7
+      },
+      "sha256": "0D252AD50CF22A92816F1D0A9ECA3C8BD88F587E1BA88DA4041B4D22D0888487",
+      "effectId": "shape.circle",
+      "shape": "circle",
+      "schemaVersion": 3,
+      "definitionRevision": 2,
+      "locale": "ja",
+      "displayName": "Nya 円",
+      "parameterDefinitions": [
+        {
+          "id": "radius",
+          "label": "Nya Radius",
+          "type": "slider",
+          "defaultValue": 250,
+          "sliderMin": 0,
+          "sliderMax": 3000,
+          "validMin": 0,
+          "validMax": 5000
+        },
+        {
+          "id": "fillEnabled",
+          "label": "Nya Enable Fill",
+          "type": "checkbox",
+          "defaultValue": 1
+        },
+        {
+          "id": "fillColor",
+          "label": "Nya Fill Color",
+          "type": "color",
+          "defaultValue": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "strokeEnabled",
+          "label": "Nya Enable Stroke",
+          "type": "checkbox",
+          "defaultValue": 0
+        },
+        {
+          "id": "strokeColor",
+          "label": "Nya Stroke Color",
+          "type": "color",
+          "defaultValue": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "strokeWidth",
+          "label": "Nya Stroke Width",
+          "type": "slider",
+          "defaultValue": 5,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 1000
+        }
+      ],
+      "validation": {
+        "status": "candidate",
+        "realAE": "pending",
+        "platforms": [
+          "Windows"
+        ],
+        "targetAE": "2022–2026+"
+      },
+      "controlLocale": "en",
+      "sourceTemplateId": "shape.circle/v3/en"
+    },
+    "shape.triangle/v1/ja": {
+      "file": "en/triangle.ffx",
+      "matchName": "Pseudo/NYA_Triangle_v1_en_r2",
+      "marker": {
+        "index": 11,
+        "name": "__NYA_TRIANGLE_V1__"
+      },
+      "parameters": {
+        "points": 1,
+        "rotation": 2,
+        "outerRadius": 3,
+        "outerRoundness": 4,
+        "fillEnabled": 6,
+        "fillColor": 7,
+        "strokeEnabled": 8,
+        "strokeColor": 9,
+        "strokeWidth": 10
+      },
+      "sha256": "F8C4007DA64097CC59AE37F7A957BF35B6550392FB3846D0B33CE4C686FB094E",
+      "effectId": "shape.triangle",
+      "shape": "triangle",
+      "schemaVersion": 1,
+      "definitionRevision": 2,
+      "locale": "ja",
+      "displayName": "Nya 三角形",
+      "parameterDefinitions": [
+        {
+          "id": "points",
+          "label": "Nya Points",
+          "type": "slider",
+          "defaultValue": 3,
+          "sliderMin": 3,
+          "sliderMax": 20,
+          "validMin": 3,
+          "validMax": 100,
+          "precision": 0
+        },
+        {
+          "id": "rotation",
+          "label": "Nya Rotation",
+          "type": "angle",
+          "defaultValue": 0
+        },
+        {
+          "id": "outerRadius",
+          "label": "Nya Outer Radius",
+          "type": "slider",
+          "defaultValue": 250,
+          "sliderMin": 0,
+          "sliderMax": 3000,
+          "validMin": 0,
+          "validMax": 5000
+        },
+        {
+          "id": "outerRoundness",
+          "label": "Nya Outer Roundness",
+          "type": "percent",
+          "defaultValue": 0,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "fillEnabled",
+          "label": "Nya Enable Fill",
+          "type": "checkbox",
+          "defaultValue": 1
+        },
+        {
+          "id": "fillColor",
+          "label": "Nya Fill Color",
+          "type": "color",
+          "defaultValue": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "strokeEnabled",
+          "label": "Nya Enable Stroke",
+          "type": "checkbox",
+          "defaultValue": 0
+        },
+        {
+          "id": "strokeColor",
+          "label": "Nya Stroke Color",
+          "type": "color",
+          "defaultValue": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "strokeWidth",
+          "label": "Nya Stroke Width",
+          "type": "slider",
+          "defaultValue": 5,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 1000
+        }
+      ],
+      "validation": {
+        "status": "candidate",
+        "realAE": "pending",
+        "platforms": [
+          "Windows"
+        ],
+        "targetAE": "2022–2026+"
+      },
+      "controlLocale": "en",
+      "sourceTemplateId": "shape.triangle/v1/en"
+    },
+    "shape.star/v2/ja": {
+      "file": "en/star.ffx",
+      "matchName": "Pseudo/NYA_Star_v2_en_r2",
+      "marker": {
+        "index": 13,
+        "name": "__NYA_STAR_V2__"
+      },
+      "parameters": {
+        "points": 1,
+        "outerRadius": 2,
+        "innerRadius": 3,
+        "rotation": 4,
+        "outerRoundness": 5,
+        "innerRoundness": 6,
+        "fillEnabled": 8,
+        "fillColor": 9,
+        "strokeEnabled": 10,
+        "strokeColor": 11,
+        "strokeWidth": 12
+      },
+      "sha256": "26E6CDA0ADE6C92DC646F208BF4C7D497DF2296C4EAFB20687C92B8B930C5188",
+      "effectId": "shape.star",
+      "shape": "star",
+      "schemaVersion": 2,
+      "definitionRevision": 2,
+      "locale": "ja",
+      "displayName": "Nya 星形",
+      "parameterDefinitions": [
+        {
+          "id": "points",
+          "label": "Nya Points",
+          "type": "slider",
+          "defaultValue": 5,
+          "sliderMin": 3,
+          "sliderMax": 20,
+          "validMin": 3,
+          "validMax": 100,
+          "precision": 0
+        },
+        {
+          "id": "outerRadius",
+          "label": "Nya Outer Radius",
+          "type": "slider",
+          "defaultValue": 250,
+          "sliderMin": 0,
+          "sliderMax": 3000,
+          "validMin": 0,
+          "validMax": 5000
+        },
+        {
+          "id": "innerRadius",
+          "label": "Nya Inner Radius",
+          "type": "slider",
+          "defaultValue": 125,
+          "sliderMin": 0,
+          "sliderMax": 3000,
+          "validMin": 0,
+          "validMax": 5000
+        },
+        {
+          "id": "rotation",
+          "label": "Nya Rotation",
+          "type": "angle",
+          "defaultValue": 0
+        },
+        {
+          "id": "outerRoundness",
+          "label": "Nya Outer Roundness",
+          "type": "percent",
+          "defaultValue": 0,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "innerRoundness",
+          "label": "Nya Inner Roundness",
+          "type": "percent",
+          "defaultValue": 0,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "fillEnabled",
+          "label": "Nya Enable Fill",
+          "type": "checkbox",
+          "defaultValue": 1
+        },
+        {
+          "id": "fillColor",
+          "label": "Nya Fill Color",
+          "type": "color",
+          "defaultValue": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "strokeEnabled",
+          "label": "Nya Enable Stroke",
+          "type": "checkbox",
+          "defaultValue": 0
+        },
+        {
+          "id": "strokeColor",
+          "label": "Nya Stroke Color",
+          "type": "color",
+          "defaultValue": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "strokeWidth",
+          "label": "Nya Stroke Width",
+          "type": "slider",
+          "defaultValue": 5,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 1000
+        }
+      ],
+      "validation": {
+        "status": "candidate",
+        "realAE": "pending",
+        "platforms": [
+          "Windows"
+        ],
+        "targetAE": "2022–2026+"
+      },
+      "controlLocale": "en",
+      "sourceTemplateId": "shape.star/v2/en"
+    },
+    "shape.roundedRectangle/v7/ko": {
+      "file": "en/rounded-rectangle.ffx",
+      "matchName": "Pseudo/NYA_RRect_v7_en_r2",
+      "marker": {
+        "index": 17,
+        "name": "__NYA_RRECT_V7__"
+      },
+      "parameters": {
+        "width": 1,
+        "height": 2,
+        "radius": 3,
+        "separate": 4,
+        "topLeftPercent": 6,
+        "topRightPercent": 7,
+        "bottomRightPercent": 8,
+        "bottomLeftPercent": 9,
+        "fillEnabled": 12,
+        "fillColor": 13,
+        "strokeEnabled": 14,
+        "strokeColor": 15,
+        "strokeWidth": 16
+      },
+      "sha256": "2F75EF2D9C9EFFA7486D3AB8752A943A2623A9E80942AB21A432ED753B62BAEA",
+      "effectId": "shape.roundedRectangle",
+      "shape": "rounded-rectangle",
+      "schemaVersion": 7,
+      "definitionRevision": 2,
+      "locale": "ko",
+      "displayName": "Nya 둥근 사각형",
+      "parameterDefinitions": [
+        {
+          "id": "width",
+          "label": "Nya Width",
+          "type": "slider",
+          "defaultValue": 500,
+          "sliderMin": 0,
+          "sliderMax": 4000,
+          "validMin": 0,
+          "validMax": 10000
+        },
+        {
+          "id": "height",
+          "label": "Nya Height",
+          "type": "slider",
+          "defaultValue": 500,
+          "sliderMin": 0,
+          "sliderMax": 4000,
+          "validMin": 0,
+          "validMax": 10000
+        },
+        {
+          "id": "radius",
+          "label": "Nya Corner Radius",
+          "type": "slider",
+          "defaultValue": 50,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "separate",
+          "label": "Nya Separate Corners",
+          "type": "checkbox",
+          "defaultValue": 0
+        },
+        {
+          "id": "topLeftPercent",
+          "label": "Nya Top Left",
+          "type": "percent",
+          "defaultValue": 50,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "topRightPercent",
+          "label": "Nya Top Right",
+          "type": "percent",
+          "defaultValue": 50,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "bottomRightPercent",
+          "label": "Nya Bottom Right",
+          "type": "percent",
+          "defaultValue": 50,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "bottomLeftPercent",
+          "label": "Nya Bottom Left",
+          "type": "percent",
+          "defaultValue": 50,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "fillEnabled",
+          "label": "Nya Enable Fill",
+          "type": "checkbox",
+          "defaultValue": 1
+        },
+        {
+          "id": "fillColor",
+          "label": "Nya Fill Color",
+          "type": "color",
+          "defaultValue": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "strokeEnabled",
+          "label": "Nya Enable Stroke",
+          "type": "checkbox",
+          "defaultValue": 0
+        },
+        {
+          "id": "strokeColor",
+          "label": "Nya Stroke Color",
+          "type": "color",
+          "defaultValue": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "strokeWidth",
+          "label": "Nya Stroke Width",
+          "type": "slider",
+          "defaultValue": 5,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 1000
+        }
+      ],
+      "validation": {
+        "status": "candidate",
+        "realAE": "pending",
+        "platforms": [
+          "Windows"
+        ],
+        "targetAE": "2022–2026+"
+      },
+      "controlLocale": "en",
+      "sourceTemplateId": "shape.roundedRectangle/v7/en"
+    },
+    "shape.circle/v3/ko": {
+      "file": "en/circle.ffx",
+      "matchName": "Pseudo/NYA_Circle_v3_en_r2",
+      "marker": {
+        "index": 8,
+        "name": "__NYA_CIRCLE_V3__"
+      },
+      "parameters": {
+        "radius": 1,
+        "fillEnabled": 3,
+        "fillColor": 4,
+        "strokeEnabled": 5,
+        "strokeColor": 6,
+        "strokeWidth": 7
+      },
+      "sha256": "0D252AD50CF22A92816F1D0A9ECA3C8BD88F587E1BA88DA4041B4D22D0888487",
+      "effectId": "shape.circle",
+      "shape": "circle",
+      "schemaVersion": 3,
+      "definitionRevision": 2,
+      "locale": "ko",
+      "displayName": "Nya 원",
+      "parameterDefinitions": [
+        {
+          "id": "radius",
+          "label": "Nya Radius",
+          "type": "slider",
+          "defaultValue": 250,
+          "sliderMin": 0,
+          "sliderMax": 3000,
+          "validMin": 0,
+          "validMax": 5000
+        },
+        {
+          "id": "fillEnabled",
+          "label": "Nya Enable Fill",
+          "type": "checkbox",
+          "defaultValue": 1
+        },
+        {
+          "id": "fillColor",
+          "label": "Nya Fill Color",
+          "type": "color",
+          "defaultValue": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "strokeEnabled",
+          "label": "Nya Enable Stroke",
+          "type": "checkbox",
+          "defaultValue": 0
+        },
+        {
+          "id": "strokeColor",
+          "label": "Nya Stroke Color",
+          "type": "color",
+          "defaultValue": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "strokeWidth",
+          "label": "Nya Stroke Width",
+          "type": "slider",
+          "defaultValue": 5,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 1000
+        }
+      ],
+      "validation": {
+        "status": "candidate",
+        "realAE": "pending",
+        "platforms": [
+          "Windows"
+        ],
+        "targetAE": "2022–2026+"
+      },
+      "controlLocale": "en",
+      "sourceTemplateId": "shape.circle/v3/en"
+    },
+    "shape.triangle/v1/ko": {
+      "file": "en/triangle.ffx",
+      "matchName": "Pseudo/NYA_Triangle_v1_en_r2",
+      "marker": {
+        "index": 11,
+        "name": "__NYA_TRIANGLE_V1__"
+      },
+      "parameters": {
+        "points": 1,
+        "rotation": 2,
+        "outerRadius": 3,
+        "outerRoundness": 4,
+        "fillEnabled": 6,
+        "fillColor": 7,
+        "strokeEnabled": 8,
+        "strokeColor": 9,
+        "strokeWidth": 10
+      },
+      "sha256": "F8C4007DA64097CC59AE37F7A957BF35B6550392FB3846D0B33CE4C686FB094E",
+      "effectId": "shape.triangle",
+      "shape": "triangle",
+      "schemaVersion": 1,
+      "definitionRevision": 2,
+      "locale": "ko",
+      "displayName": "Nya 삼각형",
+      "parameterDefinitions": [
+        {
+          "id": "points",
+          "label": "Nya Points",
+          "type": "slider",
+          "defaultValue": 3,
+          "sliderMin": 3,
+          "sliderMax": 20,
+          "validMin": 3,
+          "validMax": 100,
+          "precision": 0
+        },
+        {
+          "id": "rotation",
+          "label": "Nya Rotation",
+          "type": "angle",
+          "defaultValue": 0
+        },
+        {
+          "id": "outerRadius",
+          "label": "Nya Outer Radius",
+          "type": "slider",
+          "defaultValue": 250,
+          "sliderMin": 0,
+          "sliderMax": 3000,
+          "validMin": 0,
+          "validMax": 5000
+        },
+        {
+          "id": "outerRoundness",
+          "label": "Nya Outer Roundness",
+          "type": "percent",
+          "defaultValue": 0,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "fillEnabled",
+          "label": "Nya Enable Fill",
+          "type": "checkbox",
+          "defaultValue": 1
+        },
+        {
+          "id": "fillColor",
+          "label": "Nya Fill Color",
+          "type": "color",
+          "defaultValue": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "strokeEnabled",
+          "label": "Nya Enable Stroke",
+          "type": "checkbox",
+          "defaultValue": 0
+        },
+        {
+          "id": "strokeColor",
+          "label": "Nya Stroke Color",
+          "type": "color",
+          "defaultValue": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "strokeWidth",
+          "label": "Nya Stroke Width",
+          "type": "slider",
+          "defaultValue": 5,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 1000
+        }
+      ],
+      "validation": {
+        "status": "candidate",
+        "realAE": "pending",
+        "platforms": [
+          "Windows"
+        ],
+        "targetAE": "2022–2026+"
+      },
+      "controlLocale": "en",
+      "sourceTemplateId": "shape.triangle/v1/en"
+    },
+    "shape.star/v2/ko": {
+      "file": "en/star.ffx",
+      "matchName": "Pseudo/NYA_Star_v2_en_r2",
+      "marker": {
+        "index": 13,
+        "name": "__NYA_STAR_V2__"
+      },
+      "parameters": {
+        "points": 1,
+        "outerRadius": 2,
+        "innerRadius": 3,
+        "rotation": 4,
+        "outerRoundness": 5,
+        "innerRoundness": 6,
+        "fillEnabled": 8,
+        "fillColor": 9,
+        "strokeEnabled": 10,
+        "strokeColor": 11,
+        "strokeWidth": 12
+      },
+      "sha256": "26E6CDA0ADE6C92DC646F208BF4C7D497DF2296C4EAFB20687C92B8B930C5188",
+      "effectId": "shape.star",
+      "shape": "star",
+      "schemaVersion": 2,
+      "definitionRevision": 2,
+      "locale": "ko",
+      "displayName": "Nya 별",
+      "parameterDefinitions": [
+        {
+          "id": "points",
+          "label": "Nya Points",
+          "type": "slider",
+          "defaultValue": 5,
+          "sliderMin": 3,
+          "sliderMax": 20,
+          "validMin": 3,
+          "validMax": 100,
+          "precision": 0
+        },
+        {
+          "id": "outerRadius",
+          "label": "Nya Outer Radius",
+          "type": "slider",
+          "defaultValue": 250,
+          "sliderMin": 0,
+          "sliderMax": 3000,
+          "validMin": 0,
+          "validMax": 5000
+        },
+        {
+          "id": "innerRadius",
+          "label": "Nya Inner Radius",
+          "type": "slider",
+          "defaultValue": 125,
+          "sliderMin": 0,
+          "sliderMax": 3000,
+          "validMin": 0,
+          "validMax": 5000
+        },
+        {
+          "id": "rotation",
+          "label": "Nya Rotation",
+          "type": "angle",
+          "defaultValue": 0
+        },
+        {
+          "id": "outerRoundness",
+          "label": "Nya Outer Roundness",
+          "type": "percent",
+          "defaultValue": 0,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "innerRoundness",
+          "label": "Nya Inner Roundness",
+          "type": "percent",
+          "defaultValue": 0,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 100
+        },
+        {
+          "id": "fillEnabled",
+          "label": "Nya Enable Fill",
+          "type": "checkbox",
+          "defaultValue": 1
+        },
+        {
+          "id": "fillColor",
+          "label": "Nya Fill Color",
+          "type": "color",
+          "defaultValue": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "strokeEnabled",
+          "label": "Nya Enable Stroke",
+          "type": "checkbox",
+          "defaultValue": 0
+        },
+        {
+          "id": "strokeColor",
+          "label": "Nya Stroke Color",
+          "type": "color",
+          "defaultValue": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "strokeWidth",
+          "label": "Nya Stroke Width",
+          "type": "slider",
+          "defaultValue": 5,
+          "sliderMin": 0,
+          "sliderMax": 100,
+          "validMin": 0,
+          "validMax": 1000
+        }
+      ],
+      "validation": {
+        "status": "candidate",
+        "realAE": "pending",
+        "platforms": [
+          "Windows"
+        ],
+        "targetAE": "2022–2026+"
+      },
+      "controlLocale": "en",
+      "sourceTemplateId": "shape.star/v2/en"
     }
   }
 }

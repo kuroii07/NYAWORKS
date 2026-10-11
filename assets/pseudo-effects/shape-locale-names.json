@@ -1,0 +1,14 @@
+{
+  "ja": {
+    "shape.roundedRectangle": "Nya 角丸長方形",
+    "shape.circle": "Nya 円",
+    "shape.triangle": "Nya 三角形",
+    "shape.star": "Nya 星形"
+  },
+  "ko": {
+    "shape.roundedRectangle": "Nya 둥근 사각형",
+    "shape.circle": "Nya 원",
+    "shape.triangle": "Nya 삼각형",
+    "shape.star": "Nya 별"
+  }
+}

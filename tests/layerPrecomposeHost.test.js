@@ -129,11 +129,25 @@ return runLayerAction;`
   )(app, TestComp, {}, JSON, decodeURIComponent);
 }
 
-function encoded(action, modifier = "none") {
-  return encodeURIComponent(JSON.stringify({ action, modifier }));
+function encoded(action, modifier = "none", languageId) {
+  return encodeURIComponent(JSON.stringify({ action, modifier, languageId }));
 }
 
 describe("precompose host action", () => {
+  it.each([["zh-CN", "Hero Precomp"], ["ja", "Hero プリコンポーズ"]])(
+    "localizes the %s precompose suffix while preserving source names, timing, indices and Undo", async (languageId, name) => {
+      const original = { name: "Hero", index: 2, inPoint: 2, outPoint: 8 };
+      const { comp, calls } = makeComp([original]);
+      const setup = createApp(comp, [{ name }]);
+      const run = await loadRunLayerAction(setup.app);
+      expect(JSON.parse(run(encoded("precompose-selected", "none", languageId)))).toMatchObject({ ok: true, createdItems: 1 });
+      expect(calls).toEqual([{ indices: [2], name: `${name} 2`, moveAllAttributes: true }]);
+      expect(original.name).toBe("Hero");
+      expect(comp.selectedLayers[0]).toMatchObject({ startTime: 2, inPoint: 2, outPoint: 8, selected: true });
+      expect(comp.selectedLayers[0].source.duration).toBe(6);
+      expect(setup.undo).toEqual(["begin:NYAWORKS Precompose", "end"]);
+    }
+  );
   it("rejects an empty selection before opening an undo group", async () => {
     const { comp } = makeComp([]);
     const setup = createApp(comp);
@@ -288,13 +302,13 @@ describe("safe unprecompose host action", () => {
     return { comp, outer };
   }
 
-  it("copies simple source layers transactionally and removes the precomp", async () => {
+  it.each([undefined, "zh-CN", "en"])("copies source names unchanged in %s and removes the precomp transactionally", async (languageId) => {
     const source = createSafeSource();
     const { comp, outer } = makeUnprecompose(source);
     const setup = createApp(comp);
     const runLayerAction = await loadRunLayerAction(setup.app);
 
-    expect(JSON.parse(runLayerAction(encoded("unprecompose-selected")))).toMatchObject({
+    expect(JSON.parse(runLayerAction(encoded("unprecompose-selected", "none", languageId)))).toMatchObject({
       ok: true,
       createdLayers: 2
     });

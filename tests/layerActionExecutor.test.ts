@@ -38,6 +38,25 @@ function createRecorder(result: LayerHostActionResult = {
 }
 
 describe("layer action executor", () => {
+  it("keeps the Host compatibility notice in the shared Action result", async () => {
+    const { executor } = createRecorder({ ok: true, createdLayers: 1, updatedLayers: 0, createdItems: 0, notice: "shape-controls-english" } as LayerHostActionResult);
+    const shape = LAYER_ACTION_DEFINITIONS.find(definition => definition.id === "layer.createShape")!;
+    expect(await executor(shape, context, { languageId: "ja" })).toMatchObject({
+      success: true, data: { notice: "shape-controls-english" }
+    });
+  });
+  it("forwards the selected panel language through the shared executor", async () => {
+    let receivedOptions: unknown;
+    const executor = createCepHostExecutor(undefined, undefined, undefined, {
+      runLayerAction: async (_action, _modifier, ...options: unknown[]) => {
+        receivedOptions = options[0];
+        return { ok: true, createdLayers: 1, updatedLayers: 0, createdItems: 0 };
+      }
+    });
+    await executor(textDefinition, context, { languageId: "ja" });
+    expect(receivedOptions).toEqual({ languageId: "ja" });
+  });
+
   it("defaults missing modifiers to none and preserves success counts", async () => {
     const { calls, executor } = createRecorder({
       ok: true,

@@ -369,8 +369,8 @@ describe("GlobalSearchProvider", () => {
       await act(async () => { await value.executeItem(item!); });
     }
     expect(runs).toEqual([
-      { actionId: "layer.precomposeSelected", options: undefined },
-      { actionId: "layer.unprecomposeSelected", options: undefined }
+      { actionId: "layer.precomposeSelected", options: { languageId: "zh-CN" } },
+      { actionId: "layer.unprecomposeSelected", options: { languageId: "zh-CN" } }
     ]);
   });
 });

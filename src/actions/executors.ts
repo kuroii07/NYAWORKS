@@ -23,6 +23,7 @@ import {
   isLayerAction,
   isLayerActionModifier
 } from "./layerActionTypes";
+import { resolveLayerLanguage } from "../layers/layerLanguage";
 
 export function createInternalExecutor(
   handlers: Readonly<Record<string, ActionExecutor>>
@@ -172,7 +173,10 @@ export function createCepHostExecutor(
 
       const result = await layerBridge.runLayerAction(
         action,
-        modifier
+        modifier,
+        runOptions?.languageId === undefined
+          ? undefined
+          : { languageId: resolveLayerLanguage(runOptions.languageId) }
       );
       if (result.ok) {
         return {
@@ -181,7 +185,8 @@ export function createCepHostExecutor(
           data: {
             createdLayers: result.createdLayers,
             updatedLayers: result.updatedLayers,
-            createdItems: result.createdItems
+            createdItems: result.createdItems,
+            ...(result.notice ? { notice: result.notice } : {})
           }
         };
       }

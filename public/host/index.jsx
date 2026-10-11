@@ -1232,10 +1232,41 @@
 
   function decodeLayerActionPayload(encodedPayload) {
     try {
-      return JSON.parse(decodeURIComponent(encodedPayload || ""));
+      var payload = JSON.parse(decodeURIComponent(encodedPayload || ""));
+      if (payload && typeof payload === "object") {
+        payload.languageId = resolveLayerLanguage(payload.languageId);
+      }
+      return payload;
     } catch (error) {
       return null;
     }
+  }
+
+  function resolveLayerLanguage(languageId) {
+    if (languageId === "zh-CN" || languageId === "zh-TW" ||
+        languageId === "en" || languageId === "ja" || languageId === "ko") {
+      return languageId;
+    }
+    return "zh-CN";
+  }
+
+  function getLayerDisplayName(objectId, languageId) {
+    // ES3 runtime mirror of src/layers/layerDisplayNames.ts. Contract tests
+    // compare every entry so the two runtime formats cannot silently diverge.
+    var names = {
+      text: { "zh-CN": "text", "zh-TW": "text", en: "text", ja: "text", ko: "text" },
+      solid: { "zh-CN": "Nya 纯色", "zh-TW": "Nya 純色", en: "Nya Solid", ja: "Nya 平面", ko: "Nya 단색" },
+      shape: { "zh-CN": "Nya 圆角矩形", "zh-TW": "Nya 圓角矩形", en: "Nya Rounded Rectangle", ja: "Nya 角丸長方形", ko: "Nya 둥근 사각형" },
+      adjustment: { "zh-CN": "Nya 调整层", "zh-TW": "Nya 調整圖層", en: "Nya Adjustment", ja: "Nya 調整レイヤー", ko: "Nya 조정 레이어" },
+      "null": { "zh-CN": "Nya 控制", "zh-TW": "Nya 控制", en: "Nya Control", ja: "Nya コントロール", ko: "Nya 컨트롤" },
+      camera: { "zh-CN": "Nya 摄像机", "zh-TW": "Nya 攝影機", en: "Nya Camera", ja: "Nya カメラ", ko: "Nya 카메라" },
+      cameraController: { "zh-CN": "Nya 摄像机控制", "zh-TW": "Nya 攝影機控制", en: "Nya Camera Control", ja: "Nya カメラコントロール", ko: "Nya 카메라 컨트롤" },
+      light: { "zh-CN": "Nya 灯光", "zh-TW": "Nya 燈光", en: "Nya Light", ja: "Nya ライト", ko: "Nya 조명" },
+      precompose: { "zh-CN": "Precomp", "zh-TW": "預合成", en: "Precomp", ja: "プリコンポーズ", ko: "사전 구성" },
+      unprecompose: { "zh-CN": "解预合成", "zh-TW": "解預合成", en: "Unprecompose", ja: "プリコンポーズを解除", ko: "사전 구성 해제" }
+    };
+    if (!names.hasOwnProperty(objectId)) throw new Error("unknown-layer-object");
+    return names[objectId][resolveLayerLanguage(languageId)];
   }
 
   function getLayerCreationContext() {
@@ -1646,7 +1677,7 @@
     height = comp.height;
     var layer = comp.layers.addSolid(
       [0, 0, 0],
-      uniqueLayerName(comp, "Nya 纯色", null),
+      uniqueLayerName(comp, getLayerDisplayName("solid", context.languageId), null),
       width,
       height,
       comp.pixelAspect,
@@ -1739,6 +1770,38 @@
   }
 
   function getPseudoEffectTemplateContract(templateId) {
+    var parts = typeof templateId === "string" ? templateId.split("/") : [];
+    if (parts.length !== 3 ||
+        !pseudoEffectArrayContains(["zh-CN", "en", "zh-TW", "ja", "ko"], parts[2])) {
+      throw new Error("pseudo-template-not-allowed");
+    }
+    // The Chinese whitelist owns the frozen shape/version/parameter contract.
+    // New locales acquire independent identities without replacing that baseline.
+    var contract = getChinesePseudoEffectTemplateContract(parts[0] + "/" + parts[1] + "/zh-CN");
+    var names = {
+      "shape.roundedRectangle": { "zh-CN": "Nya 圆角矩形", en: "Nya Rounded Rectangle", "zh-TW": "Nya 圓角矩形", ja: "Nya 角丸長方形", ko: "Nya 둥근 사각형" },
+      "shape.circle": { "zh-CN": "Nya 圆", en: "Nya Circle", "zh-TW": "Nya 圓", ja: "Nya 円", ko: "Nya 원" },
+      "shape.triangle": { "zh-CN": "Nya 三角形", en: "Nya Triangle", "zh-TW": "Nya 三角形", ja: "Nya 三角形", ko: "Nya 삼각형" },
+      "shape.star": { "zh-CN": "Nya 星形", en: "Nya Star", "zh-TW": "Nya 星形", ja: "Nya 星形", ko: "Nya 별" }
+    };
+    contract.templateId = templateId;
+    contract.effectId = parts[0];
+    contract.schemaVersion = Number(parts[1].substring(1));
+    contract.locale = parts[2];
+    contract.layerDisplayName = names[parts[0]][parts[2]];
+    contract.usesEnglishControls = parts[2] === "ja" || parts[2] === "ko";
+    if (parts[2] === "en" || contract.usesEnglishControls) {
+      contract.file = "en/" + contract.file.replace(/-zh-CN\.ffx$/, ".ffx");
+      // r2 avoids the already loaded candidate definition with mixed labels.
+      contract.matchName = contract.matchName.replace(/zhCN$/, "en_r2");
+    } else if (parts[2] === "zh-TW") {
+      contract.file = "zh-TW/" + contract.file.replace(/-zh-CN\.ffx$/, ".ffx");
+      contract.matchName = contract.matchName.replace(/zhCN$/, "zhTW");
+    }
+    return contract;
+  }
+
+  function getChinesePseudoEffectTemplateContract(templateId) {
     if (templateId === "shape.star/v2/zh-CN") {
       return {
         templateId: templateId,
@@ -1833,9 +1896,23 @@
         definition.marker.index !== contract.marker.index ||
         definition.marker.name !== contract.marker.name ||
         !mapping ||
-        contract.file.indexOf("/") !== -1 ||
+        contract.file.indexOf("..") !== -1 ||
         contract.file.indexOf("\\") !== -1 ||
         contract.file.indexOf(":") !== -1) {
+      throw new Error("pseudo-template-invalid");
+    }
+    if (contract.locale !== "zh-CN" &&
+        (definition.effectId !== contract.effectId ||
+         definition.schemaVersion !== contract.schemaVersion ||
+         definition.locale !== contract.locale ||
+         definition.displayName !== contract.layerDisplayName ||
+         !definition.validation ||
+         !pseudoEffectArrayContains(["candidate", "ready"], definition.validation.status))) {
+      throw new Error("pseudo-template-invalid");
+    }
+    if (contract.usesEnglishControls &&
+        (definition.controlLocale !== "en" ||
+         definition.sourceTemplateId !== contract.templateId.replace(/\/(ja|ko)$/, "/en"))) {
       throw new Error("pseudo-template-invalid");
     }
     for (index = 0; index < contract.parameterIds.length; index += 1) {
@@ -1885,8 +1962,10 @@
     var catalog;
     var file;
     if (!catalogFile.exists) {
+      if (contract.locale !== "zh-CN") throw new Error("pseudo-template-locale-unavailable: " + contract.locale);
       throw new Error("pseudo-catalog-missing: " + catalogFile.fsName);
     }
+    catalogFile.encoding = "UTF-8";
     if (!catalogFile.open("r")) {
       throw new Error(
         "pseudo-catalog-unreadable: " + catalogFile.fsName +
@@ -1903,9 +1982,15 @@
       catalogFile.close();
     }
     template = catalog.templates && catalog.templates[templateId];
+    if (!template && contract.locale !== "zh-CN") {
+      throw new Error("pseudo-template-locale-unavailable: " + contract.locale);
+    }
     validatePseudoEffectDefinition(template, contract);
     file = new File(root + contract.file);
-    if (!file.exists) throw new Error("pseudo-template-missing");
+    if (!file.exists) {
+      if (contract.locale !== "zh-CN") throw new Error("pseudo-template-locale-unavailable: " + contract.locale);
+      throw new Error("pseudo-template-missing");
+    }
     return {
       file: file,
       definition: template,
@@ -2012,6 +2097,12 @@
       effect = effects.property(before + 1);
       captureShapePseudoEffect("after-apply-before-validation", effect);
       validatePseudoEffectInstance(effect, template);
+      if (template.contract.usesEnglishControls) {
+        // Only this newly added instance is renamed; cached definitions and
+        // existing effects are never changed. Expressions read the actual name.
+        effect.name = template.contract.layerDisplayName;
+        if (effect.name !== template.contract.layerDisplayName) throw new Error("pseudo-effect-name-mismatch");
+      }
       captureShapePseudoEffect("after-validation", effect);
       return effect;
     } catch (error) {
@@ -2047,7 +2138,7 @@
   }
 
   function createRoundedRectangleShape(layer, contents, context, template) {
-    if (!template || template.templateId !== "shape.roundedRectangle/v7/zh-CN") {
+    if (!template || template.contract.effectId !== "shape.roundedRectangle" || template.contract.schemaVersion !== 7) {
       throw new Error("pseudo-template-shape-mismatch: rounded-rectangle");
     }
     var path = contents.addProperty("ADBE Vector Shape - Group");
@@ -2063,7 +2154,7 @@
     var strokeColor;
     var strokeOpacity;
     var strokeWidth;
-    path.name = "Nya 圆角矩形";
+    path.name = template.contract.layerDisplayName;
     pseudoEffect = applyPseudoEffectTemplate(layer, context, template);
     captureShapePseudoEffect("before-path-expression", pseudoEffect);
     effectReference = "effect(" + JSON.stringify(pseudoEffect.name) + ")";
@@ -2127,7 +2218,7 @@
   }
 
   function createEllipseShape(layer, contents, context, template) {
-    if (!template || template.templateId !== "shape.circle/v3/zh-CN") {
+    if (!template || template.contract.effectId !== "shape.circle" || template.contract.schemaVersion !== 3) {
       throw new Error("pseudo-template-shape-mismatch: circle");
     }
     var ellipse = contents.addProperty("ADBE Vector Shape - Ellipse");
@@ -2141,9 +2232,13 @@
     var strokeColor;
     var strokeOpacity;
     var strokeWidth;
-    ellipse.name = "Nya 圆";
-    applyPseudoEffectTemplate(layer, context, template);
-    setShapeExpression(size, 'r=Math.max(0,effect("Nya 圆形")(1));[r*2,r*2]');
+    var pseudoEffect;
+    var effectReference;
+    ellipse.name = template.contract.layerDisplayName;
+    pseudoEffect = applyPseudoEffectTemplate(layer, context, template);
+    effectReference = "effect(" + JSON.stringify(pseudoEffect.name) + ")";
+    if (lastShapePseudoTrace) lastShapePseudoTrace.effectReference = effectReference;
+    setShapeExpression(size, 'r=Math.max(0,' + effectReference + '(1));[r*2,r*2]');
     if (!size || size.expressionError) throw new Error("pseudo-expression-invalid");
 
     stroke = contents.addProperty("ADBE Vector Graphic - Stroke");
@@ -2160,11 +2255,11 @@
     if (!fillColor || !fillOpacity || !strokeColor || !strokeOpacity || !strokeWidth) {
       throw new Error("pseudo-style-properties-unavailable");
     }
-    setShapeExpression(fillOpacity, 'effect("Nya 圆形")(3)>0?100:0');
-    setShapeExpression(fillColor, 'effect("Nya 圆形")(4)');
-    setShapeExpression(strokeOpacity, 'effect("Nya 圆形")(5)>0?100:0');
-    setShapeExpression(strokeColor, 'effect("Nya 圆形")(6)');
-    setShapeExpression(strokeWidth, 'Math.max(0,effect("Nya 圆形")(7))');
+    setShapeExpression(fillOpacity, effectReference + '(3)>0?100:0');
+    setShapeExpression(fillColor, effectReference + '(4)');
+    setShapeExpression(strokeOpacity, effectReference + '(5)>0?100:0');
+    setShapeExpression(strokeColor, effectReference + '(6)');
+    setShapeExpression(strokeWidth, 'Math.max(0,' + effectReference + '(7))');
     if (fillOpacity.expressionError || fillColor.expressionError ||
         strokeOpacity.expressionError || strokeColor.expressionError ||
         strokeWidth.expressionError) {
@@ -2201,9 +2296,10 @@
   }
 
   function createPolygonShape(layer, contents, isStar, context, template) {
-    var expectedTemplateId = "shape.triangle/v1/zh-CN";
-    if (isStar) expectedTemplateId = "shape.star/v2/zh-CN";
-    if (!template || template.templateId !== expectedTemplateId) {
+    var expectedEffectId = "shape.triangle";
+    var expectedVersion = 1;
+    if (isStar) { expectedEffectId = "shape.star"; expectedVersion = 2; }
+    if (!template || template.contract.effectId !== expectedEffectId || template.contract.schemaVersion !== expectedVersion) {
       throw new Error("pseudo-template-shape-mismatch: " + (isStar ? "star" : "triangle"));
     }
     var star = contents.addProperty("ADBE Vector Shape - Star");
@@ -2219,7 +2315,7 @@
     var effectReference;
     var parameters;
     var minimumPoints = 3;
-    star.name = isStar ? "Nya 星形" : "Nya 三角形";
+    star.name = template.contract.layerDisplayName;
     if (!type || !points || !outerRadius || !rotation || !outerRoundness) {
       throw new Error("pseudo-geometry-properties-unavailable");
     }
@@ -2255,14 +2351,15 @@
     // AE's ExtendScript evaluates an unparenthesized chained conditional
     // differently from V8. Use explicit branches to keep ordinary clicks on v7.
     var templateId = null;
+    var languageId = resolveLayerLanguage(context.languageId);
     if (modifier === "none") {
-      templateId = "shape.roundedRectangle/v7/zh-CN";
+      templateId = "shape.roundedRectangle/v7/" + languageId;
     } else if (modifier === "alt") {
-      templateId = "shape.circle/v3/zh-CN";
+      templateId = "shape.circle/v3/" + languageId;
     } else if (modifier === "ctrl") {
-      templateId = "shape.triangle/v1/zh-CN";
+      templateId = "shape.triangle/v1/" + languageId;
     } else if (modifier === "shift") {
-      templateId = "shape.star/v2/zh-CN";
+      templateId = "shape.star/v2/" + languageId;
     }
     var template = templateId ? preflightPseudoEffectTemplate(extensionRoot, templateId) : null;
     lastShapePseudoTrace = template ? {
@@ -2275,17 +2372,11 @@
     var root;
     var group;
     var contents;
-    var names = {
-      none: "Nya 圆角矩形",
-      alt: "Nya 圆",
-      ctrl: "Nya 三角形",
-      shift: "Nya 星形"
-    };
     try {
       root = layer.property("ADBE Root Vectors Group");
       group = root.addProperty("ADBE Vector Group");
       contents = group.property("ADBE Vectors Group");
-      layer.name = uniqueLayerName(context.comp, names[modifier] || names.none, layer);
+      layer.name = uniqueLayerName(context.comp, template.contract.layerDisplayName, layer);
       group.name = layer.name;
       if (modifier === "alt") {
         createEllipseShape(layer, contents, context, template);
@@ -2297,7 +2388,9 @@
         createRoundedRectangleShape(layer, contents, context, template);
       }
       setLayerCentered(layer, context.comp, [0, 0]);
-      return finishCreatedLayer(layer, context);
+      var result = finishCreatedLayer(layer, context);
+      if (template.contract.usesEnglishControls) result.notice = "shape-controls-english";
+      return result;
     } catch (error) {
       var tracePath = writeShapePseudoTrace(error);
       try { layer.remove(); } catch (ignoreCleanup) {}
@@ -2313,7 +2406,7 @@
     var comp = context.comp;
     var layer = comp.layers.addSolid(
       [1, 1, 1],
-      uniqueLayerName(comp, "Nya 调整层", null),
+      uniqueLayerName(comp, getLayerDisplayName("adjustment", context.languageId), null),
       comp.width,
       comp.height,
       comp.pixelAspect,
@@ -2378,7 +2471,7 @@
     var layer = context.comp.layers.addNull(context.comp.duration);
     var anchor = [Number(layer.width || 100) / 2, Number(layer.height || 100) / 2];
     var targetPosition = [position[0], position[1]];
-    layer.name = uniqueLayerName(context.comp, name || "Nya 控制", layer);
+    layer.name = uniqueLayerName(context.comp, name || getLayerDisplayName("null", context.languageId), layer);
     layer.guideLayer = true;
     layer.threeDLayer = !!isThreeD;
     if (isThreeD) {
@@ -2424,7 +2517,7 @@
           insertionIndex: Number(target.index),
           insertionLayer: target
         };
-        controller = createGuideNull(targetContext, position, !!target.threeDLayer, "Nya 控制");
+        controller = createGuideNull(targetContext, position, !!target.threeDLayer, getLayerDisplayName("null", context.languageId));
         placeLayerAboveSelection(controller, targetContext);
         target.parent = controller;
         controllers.push(controller);
@@ -2434,7 +2527,7 @@
         if (context.selection[index].threeDLayer) isThreeD = true;
       }
       position = averageControllerPosition(context.selection, context.comp);
-      controller = createGuideNull(context, position, isThreeD, "Nya 控制");
+      controller = createGuideNull(context, position, isThreeD, getLayerDisplayName("null", context.languageId));
       placeLayerAboveSelection(controller, context);
       for (index = 0; index < context.selection.length; index += 1) {
         context.selection[index].parent = controller;
@@ -2533,10 +2626,10 @@
       ]);
       if (!commandId) return { ok: false, reason: "host-error", detail: "camera-settings-unavailable" };
     }
-    camera = comp.layers.addCamera(uniqueLayerName(comp, "Nya 摄像机", null), [center[0], center[1]]);
+    camera = comp.layers.addCamera(uniqueLayerName(comp, getLayerDisplayName("camera", context.languageId), null), [center[0], center[1]]);
     setCamera35mm(camera, comp);
     applyLayerTiming(camera, context);
-    controller = createGuideNull(context, center, true, "Nya 摄像机控制");
+    controller = createGuideNull(context, center, true, getLayerDisplayName("cameraController", context.languageId));
     addCameraControllerControls(controller, center);
     camera.parent = controller;
     // Parent 后重新写入局部坐标，确保控制器位于合成中心时摄像机仍在
@@ -2743,7 +2836,7 @@
       if (Number(selection[index].index) < Number(topLayer.index)) topLayer = selection[index];
     }
     indices = selectedLayerIndices(selection);
-    name = uniqueProjectItemName(String(topLayer.name || "Layer") + " Precomp");
+    name = uniqueProjectItemName(String(topLayer.name || "Layer") + " " + getLayerDisplayName("precompose", context.languageId));
     source = context.comp.layers.precompose(indices, name, true);
     layer = findLayerForSource(context.comp, source);
     if (!layer) return { ok: false, reason: "host-error", detail: "precomp-layer-not-found" };
@@ -3104,7 +3197,7 @@
   function createLightLayer(context, modifier) {
     var comp = context.comp;
     var center = [comp.width / 2, comp.height / 2, 0];
-    var layer = comp.layers.addLight(uniqueLayerName(comp, "Nya 灯光", null), [center[0], center[1]]);
+    var layer = comp.layers.addLight(uniqueLayerName(comp, getLayerDisplayName("light", context.languageId), null), [center[0], center[1]]);
     var lightTypes = {
       none: LightType.POINT,
       alt: LightType.SPOT,
@@ -3149,6 +3242,7 @@
     }
     context = getLayerCreationContext();
     if (!context) return JSON.stringify({ ok: false, reason: "no-active-comp" });
+    context.languageId = payload.languageId;
     if ((action === "precompose-selected" || action === "unprecompose-selected") && context.selection.length === 0) {
       return JSON.stringify({ ok: false, reason: "no-selected-layer" });
     }
@@ -3162,7 +3256,7 @@
       );
       undoStarted = true;
       if (action === "create-text") {
-        result = createTextLayer(context, "text");
+        result = createTextLayer(context, getLayerDisplayName("text", context.languageId));
       } else if (action === "create-solid") {
         result = createSolidLayer(context, modifier);
       } else if (action === "create-shape") {

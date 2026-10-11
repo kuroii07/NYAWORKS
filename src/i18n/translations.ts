@@ -133,6 +133,10 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         precompose: { none: "匹配选层时长", alt: "裁切图层边界", settings: "合成设置" }
       },
       layerFeedback: {
+        pseudoTemplateLocaleUnavailable: "当前语言的形状模板尚未就绪，请切换到简体中文或 English 后再创建",
+        pseudoTemplateMissing: "形状模板缺失，请重新安装或刷新 NYAWORKS 扩展",
+        pseudoEffectFallback: "已使用兼容的简体中文形状模板",
+        shapeControlsEnglish: "形状已按所选语言创建；为保证兼容，效果参数使用英文。",
         noActiveComp: "请先打开一个 AE 合成",
         noSelectedLayer: "请先选择至少一个图层",
         invalidSelection: "当前图层选择不符合此操作要求",
@@ -672,6 +676,10 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         precompose: { none: "符合選層時長", alt: "裁切圖層邊界", settings: "合成設定" }
       },
       layerFeedback: {
+        pseudoTemplateLocaleUnavailable: "目前語言的形狀範本尚未就緒，請切換至簡體中文或 English 後再建立",
+        pseudoTemplateMissing: "形狀範本缺失，請重新安裝或重新載入 NYAWORKS 擴充功能",
+        pseudoEffectFallback: "已使用相容的簡體中文形狀範本",
+        shapeControlsEnglish: "形狀已依所選語言建立；為確保相容，效果參數使用英文。",
         noActiveComp: "請先開啟 AE 合成",
         noSelectedLayer: "請先選取至少一個圖層",
         invalidSelection: "目前圖層選取不符合此操作要求",
@@ -1205,6 +1213,10 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         precompose: { none: "Fit selected duration", alt: "Crop layer bounds", settings: "Comp settings" }
       },
       layerFeedback: {
+        pseudoTemplateLocaleUnavailable: "Shape templates are not ready for this language. Switch to Simplified Chinese or English to create a shape.",
+        pseudoTemplateMissing: "A shape template is missing. Reinstall or reload the NYAWORKS extension.",
+        pseudoEffectFallback: "A compatible Simplified Chinese shape template was used.",
+        shapeControlsEnglish: "Shape created in the selected language. Effect controls use English for compatibility.",
         noActiveComp: "Open an After Effects composition first",
         noSelectedLayer: "Select at least one layer first",
         invalidSelection: "The current layer selection is not valid for this action",
@@ -1739,6 +1751,10 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         precompose: { none: "選択範囲の尺", alt: "レイヤー境界で切り抜く", settings: "コンポ設定" }
       },
       layerFeedback: {
+        pseudoTemplateLocaleUnavailable: "この言語のシェイプテンプレートは準備中です。簡体字中国語または English に切り替えて作成してください。",
+        pseudoTemplateMissing: "シェイプテンプレートが見つかりません。NYAWORKS を再インストールするか、再読み込みしてください。",
+        pseudoEffectFallback: "互換性のある簡体字中国語のシェイプテンプレートを使用しました。",
+        shapeControlsEnglish: "選択した言語でシェイプを作成しました。互換性を保つため、エフェクトのパラメーターは英語で表示されます。",
         noActiveComp: "先に After Effects のコンポジションを開いてください",
         noSelectedLayer: "先にレイヤーを1つ以上選択してください",
         invalidSelection: "現在のレイヤー選択ではこの操作を実行できません",
@@ -2272,6 +2288,10 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         precompose: { none: "선택 구간 길이", alt: "레이어 경계 자르기", settings: "컴포지션 설정" }
       },
       layerFeedback: {
+        pseudoTemplateLocaleUnavailable: "이 언어의 모양 템플릿은 아직 준비되지 않았습니다. 중국어 간체 또는 English로 전환한 후 만드세요.",
+        pseudoTemplateMissing: "모양 템플릿이 없습니다. NYAWORKS 확장을 다시 설치하거나 새로고침하세요.",
+        pseudoEffectFallback: "호환되는 중국어 간체 모양 템플릿을 사용했습니다.",
+        shapeControlsEnglish: "선택한 언어로 모양을 만들었습니다. 호환성을 위해 효과 매개변수는 영어로 표시됩니다.",
         noActiveComp: "먼저 After Effects 컴포지션을 여세요",
         noSelectedLayer: "먼저 하나 이상의 레이어를 선택하세요",
         invalidSelection: "현재 레이어 선택으로는 이 작업을 실행할 수 없습니다",

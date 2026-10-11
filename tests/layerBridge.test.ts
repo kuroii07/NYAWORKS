@@ -2,6 +2,14 @@ import { describe, expect, it } from "vitest";
 import { createLayerHostBridge } from "../src/host/layerBridge";
 
 describe("layer host bridge", () => {
+  it("retains the explicit English-controls compatibility notice", async () => {
+    const bridge = createLayerHostBridge({ __adobe_cep__: {
+      getSystemPath: () => "file:///C:/NYAWORKS",
+      evalScript: (_script, callback) => callback(JSON.stringify({ ok: true, createdLayers: 1, notice: "shape-controls-english" }))
+    } });
+    expect(await bridge.runLayerAction("create-shape", "none", { languageId: "ko" }))
+      .toMatchObject({ ok: true, notice: "shape-controls-english" });
+  });
   it("encodes the action and modifier before calling the AE host", async () => {
     let received = "";
     const bridge = createLayerHostBridge({

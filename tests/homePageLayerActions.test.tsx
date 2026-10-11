@@ -5,10 +5,14 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ActionServiceProvider } from "../src/actions/ActionServiceProvider";
 import type { ActionRunOptions } from "../src/actions/types";
-import { LanguageProvider } from "../src/i18n/LanguageProvider";
+import { LanguageProvider, useLanguage } from "../src/i18n/LanguageProvider";
 import { HomePage } from "../src/pages/HomePage";
 import { SettingsProvider } from "../src/settings/SettingsProvider";
 import { TEXT_LAYER_EDITOR_EXTENSION_ID } from "../src/textLayerEditor/cepLauncher";
+import { LANGUAGE_IDS, type LanguageId } from "../src/i18n/languages";
+import { LANGUAGE_STORAGE_KEY } from "../src/i18n/languageStorage";
+import { UI_COPY } from "../src/i18n/translations";
+import { ToastProvider } from "../src/notifications/ToastProvider";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
@@ -22,26 +26,35 @@ class MemoryStorage {
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 
-async function renderGrid(runs: Array<{ actionId: string; options?: ActionRunOptions }>) {
+function LanguageSwitch() {
+  const { setLanguage } = useLanguage();
+  return <button data-test-language onClick={() => setLanguage("en")}>English</button>;
+}
+
+async function renderGrid(runs: Array<{ actionId: string; options?: ActionRunOptions }>, language: LanguageId = "zh-CN", notice?: string) {
   Object.defineProperty(window, "localStorage", {
     configurable: true,
     value: new MemoryStorage()
   });
+  window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
   await act(async () => {
     root?.render(
       <LanguageProvider>
+        <LanguageSwitch />
         <SettingsProvider>
+          <ToastProvider>
           <ActionServiceProvider service={{
             run: async (actionId, options) => {
               runs.push({ actionId, options });
-              return { success: true, message: "ok" };
+              return { success: true, message: "ok", ...(notice ? { data: { notice } } : {}) };
             }
           }}>
             <HomePage />
           </ActionServiceProvider>
+          </ToastProvider>
         </SettingsProvider>
       </LanguageProvider>
     );
@@ -61,6 +74,29 @@ afterEach(() => {
 });
 
 describe("HomePage layer actions", () => {
+  it.each(["ja", "ko"] as const)("shows the explicit %s English-controls notice after a successful creation", async language => {
+    const buttons = await renderGrid([], language, "shape-controls-english");
+    await act(async () => buttons[2].click());
+    expect(container?.querySelector(".toast-item__message")).not.toBeNull();
+    expect(container?.querySelector(".toast-item__message")?.textContent).toBe(UI_COPY[language].home.layerFeedback.shapeControlsEnglish);
+  });
+  it.each(LANGUAGE_IDS)("preserves the full %s shape label and modifier tooltip", async language => {
+    const buttons = await renderGrid([], language);
+    expect(buttons[2].getAttribute("aria-label")).toBe(UI_COPY[language].home.toolLabels.shapeLayer);
+    expect(buttons[2].getAttribute("title")).toBe(UI_COPY[language].home.layerActionTooltips.shapeLayer);
+  });
+  it("uses the current panel language on subsequent ordinary calls without running actions on language change", async () => {
+    const runs: Array<{ actionId: string; options?: ActionRunOptions }> = [];
+    const buttons = await renderGrid(runs);
+    await act(async () => container?.querySelector<HTMLButtonElement>("[data-test-language]")?.click());
+    expect(runs).toEqual([]);
+    await act(async () => buttons[3].click());
+    await act(async () => buttons[2].click());
+    expect(runs).toEqual([
+      { actionId: "layer.createAdjustment", options: { layerModifier: "none", languageId: "en" } },
+      { actionId: "layer.createShape", options: { layerModifier: "none", languageId: "en" } }
+    ]);
+  });
   it("renders and routes the nine implemented actions in product order", async () => {
     const runs: Array<{ actionId: string; options?: ActionRunOptions }> = [];
     const buttons = await renderGrid(runs);
@@ -69,15 +105,15 @@ describe("HomePage layer actions", () => {
       await act(async () => button.click());
     }
     expect(runs).toEqual([
-      { actionId: "layer.createText", options: { layerModifier: "none" } },
-      { actionId: "layer.createSolid", options: { layerModifier: "none" } },
-      { actionId: "layer.createShape", options: { layerModifier: "none" } },
-      { actionId: "layer.createAdjustment", options: { layerModifier: "none" } },
-      { actionId: "layer.createNull", options: { layerModifier: "none" } },
-      { actionId: "layer.createCameraRig", options: { layerModifier: "none" } },
-      { actionId: "layer.createLight", options: { layerModifier: "none" } },
-      { actionId: "layer.precomposeSelected", options: { layerModifier: "none" } },
-      { actionId: "layer.unprecomposeSelected", options: { layerModifier: "none" } }
+      { actionId: "layer.createText", options: { layerModifier: "none", languageId: "zh-CN" } },
+      { actionId: "layer.createSolid", options: { layerModifier: "none", languageId: "zh-CN" } },
+      { actionId: "layer.createShape", options: { layerModifier: "none", languageId: "zh-CN" } },
+      { actionId: "layer.createAdjustment", options: { layerModifier: "none", languageId: "zh-CN" } },
+      { actionId: "layer.createNull", options: { layerModifier: "none", languageId: "zh-CN" } },
+      { actionId: "layer.createCameraRig", options: { layerModifier: "none", languageId: "zh-CN" } },
+      { actionId: "layer.createLight", options: { layerModifier: "none", languageId: "zh-CN" } },
+      { actionId: "layer.precomposeSelected", options: { layerModifier: "none", languageId: "zh-CN" } },
+      { actionId: "layer.unprecomposeSelected", options: { layerModifier: "none", languageId: "zh-CN" } }
     ]);
   });
 
@@ -95,9 +131,9 @@ describe("HomePage layer actions", () => {
       buttons[0].dispatchEvent(new MouseEvent("click", { bubbles: true, altKey: true }));
     });
     expect(runs).toEqual([
-      { actionId: "layer.createShape", options: { layerModifier: "alt" } },
-      { actionId: "layer.createLight", options: { layerModifier: "ctrl" } },
-      { actionId: "layer.createNull", options: { layerModifier: "shift" } }
+      { actionId: "layer.createShape", options: { layerModifier: "alt", languageId: "zh-CN" } },
+      { actionId: "layer.createLight", options: { layerModifier: "ctrl", languageId: "zh-CN" } },
+      { actionId: "layer.createNull", options: { layerModifier: "shift", languageId: "zh-CN" } }
     ]);
     expect(requestOpenExtension).toHaveBeenCalledWith(
       TEXT_LAYER_EDITOR_EXTENSION_ID,
@@ -129,9 +165,9 @@ describe("HomePage layer actions", () => {
       }));
     });
     expect(runs).toEqual([
-      { actionId: "layer.createShape", options: { layerModifier: "none" } },
-      { actionId: "layer.createCameraRig", options: { layerModifier: "none" } },
-      { actionId: "layer.precomposeSelected", options: { layerModifier: "settings" } }
+      { actionId: "layer.createShape", options: { layerModifier: "none", languageId: "zh-CN" } },
+      { actionId: "layer.createCameraRig", options: { layerModifier: "none", languageId: "zh-CN" } },
+      { actionId: "layer.precomposeSelected", options: { layerModifier: "settings", languageId: "zh-CN" } }
     ]);
     expect(document.querySelector(".compact-action-menu")).toBe(null);
   });

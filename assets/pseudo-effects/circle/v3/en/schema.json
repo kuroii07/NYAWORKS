@@ -1,0 +1,64 @@
+{
+  "templateId": "shape.circle/v3/en",
+  "matchName": "Pseudo/NYA_Circle_v3_en_r2",
+  "displayName": "Nya Circle",
+  "styleGroup": "Nya Style",
+  "marker": "__NYA_CIRCLE_V3__",
+  "parameters": [
+    {
+      "id": "radius",
+      "label": "Nya Radius",
+      "type": "slider",
+      "defaultValue": 250,
+      "sliderMin": 0,
+      "sliderMax": 3000,
+      "validMin": 0,
+      "validMax": 5000
+    },
+    {
+      "id": "fillEnabled",
+      "label": "Nya Enable Fill",
+      "type": "checkbox",
+      "defaultValue": 1
+    },
+    {
+      "id": "fillColor",
+      "label": "Nya Fill Color",
+      "type": "color",
+      "defaultValue": [
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "strokeEnabled",
+      "label": "Nya Enable Stroke",
+      "type": "checkbox",
+      "defaultValue": 0
+    },
+    {
+      "id": "strokeColor",
+      "label": "Nya Stroke Color",
+      "type": "color",
+      "defaultValue": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "strokeWidth",
+      "label": "Nya Stroke Width",
+      "type": "slider",
+      "defaultValue": 5,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "validMin": 0,
+      "validMax": 1000
+    }
+  ],
+  "definitionRevision": 2
+}

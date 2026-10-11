@@ -19,7 +19,7 @@ export type GlobalSearchHostAction =
   | { action: "add-effect"; matchName: string };
 
 export type GlobalSearchActionResult =
-  | { ok: true }
+  | { ok: true; data?: unknown }
   | { ok: false; reason: string; detail?: string };
 
 export interface GlobalSearchHostBridge {

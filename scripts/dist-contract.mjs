@@ -8,6 +8,14 @@ export const REQUIRED_DIST_FILES = [
   "dist/host/pseudo-effects/circle-zh-CN.ffx",
   "dist/host/pseudo-effects/triangle-zh-CN.ffx",
   "dist/host/pseudo-effects/star-zh-CN.ffx",
+  "dist/host/pseudo-effects/en/rounded-rectangle.ffx",
+  "dist/host/pseudo-effects/en/circle.ffx",
+  "dist/host/pseudo-effects/en/triangle.ffx",
+  "dist/host/pseudo-effects/en/star.ffx",
+  "dist/host/pseudo-effects/zh-TW/rounded-rectangle.ffx",
+  "dist/host/pseudo-effects/zh-TW/circle.ffx",
+  "dist/host/pseudo-effects/zh-TW/triangle.ffx",
+  "dist/host/pseudo-effects/zh-TW/star.ffx",
   "dist/assets/brand/nyaworks-cat.png"
 ];
 

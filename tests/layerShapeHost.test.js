@@ -1,5 +1,6 @@
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import ts from "typescript";
 
 async function loadLayerHost(app) {
@@ -8,10 +9,11 @@ async function loadLayerHost(app) {
   function TestFile(path) {
     this.fsName = path;
     this.exists = !app.missingPreset &&
+      !(app.missingLocalePreset && /\/(en|zh-TW)\//.test(path)) &&
       !(app.missingCirclePreset && path.endsWith("/circle-zh-CN.ffx")) &&
       !(app.missingTrianglePreset && path.endsWith("/triangle-zh-CN.ffx")) &&
       !(app.missingStarPreset && path.endsWith("/star-zh-CN.ffx")) &&
-      /^C:\/CEP\/NYAWORKS\/host\/pseudo-effects\/(catalog\.json|rounded-rectangle-zh-CN\.ffx|circle-zh-CN\.ffx|triangle-zh-CN\.ffx|star-zh-CN\.ffx)$/.test(path);
+      /^C:\/CEP\/NYAWORKS\/host\/pseudo-effects\/(catalog\.json|(rounded-rectangle|circle|triangle|star)-zh-CN\.ffx|(en|zh-TW)\/(rounded-rectangle|circle|triangle|star)\.ffx)$/.test(path);
     this.error = app.catalogUnreadable ? "Permission denied" : "";
     this.open = () => this.exists && !app.catalogUnreadable;
     this.read = () => app.catalogOverride || catalog;
@@ -51,6 +53,30 @@ class TestComp {}
 // Deliberately independent of the production catalog and schema: a shifted
 // group or parameter must fail the Host contract instead of moving the fixture.
 const polygonPresets = {
+  "triangle-zh-TW.ffx": {
+    matchName: "Pseudo/NYA_Triangle_v1_zhTW", name: "Nya 三角形",
+    values: [3, 0, 250, 0, null, 1, [1, 1, 1, 1], 0, [0, 0, 0, 1], 5, null],
+    labels: ["Nya 點數", "Nya 旋轉", "Nya 外半徑", "Nya 外圓度", "Nya 樣式", "Nya 啟用填色", "Nya 填色顏色", "Nya 啟用描邊", "Nya 描邊顏色", "Nya 描邊寬度", "__NYA_TRIANGLE_V1__"],
+    groups: [5, 11], colors: [7, 9]
+  },
+  "star-zh-TW.ffx": {
+    matchName: "Pseudo/NYA_Star_v2_zhTW", name: "Nya 星形",
+    values: [5, 250, 125, 0, 0, 0, null, 1, [1, 1, 1, 1], 0, [0, 0, 0, 1], 5, null],
+    labels: ["Nya 點數", "Nya 外半徑", "Nya 內半徑", "Nya 旋轉", "Nya 外圓度", "Nya 內圓度", "Nya 樣式", "Nya 啟用填色", "Nya 填色顏色", "Nya 啟用描邊", "Nya 描邊顏色", "Nya 描邊寬度", "__NYA_STAR_V2__"],
+    groups: [7, 13], colors: [9, 11]
+  },
+  "triangle.ffx": {
+    matchName: "Pseudo/NYA_Triangle_v1_en_r2", name: "Nya Triangle",
+    values: [3, 0, 250, 0, null, 1, [1, 1, 1, 1], 0, [0, 0, 0, 1], 5, null],
+    labels: ["Nya Points", "Nya Rotation", "Nya Outer Radius", "Nya Outer Roundness", "Nya Style", "Nya Enable Fill", "Nya Fill Color", "Nya Enable Stroke", "Nya Stroke Color", "Nya Stroke Width", "__NYA_TRIANGLE_V1__"],
+    groups: [5, 11], colors: [7, 9]
+  },
+  "star.ffx": {
+    matchName: "Pseudo/NYA_Star_v2_en_r2", name: "Nya Star",
+    values: [5, 250, 125, 0, 0, 0, null, 1, [1, 1, 1, 1], 0, [0, 0, 0, 1], 5, null],
+    labels: ["Nya Points", "Nya Outer Radius", "Nya Inner Radius", "Nya Rotation", "Nya Outer Roundness", "Nya Inner Roundness", "Nya Style", "Nya Enable Fill", "Nya Fill Color", "Nya Enable Stroke", "Nya Stroke Color", "Nya Stroke Width", "__NYA_STAR_V2__"],
+    groups: [7, 13], colors: [9, 11]
+  },
   "triangle-zh-CN.ffx": {
     matchName: "Pseudo/NYA_Triangle_v1_zhCN",
     name: "Nya 三角形",
@@ -106,7 +132,8 @@ function createShapeLayer({
   invalidPseudoMatchName = false,
   invalidCircleParameter = false,
   invalidRoundedHeightType = false,
-  roundedEffectName = "Nya 圆角矩形",
+  roundedEffectName = null,
+  circleEffectName = null,
   roundedPathExpressionError = "",
   polygonEffectName = null,
   invalidPolygonParameter = false,
@@ -191,18 +218,25 @@ function createShapeLayer({
     selected: false,
     applyPreset(file) {
       if (!file.exists) throw new Error("missing-template");
-      const circle = file.fsName.endsWith("/circle-zh-CN.ffx");
-      const polygon = polygonPresets[file.fsName.split("/").pop()];
-      const matchName = polygon?.matchName || (circle ? "Pseudo/NYA_Circle_v3_zhCN" : "Pseudo/NYA_RRect_v7_zhCN");
+      const english = file.fsName.includes("/en/");
+      const traditional = file.fsName.includes("/zh-TW/");
+      const circle = /\/circle(-zh-CN)?\.ffx$/.test(file.fsName);
+      const filename = file.fsName.split("/").pop();
+      const polygon = polygonPresets[traditional ? filename.replace(/\.ffx$/, "-zh-TW.ffx") : filename];
+      const matchName = polygon?.matchName || (circle ? "Pseudo/NYA_Circle_v3_" : "Pseudo/NYA_RRect_v7_") + (english ? "en_r2" : traditional ? "zhTW" : "zhCN");
       const values = polygon?.values || (circle
         ? [250, null, 1, [1, 1, 1, 1], 0, [0, 0, 0, 1], 5, null]
         : [500, 500, 50, 0, null, 50, 50, 50, 50, null,
           null, 1, [1, 1, 1, 1], 0, [0, 0, 0, 1], 5, null]);
-      const labels = polygon?.labels || (circle
+      const labels = polygon?.labels || (traditional ? (circle
+        ? ["Nya 半徑", "Nya 樣式", "Nya 啟用填色", "Nya 填色顏色", "Nya 啟用描邊", "Nya 描邊顏色", "Nya 描邊寬度", "__NYA_CIRCLE_V3__"]
+        : ["Nya 寬度", "Nya 高度", "Nya 圓角值", "Nya 分離圓角", "Nya 圓角控制", "Nya 左上角", "Nya 右上角", "Nya 右下角", "Nya 左下角", "", "Nya 樣式", "Nya 啟用填色", "Nya 填色顏色", "Nya 啟用描邊", "Nya 描邊顏色", "Nya 描邊寬度", "__NYA_RRECT_V7__"]) : english ? (circle
+        ? ["Nya Radius", "Nya Style", "Nya Enable Fill", "Nya Fill Color", "Nya Enable Stroke", "Nya Stroke Color", "Nya Stroke Width", "__NYA_CIRCLE_V3__"]
+        : ["Nya Width", "Nya Height", "Nya Corner Radius", "Nya Separate Corners", "Nya Corner Controls", "Nya Top Left", "Nya Top Right", "Nya Bottom Right", "Nya Bottom Left", "", "Nya Style", "Nya Enable Fill", "Nya Fill Color", "Nya Enable Stroke", "Nya Stroke Color", "Nya Stroke Width", "__NYA_RRECT_V7__"]) : (circle
         ? ["半径", "样式", "启用填充", "填充颜色", "启用描边", "描边颜色", "描边宽度", "__NYA_CIRCLE_V3__"]
         : ["宽度", "高度", "圆角值", "分离圆角", "分离参数", "左上角", "右上角",
           "右下角", "左下角", "", "样式", "启用填充", "填充颜色", "启用描边",
-          "描边颜色", "描边宽度", "__NYA_RRECT_V7__"]);
+          "描边颜色", "描边宽度", "__NYA_RRECT_V7__"]));
       const groups = polygon?.groups || (circle ? [2, 8] : [5, 10, 11, 17]);
       const colors = polygon?.colors || (circle ? [4, 6] : [13, 15]);
       const parameters = values.map((value, offset) => ({
@@ -217,7 +251,7 @@ function createShapeLayer({
       }));
       const effect = {
         matchName: invalidPseudoMatchName ? "Pseudo/Unexpected" : matchName,
-        name: polygon ? (polygonEffectName || polygon.name) : circle ? "Nya 圆形" : roundedEffectName,
+        name: polygon ? (polygonEffectName || polygon.name) : circle ? (circleEffectName || (english ? "Nya Circle" : traditional ? "Nya 圓" : "Nya 圆形")) : (roundedEffectName || (english ? "Nya Rounded Rectangle" : traditional ? "Nya 圓角矩形" : "Nya 圆角矩形")),
         numProperties: values.length + 1,
         property(index) { return parameters[index - 1] || null; },
         remove() {
@@ -272,17 +306,18 @@ function createApp(options = {}) {
   };
 }
 
-function encoded(modifier) {
+function encoded(modifier, languageId) {
   return encodeURIComponent(JSON.stringify({
     action: "create-shape",
     modifier,
+    languageId,
     extensionRoot: "C:/CEP/NYAWORKS"
   }));
 }
 
 function evaluateRoundedPath(layer, controls) {
   const path = layer.vectors.find((vector) => vector.matchName === "ADBE Vector Shape - Group");
-  const expression = path.values["ADBE Vector Shape"].expression;
+  const expression = path.property("ADBE Vector Shape").expression;
   return Function(
     "effect",
     "createPath",
@@ -295,7 +330,7 @@ function evaluateRoundedPath(layer, controls) {
 
 function evaluateCircleSize(layer, radius) {
   const ellipse = layer.vectors.find(vector => vector.matchName === "ADBE Vector Shape - Ellipse");
-  const expression = ellipse.values["ADBE Vector Ellipse Size"].expression;
+  const expression = ellipse.property("ADBE Vector Ellipse Size").expression;
   return Function("effect", `${expression.replace("[r*2,r*2]", "return [r*2,r*2]")}`)(
     () => index => index === 1 ? radius : NaN
   );
@@ -316,6 +351,207 @@ const polygonProperty = (layer, name, overrides) =>
   evaluateVectorProperty(layer, "ADBE Vector Shape - Star", `ADBE Vector Star ${name}`, overrides);
 
 describe("shape layer host action", () => {
+  const chineseBaseline = [
+    { modifier: "none", id: "shape.roundedRectangle/v7/zh-CN", layerName: "Nya 圆角矩形",
+      effectName: "Nya 圆角矩形", matchName: "Pseudo/NYA_RRect_v7_zhCN",
+      marker: { index: 17, name: "__NYA_RRECT_V7__" },
+      referencedIndexes: [1, 2, 3, 4, 6, 7, 8, 9, 12, 13, 14, 15, 16] },
+    { modifier: "alt", id: "shape.circle/v3/zh-CN", layerName: "Nya 圆",
+      effectName: "Nya 圆形", matchName: "Pseudo/NYA_Circle_v3_zhCN",
+      marker: { index: 8, name: "__NYA_CIRCLE_V3__" },
+      referencedIndexes: [1, 3, 4, 5, 6, 7] },
+    { modifier: "ctrl", id: "shape.triangle/v1/zh-CN", layerName: "Nya 三角形",
+      effectName: "Nya 三角形", matchName: "Pseudo/NYA_Triangle_v1_zhCN",
+      marker: { index: 11, name: "__NYA_TRIANGLE_V1__" },
+      referencedIndexes: [1, 2, 3, 4, 6, 7, 8, 9, 10] },
+    { modifier: "shift", id: "shape.star/v2/zh-CN", layerName: "Nya 星形",
+      effectName: "Nya 星形", matchName: "Pseudo/NYA_Star_v2_zhCN",
+      marker: { index: 13, name: "__NYA_STAR_V2__" },
+      referencedIndexes: [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12] }
+  ];
+
+  it.each(chineseBaseline)("freezes $modifier legacy and explicit Chinese names, identities and expression references", async (baseline) => {
+    for (const languageId of [undefined, "zh-CN"]) {
+      const { app, created } = createApp();
+      const host = await loadLayerHost(app);
+      const template = host.preflightPseudoEffectTemplate("C:/CEP/NYAWORKS", baseline.id);
+      expect(template.contract.matchName).toBe(baseline.matchName);
+      expect(template.contract.marker).toEqual(baseline.marker);
+      expect(JSON.parse(host.runLayerAction(encoded(baseline.modifier, languageId))))
+        .toEqual({ ok: true, createdLayers: 1, updatedLayers: 0, createdItems: 0 });
+      expect(created).toHaveLength(1);
+      const layer = created[0];
+      expect(layer.name).toBe(baseline.layerName);
+      expect(layer.controls).toHaveLength(1);
+      expect(layer.controls[0]).toMatchObject({ name: baseline.effectName, matchName: baseline.matchName });
+      expect(layer.controls[0].property(baseline.marker.index).name).toBe(baseline.marker.name);
+      const references = layer.vectors.flatMap(vector => Object.values(vector.values))
+        .flatMap(property => [...property.expression.matchAll(/effect\("([^"]+)"\)\((\d+)\)/g)])
+        .map(match => ({ name: match[1], index: Number(match[2]) }));
+      expect([...new Set(references.map(reference => reference.name))]).toEqual([baseline.effectName]);
+      expect([...new Set(references.map(reference => reference.index))].sort((a, b) => a - b))
+        .toEqual(baseline.referencedIndexes);
+    }
+  });
+
+  it.each(chineseBaseline.flatMap(baseline =>
+    ["zh-CN", "en", "zh-TW"].map(languageId => ({ ...baseline, languageId }))
+  ))("binds every $languageId $modifier expression to the escaped actual effect name", async ({ modifier, languageId, referencedIndexes }) => {
+    const name = 'Nya "custom" \\ 圆★';
+    const { app, created } = createApp({ roundedEffectName: name, circleEffectName: name, polygonEffectName: name });
+    const host = await loadLayerHost(app);
+    expect(JSON.parse(host.runLayerAction(encoded(modifier, languageId)))).toMatchObject({ ok: true });
+    const layer = created[0];
+    const indexes = [];
+    for (const vector of layer.vectors) {
+      for (const property of Object.values(vector.values)) {
+        if (!property.expression) continue;
+        expect(property.expression).toContain(`effect(${JSON.stringify(name)})`);
+        Function("effect", "createPath", "expression", "return eval(expression);")(
+          actual => {
+            expect(actual).toBe(name);
+            return index => { indexes.push(index); return layer.controls[0].property(index).value; };
+          },
+          (points, ins, outs, closed) => ({ points, ins, outs, closed }), property.expression
+        );
+      }
+    }
+    // Some conditional branches are inactive at defaults, so inspect the
+    // contract's literal indices as well as evaluating the actual expressions.
+    const references = layer.vectors.flatMap(vector => Object.values(vector.values))
+      .flatMap(property => [...property.expression.matchAll(/\)\((\d+)\)/g)].map(match => Number(match[1])));
+    expect([...new Set(references)].sort((a, b) => a - b)).toEqual(referencedIndexes);
+    expect(indexes.length).toBeGreaterThan(0);
+  });
+
+  it.each(chineseBaseline)("creates the English $modifier candidate with its own identity and labels", async baseline => {
+    const { app, created } = createApp({ invalidateVectorReferences: true });
+    const host = await loadLayerHost(app);
+    expect(JSON.parse(host.runLayerAction(encoded(baseline.modifier, "en")))).toMatchObject({ ok: true });
+    const layer = created[0];
+    const names = { none: "Nya Rounded Rectangle", alt: "Nya Circle", ctrl: "Nya Triangle", shift: "Nya Star" };
+    expect(layer.name).toBe(names[baseline.modifier]);
+    expect(layer.vectors[0].name).toBe(names[baseline.modifier]);
+    expect(layer.controls).toHaveLength(1);
+    expect(layer.controls[0]).toMatchObject({ name: names[baseline.modifier], matchName: baseline.matchName.replace(/zhCN$/, "en_r2") });
+    expect(layer.controls[0].property(baseline.marker.index).name).toBe(baseline.marker.name);
+    for (let index = 1; index < baseline.marker.index; index++) {
+      const label = layer.controls[0].property(index).name;
+      if (label) expect(label).toMatch(/^Nya [\x20-\x7e]+$/);
+    }
+    if (baseline.modifier === "none") expect(evaluateRoundedPath(layer, { 1: 500, 2: 500, 3: 50, 4: 0 }).points).toHaveLength(8);
+    if (baseline.modifier === "alt") expect(evaluateCircleSize(layer, 250)).toEqual([500, 500]);
+    if (baseline.modifier === "ctrl" || baseline.modifier === "shift") {
+      expect(polygonProperty(layer, "Points")).toBe(baseline.modifier === "ctrl" ? 3 : 5);
+      expect(polygonProperty(layer, "Outer Radius")).toBe(250);
+    }
+  });
+
+  it.each(chineseBaseline)("cleans up only the new English $modifier shape after a style expression failure", async baseline => {
+    const { app, created } = createApp({ styleExpressionError: "AE style expression error" });
+    const original = { name: "已有图层", selected: true, index: 1, inPoint: 0, outPoint: 10 };
+    app.project.activeItem.selectedLayers = [original];
+    const host = await loadLayerHost(app);
+    expect(JSON.parse(host.runLayerAction(encoded(baseline.modifier, "en"))))
+      .toMatchObject({ ok: false, detail: expect.stringContaining("pseudo-style-expression-invalid") });
+    expect(created).toHaveLength(0);
+    expect(original).toMatchObject({ name: "已有图层", selected: true });
+  });
+
+  it.each(chineseBaseline.flatMap(baseline => ["zh-TW", "ja", "ko"].map(languageId => ({ ...baseline, languageId }))))(
+    "creates the $languageId $modifier shape with localized object names and explicit control locale", async baseline => {
+      const { app, created } = createApp({ invalidateVectorReferences: true });
+      const host = await loadLayerHost(app);
+      const result = JSON.parse(host.runLayerAction(encoded(baseline.modifier, baseline.languageId)));
+      expect(result).toMatchObject({ ok: true, createdLayers: 1 });
+      const names = {
+        "zh-TW": { none: "Nya 圓角矩形", alt: "Nya 圓", ctrl: "Nya 三角形", shift: "Nya 星形" },
+        ja: { none: "Nya 角丸長方形", alt: "Nya 円", ctrl: "Nya 三角形", shift: "Nya 星形" },
+        ko: { none: "Nya 둥근 사각형", alt: "Nya 원", ctrl: "Nya 삼각형", shift: "Nya 별" }
+      };
+      const layer = created[0];
+      expect(layer.name).toBe(names[baseline.languageId][baseline.modifier]);
+      expect(layer.controls[0].name).toBe(layer.name);
+      expect(layer.controls[0].matchName).toBe(baseline.matchName.replace(/zhCN$/, baseline.languageId === "zh-TW" ? "zhTW" : "en_r2"));
+      for (const index of baseline.referencedIndexes) {
+        const label = layer.controls[0].property(index).name;
+        expect(label).toMatch(/^Nya /);
+        if (baseline.languageId === "zh-TW") expect(label).toMatch(/[\u4e00-\u9fff]/);
+        else expect(label).toMatch(/^Nya [\x20-\x7e]+$/);
+      }
+      if (baseline.languageId === "zh-TW") expect(result.notice).toBeUndefined();
+      else expect(result.notice).toBe("shape-controls-english");
+      for (const vector of layer.vectors) {
+        for (const name of Object.keys(vector.values)) {
+          const property = vector.property(name);
+          if (property.expression) expect(property.expression).toContain(`effect(${JSON.stringify(layer.controls[0].name)})`);
+        }
+      }
+      if (baseline.modifier === "none") expect(evaluateRoundedPath(layer, { 1: 500, 2: 500, 3: 50, 4: 0 }).points).toHaveLength(8);
+      if (baseline.modifier === "alt") expect(evaluateCircleSize(layer, 250)).toEqual([500, 500]);
+      if (baseline.modifier === "ctrl" || baseline.modifier === "shift") expect(polygonProperty(layer, "Points")).toBe(baseline.modifier === "ctrl" ? 3 : 5);
+    }
+  );
+
+  it("does not rename a pre-existing English effect when resolving a compatibility template", async () => {
+    const { app, created } = createApp();
+    const host = await loadLayerHost(app);
+    expect(JSON.parse(host.runLayerAction(encoded("none", "en")))).toMatchObject({ ok: true });
+    const layer = created[0];
+    const effect = layer.controls[0];
+    effect.name = "My saved English effect";
+    const template = host.preflightPseudoEffectTemplate("C:/CEP/NYAWORKS", "shape.roundedRectangle/v7/ko");
+    expect(host.applyPseudoEffectTemplate(layer, { comp: app.project.activeItem, selection: [] }, template)).toBe(effect);
+    expect(effect.name).toBe("My saved English effect");
+    expect(layer.controls).toHaveLength(1);
+  });
+
+  it.each(chineseBaseline)("rejects the superseded English $modifier definition before creation", async baseline => {
+    const { app, created } = createApp();
+    const catalog = JSON.parse(await readFile("public/host/pseudo-effects/catalog.json", "utf8"));
+    const id = baseline.id.replace(/zh-CN$/, "en");
+    catalog.templates[id].matchName = baseline.matchName.replace(/zhCN$/, "en");
+    app.catalogOverride = JSON.stringify(catalog);
+    const host = await loadLayerHost(app);
+    expect(JSON.parse(host.runLayerAction(encoded(baseline.modifier, "en"))))
+      .toMatchObject({ ok: false, detail: expect.stringContaining("pseudo-template-invalid") });
+    expect(created).toHaveLength(0);
+  });
+
+  it.each(chineseBaseline)("rejects an absent English $modifier catalog entry before mutation", async baseline => {
+    const { app, created } = createApp();
+    const catalog = JSON.parse(await readFile("public/host/pseudo-effects/catalog.json", "utf8"));
+    delete catalog.templates[baseline.id.replace(/zh-CN$/, "en")];
+    app.catalogOverride = JSON.stringify(catalog);
+    const addShape = vi.spyOn(app.project.activeItem.layers, "addShape");
+    const host = await loadLayerHost(app);
+    expect(JSON.parse(host.runLayerAction(encoded(baseline.modifier, "en"))))
+      .toMatchObject({ ok: false, detail: expect.stringContaining("pseudo-template-locale-unavailable") });
+    expect(addShape).not.toHaveBeenCalled();
+    expect(created).toHaveLength(0);
+  });
+
+  it.each(chineseBaseline.flatMap(baseline =>
+    ["en", "zh-TW", "ja", "ko"].map(languageId => ({ ...baseline, languageId }))
+  ))("rejects unavailable $languageId $modifier templates before calling addShape", async ({ modifier, languageId }) => {
+    const { app, created } = createApp();
+    app.missingLocalePreset = true;
+    const comp = app.project.activeItem;
+    const original = { name: "Existing Chinese layer", selected: true, index: 1, inPoint: 2, outPoint: 8 };
+    comp.selectedLayers = [original];
+    const addShape = vi.spyOn(comp.layers, "addShape");
+    const host = await loadLayerHost(app);
+    const result = JSON.parse(host.runLayerAction(encoded(modifier, languageId)));
+    // Soft assertions expose both the missing structured error and the unsafe
+    // mutation. A create-then-remove implementation must still fail this test.
+    expect.soft(result).toMatchObject({
+      ok: false, reason: "host-error", detail: expect.stringContaining("pseudo-template-locale-unavailable")
+    });
+    expect.soft(addShape).not.toHaveBeenCalled();
+    expect.soft(created).toHaveLength(0);
+    expect.soft(original).toMatchObject({ name: "Existing Chinese layer", selected: true });
+  });
+
   it("loads the AE-approved rounded rectangle identity alongside the circle candidate", async () => {
     const { app, created } = createApp();
     const { preflightPseudoEffectTemplate, runLayerAction } = await loadLayerHost(app);
@@ -1095,5 +1331,52 @@ describe("shape layer host action", () => {
     }
     expect(actual).toEqual(scenarios.map(([, matchName]) => matchName));
     expect(created).toHaveLength(6);
+  });
+});
+
+// Independent literals from the 919d022 compatibility baseline. Never generate
+// expected identities or hashes from the current catalog or asset builder.
+const chineseTemplates = [
+  {
+    id: "shape.roundedRectangle/v7/zh-CN", file: "rounded-rectangle-zh-CN.ffx",
+    matchName: "Pseudo/NYA_RRect_v7_zhCN", marker: { index: 17, name: "__NYA_RRECT_V7__" },
+    parameters: { width: 1, height: 2, radius: 3, separate: 4,
+      topLeftPercent: 6, topRightPercent: 7, bottomRightPercent: 8, bottomLeftPercent: 9,
+      fillEnabled: 12, fillColor: 13, strokeEnabled: 14, strokeColor: 15, strokeWidth: 16 },
+    sha256: "D51226CC1DD15988215CFBD27254C1F7377F2C1334E939B01CF0FA8B199BDEB9"
+  },
+  {
+    id: "shape.circle/v3/zh-CN", file: "circle-zh-CN.ffx",
+    matchName: "Pseudo/NYA_Circle_v3_zhCN", marker: { index: 8, name: "__NYA_CIRCLE_V3__" },
+    parameters: { radius: 1, fillEnabled: 3, fillColor: 4,
+      strokeEnabled: 5, strokeColor: 6, strokeWidth: 7 },
+    sha256: "0B3F38341544AC1B13CF0D5E2F87CE734555EC388CE334C7F22BA8DE7E99E02E"
+  },
+  {
+    id: "shape.triangle/v1/zh-CN", file: "triangle-zh-CN.ffx",
+    matchName: "Pseudo/NYA_Triangle_v1_zhCN", marker: { index: 11, name: "__NYA_TRIANGLE_V1__" },
+    parameters: { points: 1, rotation: 2, outerRadius: 3, outerRoundness: 4,
+      fillEnabled: 6, fillColor: 7, strokeEnabled: 8, strokeColor: 9, strokeWidth: 10 },
+    sha256: "4F616CDF3BCA836F2887FE3866975658D7D0F9F06A2D57F1A5B85B90CEBC0476"
+  },
+  {
+    id: "shape.star/v2/zh-CN", file: "star-zh-CN.ffx",
+    matchName: "Pseudo/NYA_Star_v2_zhCN", marker: { index: 13, name: "__NYA_STAR_V2__" },
+    parameters: { points: 1, outerRadius: 2, innerRadius: 3, rotation: 4,
+      outerRoundness: 5, innerRoundness: 6, fillEnabled: 8, fillColor: 9,
+      strokeEnabled: 10, strokeColor: 11, strokeWidth: 12 },
+    sha256: "3EFC6C9BB80A6319DA5FC5EE4CEBC53FE838B68228332C0265E61AA187E18C7E"
+  }
+];
+
+describe("frozen Chinese pseudo-effect compatibility", () => {
+  it.each(chineseTemplates)("preserves $id identity, parameter mapping and published bytes", async (baseline) => {
+    const root = "public/host/pseudo-effects";
+    const catalog = JSON.parse(await readFile(`${root}/catalog.json`, "utf8"));
+    const { id, ...expected } = baseline;
+    expect(catalog.templates[id]).toEqual(expected);
+    expect(Object.entries(catalog.templates[id].parameters)).toEqual(Object.entries(expected.parameters));
+    const bytes = await readFile(`${root}/${baseline.file}`);
+    expect(createHash("sha256").update(bytes).digest("hex").toUpperCase()).toBe(baseline.sha256);
   });
 });

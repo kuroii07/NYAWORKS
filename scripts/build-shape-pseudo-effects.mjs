@@ -10,12 +10,24 @@ const outputRoot = path.join(projectRoot, "public/host/pseudo-effects");
 const original = fs.readFileSync(path.join(
   projectRoot, "assets/pseudo-effects/rounded-rectangle/source/base-scribe.ffx"
 ));
+// Locales require independently authored definitions. Never interpret an
+// arbitrary locale/path as a schema directory or silently copy Chinese bytes.
+const localeArgument = process.argv.slice(2);
+if (localeArgument.length > 1 || (localeArgument.length === 1 && !/^--locale=(zh-CN|en|zh-TW)$/.test(localeArgument[0]))) {
+  throw new Error("Supported authoring modes: --locale=zh-CN, --locale=en or --locale=zh-TW");
+}
+const locale = localeArgument[0]?.slice("--locale=".length) ?? "zh-CN";
 const templates = [
   { source: "rounded-rectangle/v7", file: "rounded-rectangle-zh-CN.ffx", layout: "rectangle" },
   { source: "circle/v3", file: "circle-zh-CN.ffx", layout: "circle" },
   { source: "triangle/v1", file: "triangle-zh-CN.ffx", layout: "triangle", nativeDefaults: true },
   { source: "star/v2", file: "star-zh-CN.ffx", layout: "star", nativeDefaults: true }
-];
+].map(template => locale === "zh-CN" ? template : {
+  ...template,
+  source: `${template.source}/${locale}`,
+  file: `${locale}/${template.file.replace(/-zh-CN\.ffx$/, ".ffx")}`,
+  nativeDefaults: true
+});
 function numericParameter(parameter, percent) {
   return {
     label: parameter.label,
@@ -149,10 +161,15 @@ function find(node, type) {
 }
 
 function clone(node) { return parse(pack(node))[0]; }
-function encoded(text) { return iconv.encode(text + "\0", "gbk"); }
+function checkedEncoding(text) {
+  const bytes = iconv.encode(text, "gbk");
+  if (iconv.decode(bytes, "gbk") !== text) throw new Error(`FFX label cannot be represented in GBK: ${text}`);
+  return bytes;
+}
+function encoded(text) { return checkedEncoding(text + "\0"); }
 function fixed(text, size) {
   const data = Buffer.alloc(size);
-  const value = iconv.encode(text, "gbk");
+  const value = checkedEncoding(text);
   if (value.length >= size) throw new Error(`FFX label too long: ${text}`);
   value.copy(data);
   return data;
@@ -167,13 +184,33 @@ function text(tag, value, length) {
   return leaf(tag, length ? fixed(value, length) : encoded(value));
 }
 
-const catalog = { templates: {} };
+const catalog = JSON.parse(fs.readFileSync(path.join(outputRoot, "catalog.json"), "utf8"));
+const generatedIds = new Set();
+const artifacts = [];
 for (const template of templates) {
 const schema = JSON.parse(fs.readFileSync(path.join(
   projectRoot, "assets/pseudo-effects", template.source, "schema.json"
 ), "utf8"));
 const params = layoutParameters(schema, template.layout);
-if (catalog.templates[schema.templateId]) throw new Error(`Duplicate template ID: ${schema.templateId}`);
+if (generatedIds.has(schema.templateId)) throw new Error(`Duplicate template ID: ${schema.templateId}`);
+generatedIds.add(schema.templateId);
+if (locale !== "zh-CN") {
+  const baseline = JSON.parse(fs.readFileSync(path.join(projectRoot, "assets/pseudo-effects", template.source.replace(/\/(en|zh-TW)$/, ""), "schema.json"), "utf8"));
+  const semanticParameters = parameters => parameters.map(({ label, ...contract }) => contract);
+  if (schema.templateId !== baseline.templateId.replace(/zh-CN$/, locale) ||
+      schema.definitionRevision !== (locale === "en" ? 2 : 1) ||
+      schema.matchName !== baseline.matchName.replace(/zhCN$/, locale === "en" ? "en_r2" : "zhTW") || schema.marker !== baseline.marker ||
+      JSON.stringify(semanticParameters(schema.parameters)) !== JSON.stringify(semanticParameters(baseline.parameters))) {
+    throw new Error(`Localized schema changed the frozen semantic contract: ${schema.templateId}`);
+  }
+  // The reported mixed labels coincide with bare AE terms. Namespace every
+  // visible control/group; the fresh identity also avoids cached definitions.
+  if ([schema.styleGroup, schema.group, ...schema.parameters.map(parameter => parameter.label)]
+      .filter(label => label !== undefined).some(label => !label.startsWith("Nya ") ||
+        (locale === "en" && !/^Nya [\x20-\x7e]+$/.test(label)))) {
+    throw new Error(`Localized pseudo-effect labels require the Nya namespace: ${schema.templateId}`);
+  }
+}
 const root = parse(original)[0];
 const definitions = find(root, "parT");
 const values = find(root, "tdgp");
@@ -276,14 +313,42 @@ catalog.templates[schema.templateId] = {
   parameters: parameterMap,
   sha256
 };
-fs.mkdirSync(outputRoot, { recursive: true });
-fs.writeFileSync(path.join(outputRoot, template.file), bytes);
+if (locale !== "zh-CN") {
+  const [effectId, version] = schema.templateId.split("/");
+  Object.assign(catalog.templates[schema.templateId], {
+    effectId, shape: template.file.split("/").pop().replace(/\.ffx$/, ""),
+    schemaVersion: Number(version.slice(1)), definitionRevision: schema.definitionRevision,
+    locale, displayName: schema.displayName,
+    parameterDefinitions: schema.parameters,
+    validation: { status: "candidate", realAE: "pending", platforms: ["Windows"], targetAE: "2022–2026+" }
+  });
+}
+artifacts.push({ file: template.file, bytes });
 console.log(`${template.file}: ${bytes.length} bytes, SHA-256 ${sha256}`);
 }
+// Explicitly approved compatibility mode: Japanese/Korean object names use
+// Unicode AE DOM strings; controls share the accepted ASCII English definition.
+// Do not encode Korean parameter names into an ANSI slot or disguise a fallback.
+if (locale === "en") {
+  const names = JSON.parse(fs.readFileSync(path.join(projectRoot, "assets/pseudo-effects/shape-locale-names.json"), "utf8"));
+  for (const language of ["ja", "ko"]) {
+    for (const englishId of generatedIds) {
+      const english = catalog.templates[englishId];
+      catalog.templates[englishId.replace(/\/en$/, `/${language}`)] = {
+        ...english, locale: language, displayName: names[language][english.effectId],
+        controlLocale: "en", sourceTemplateId: englishId
+      };
+    }
+  }
+}
+for (const artifact of artifacts) {
+  fs.mkdirSync(path.dirname(path.join(outputRoot, artifact.file)), { recursive: true });
+  fs.writeFileSync(path.join(outputRoot, artifact.file), artifact.bytes);
+}
 fs.writeFileSync(path.join(outputRoot, "catalog.json"), `${JSON.stringify(catalog, null, 2)}\n`);
-for (const obsolete of [
+for (const obsolete of locale === "zh-CN" ? [
   "rounded-rectangle-v1-zh-CN.ffx",
   "rounded-rectangle-v2-zh-CN.ffx"
-]) {
+] : []) {
   fs.rmSync(path.join(outputRoot, obsolete), { force: true });
 }

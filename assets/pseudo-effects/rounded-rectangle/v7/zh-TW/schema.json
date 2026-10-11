@@ -1,0 +1,131 @@
+{
+  "templateId": "shape.roundedRectangle/v7/zh-TW",
+  "matchName": "Pseudo/NYA_RRect_v7_zhTW",
+  "displayName": "Nya 圓角矩形",
+  "group": "Nya 圓角控制",
+  "styleGroup": "Nya 樣式",
+  "marker": "__NYA_RRECT_V7__",
+  "parameters": [
+    {
+      "id": "width",
+      "label": "Nya 寬度",
+      "type": "slider",
+      "defaultValue": 500,
+      "sliderMin": 0,
+      "sliderMax": 4000,
+      "validMin": 0,
+      "validMax": 10000
+    },
+    {
+      "id": "height",
+      "label": "Nya 高度",
+      "type": "slider",
+      "defaultValue": 500,
+      "sliderMin": 0,
+      "sliderMax": 4000,
+      "validMin": 0,
+      "validMax": 10000
+    },
+    {
+      "id": "radius",
+      "label": "Nya 圓角值",
+      "type": "slider",
+      "defaultValue": 50,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "validMin": 0,
+      "validMax": 100
+    },
+    {
+      "id": "separate",
+      "label": "Nya 分離圓角",
+      "type": "checkbox",
+      "defaultValue": 0
+    },
+    {
+      "id": "topLeftPercent",
+      "label": "Nya 左上角",
+      "type": "percent",
+      "defaultValue": 50,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "validMin": 0,
+      "validMax": 100
+    },
+    {
+      "id": "topRightPercent",
+      "label": "Nya 右上角",
+      "type": "percent",
+      "defaultValue": 50,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "validMin": 0,
+      "validMax": 100
+    },
+    {
+      "id": "bottomRightPercent",
+      "label": "Nya 右下角",
+      "type": "percent",
+      "defaultValue": 50,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "validMin": 0,
+      "validMax": 100
+    },
+    {
+      "id": "bottomLeftPercent",
+      "label": "Nya 左下角",
+      "type": "percent",
+      "defaultValue": 50,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "validMin": 0,
+      "validMax": 100
+    },
+    {
+      "id": "fillEnabled",
+      "label": "Nya 啟用填色",
+      "type": "checkbox",
+      "defaultValue": 1
+    },
+    {
+      "id": "fillColor",
+      "label": "Nya 填色顏色",
+      "type": "color",
+      "defaultValue": [
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "strokeEnabled",
+      "label": "Nya 啟用描邊",
+      "type": "checkbox",
+      "defaultValue": 0
+    },
+    {
+      "id": "strokeColor",
+      "label": "Nya 描邊顏色",
+      "type": "color",
+      "defaultValue": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "strokeWidth",
+      "label": "Nya 描邊寬度",
+      "type": "slider",
+      "defaultValue": 5,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "validMin": 0,
+      "validMax": 1000
+    }
+  ],
+  "definitionRevision": 1
+}

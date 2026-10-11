@@ -1,0 +1,131 @@
+{
+  "templateId": "shape.roundedRectangle/v7/en",
+  "matchName": "Pseudo/NYA_RRect_v7_en_r2",
+  "displayName": "Nya Rounded Rectangle",
+  "group": "Nya Corner Controls",
+  "styleGroup": "Nya Style",
+  "marker": "__NYA_RRECT_V7__",
+  "parameters": [
+    {
+      "id": "width",
+      "label": "Nya Width",
+      "type": "slider",
+      "defaultValue": 500,
+      "sliderMin": 0,
+      "sliderMax": 4000,
+      "validMin": 0,
+      "validMax": 10000
+    },
+    {
+      "id": "height",
+      "label": "Nya Height",
+      "type": "slider",
+      "defaultValue": 500,
+      "sliderMin": 0,
+      "sliderMax": 4000,
+      "validMin": 0,
+      "validMax": 10000
+    },
+    {
+      "id": "radius",
+      "label": "Nya Corner Radius",
+      "type": "slider",
+      "defaultValue": 50,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "validMin": 0,
+      "validMax": 100
+    },
+    {
+      "id": "separate",
+      "label": "Nya Separate Corners",
+      "type": "checkbox",
+      "defaultValue": 0
+    },
+    {
+      "id": "topLeftPercent",
+      "label": "Nya Top Left",
+      "type": "percent",
+      "defaultValue": 50,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "validMin": 0,
+      "validMax": 100
+    },
+    {
+      "id": "topRightPercent",
+      "label": "Nya Top Right",
+      "type": "percent",
+      "defaultValue": 50,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "validMin": 0,
+      "validMax": 100
+    },
+    {
+      "id": "bottomRightPercent",
+      "label": "Nya Bottom Right",
+      "type": "percent",
+      "defaultValue": 50,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "validMin": 0,
+      "validMax": 100
+    },
+    {
+      "id": "bottomLeftPercent",
+      "label": "Nya Bottom Left",
+      "type": "percent",
+      "defaultValue": 50,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "validMin": 0,
+      "validMax": 100
+    },
+    {
+      "id": "fillEnabled",
+      "label": "Nya Enable Fill",
+      "type": "checkbox",
+      "defaultValue": 1
+    },
+    {
+      "id": "fillColor",
+      "label": "Nya Fill Color",
+      "type": "color",
+      "defaultValue": [
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "strokeEnabled",
+      "label": "Nya Enable Stroke",
+      "type": "checkbox",
+      "defaultValue": 0
+    },
+    {
+      "id": "strokeColor",
+      "label": "Nya Stroke Color",
+      "type": "color",
+      "defaultValue": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "strokeWidth",
+      "label": "Nya Stroke Width",
+      "type": "slider",
+      "defaultValue": 5,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "validMin": 0,
+      "validMax": 1000
+    }
+  ],
+  "definitionRevision": 2
+}

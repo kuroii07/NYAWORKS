@@ -1,5 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+import { LAYER_DISPLAY_NAMES, getLayerDisplayName } from "../src/layers/layerDisplayNames";
+import { LANGUAGE_IDS } from "../src/i18n/languages";
 
 async function loadLayerHost(app, CompItem, LightType = {}) {
   const source = await readFile("public/host/index.jsx", "utf8");
@@ -22,7 +24,10 @@ return {
   runLayerAction: runLayerAction,
   readSelectedTextLayer: readSelectedTextLayer,
   applyTextLayerEdit: applyTextLayerEdit,
-  createTextLayerFromEditor: createTextLayerFromEditor
+  createTextLayerFromEditor: createTextLayerFromEditor,
+  decodeLayerActionPayload: decodeLayerActionPayload,
+  resolveLayerLanguage: typeof resolveLayerLanguage === "function" ? resolveLayerLanguage : null,
+  getLayerDisplayName: typeof getLayerDisplayName === "function" ? getLayerDisplayName : null
 };`
   )(app, CompItem, LightType, FakeScriptUIWindow, { global: {} }, JSON, decodeURIComponent);
 }
@@ -141,8 +146,12 @@ function createComp(selectedLayers = []) {
     displayStartTime: 5,
     duration: 20,
     selectedLayers,
-    get numLayers() { return selectedLayers.length + created.length; },
     layer(index) { return [...created, ...selectedLayers][index - 1]; }
+  });
+  // Object.assign evaluates a getter once. Keep numLayers live so selection
+  // clearing includes existing layers after a new layer has been inserted.
+  Object.defineProperty(comp, "numLayers", {
+    get() { return selectedLayers.length + created.length; }
   });
   comp.layers = {
     addText(text) {
@@ -212,6 +221,123 @@ describe("layer creation host context", () => {
 });
 
 describe("basic layer creation host actions", () => {
+  it.each([
+    ["zh-CN", "Nya 调整层"], ["zh-TW", "Nya 調整圖層"], ["en", "Nya Adjustment"],
+    ["ja", "Nya 調整レイヤー"], ["ko", "Nya 조정 레이어"]
+  ])("creates a unique %s adjustment with unchanged dimensions, timing, selection and Undo", async (languageId, name) => {
+    const first = createLayer("existing", { name, index: 6, inPoint: 8, outPoint: 12 });
+    const second = createLayer("existing", { name: `${name} 2`, index: 2, inPoint: 6, outPoint: 18 });
+    first.selected = second.selected = true;
+    const { comp, created } = createComp([first, second]);
+    comp.pixelAspect = 1.5;
+    const undo = [];
+    const host = await loadLayerHost({ project: { activeItem: comp },
+      beginUndoGroup: name => undo.push(name), endUndoGroup: () => undo.push("end") }, TestComp);
+    expect(JSON.parse(host.runLayerAction(encodeURIComponent(JSON.stringify({
+      action: "create-adjustment", languageId
+    }))))).toEqual({ ok: true, createdLayers: 1, updatedLayers: 0, createdItems: 0 });
+    expect(created[0]).toMatchObject({ name: `${name} 3`, adjustmentLayer: true,
+      width: 1920, height: 1080, pixelAspect: 1.5, duration: 20,
+      startTime: 6, inPoint: 6, outPoint: 18, selected: true });
+    expect(created[0].effects.added).toEqual([]);
+    expect(created[0].movedBefore).toBe(second);
+    expect(first.selected).toBe(false);
+    expect(second.selected).toBe(false);
+    expect([first.name, second.name]).toEqual([name, `${name} 2`]);
+    expect(undo).toEqual(["NYAWORKS Create Layer", "end"]);
+  });
+
+  it.each([
+    ["create-solid", "zh-CN", "Nya 纯色"], ["create-solid", "en", "Nya Solid"],
+    ["create-light", "zh-CN", "Nya 灯光"], ["create-light", "ja", "Nya ライト"],
+    ["create-text", "zh-CN", "text"], ["create-text", "en", "text"]
+  ])("localizes %s in %s without changing timing, insertion or effect lists", async (action, languageId, name) => {
+    const selected = createLayer("existing", { name: "Keep me", index: 2, inPoint: 7, outPoint: 11 });
+    const { comp, created } = createComp([selected]);
+    const host = await loadLayerHost({ project: { activeItem: comp }, beginUndoGroup() {}, endUndoGroup() {} }, TestComp, { POINT: "POINT" });
+    expect(JSON.parse(host.runLayerAction(encodeURIComponent(JSON.stringify({ action, languageId })))).ok).toBe(true);
+    expect(created[0]).toMatchObject({ name, startTime: 7, inPoint: 7, outPoint: 11, selected: true });
+    expect(created[0].movedBefore).toBe(selected);
+    expect(selected.name).toBe("Keep me");
+    expect(selected.nameSetCount).toBe(0);
+    expect(created[0].effects.added.map(effect => effect.matchName)).toEqual(action === "create-solid" ? ["ADBE Fill"] : []);
+    if (action === "create-solid") {
+      expect(created[0]).toMatchObject({ color: [0, 0, 0], width: 1920, height: 1080, pixelAspect: 1 });
+    } else if (action === "create-light") {
+      expect(created[0].lightType).toBe("POINT");
+      expect(created[0].transform["ADBE Position"].value).toEqual([960, 540, 0]);
+    } else {
+      expect(created[0].text).toBe("text");
+      expect(created[0].nameSetCount).toBe(0);
+      expect(created[0].transform["ADBE Position"].value).toEqual([960, 540]);
+    }
+  });
+
+  it("exposes the stable ordinary naming contract without mutating the composition", async () => {
+    const { comp, created } = createComp([]);
+    const host = await loadLayerHost({ project: { activeItem: comp } }, TestComp);
+    expect(host.resolveLayerLanguage).toBeTypeOf("function");
+    expect(host.getLayerDisplayName).toBeTypeOf("function");
+    expect(host.resolveLayerLanguage()).toBe("zh-CN");
+    expect(host.decodeLayerActionPayload(payload("create-adjustment")).languageId).toBe("zh-CN");
+    for (const invalid of [null, 1, {}, [], "en-US", "constructor", "__proto__"]) {
+      expect(host.resolveLayerLanguage(invalid)).toBe("zh-CN");
+      expect(host.decodeLayerActionPayload(encodeURIComponent(JSON.stringify({
+        action: "create-adjustment", languageId: invalid
+      }))).languageId).toBe("zh-CN");
+    }
+    expect(host.getLayerDisplayName("adjustment", "en")).toBe("Nya Adjustment");
+    expect(host.getLayerDisplayName("solid", "zh-CN")).toBe("Nya 纯色");
+    for (const objectId of Object.keys(LAYER_DISPLAY_NAMES)) {
+      for (const languageId of LANGUAGE_IDS) {
+        expect(host.getLayerDisplayName(objectId, languageId)).toBe(getLayerDisplayName(objectId, languageId));
+      }
+    }
+    expect(() => host.getLayerDisplayName("constructor", "en")).toThrow("unknown-layer-object");
+    expect(created).toEqual([]);
+  });
+
+  it.each([undefined, "zh-CN", "unsupported", null, 42, {}, []].map(languageId => ({ languageId })))(
+    "preserves the exact adjustment baseline for missing, Chinese or malformed language $languageId",
+    async ({ languageId }) => {
+      const selected = createLayer("existing", { name: "Untouched", index: 3, inPoint: 7, outPoint: 11 });
+      selected.selected = true;
+      const { comp, created } = createComp([selected]);
+      const undo = [];
+      const host = await loadLayerHost({
+        project: { activeItem: comp },
+        beginUndoGroup: (name) => undo.push(name), endUndoGroup: () => undo.push("end")
+      }, TestComp);
+      const result = JSON.parse(host.runLayerAction(encodeURIComponent(JSON.stringify({
+        action: "create-adjustment", modifier: "none", languageId
+      }))));
+      expect(result).toEqual({ ok: true, createdLayers: 1, updatedLayers: 0, createdItems: 0 });
+      expect(created).toHaveLength(1);
+      expect(created[0]).toMatchObject({
+        name: "Nya 调整层", adjustmentLayer: true, width: 1920, height: 1080,
+        pixelAspect: 1, duration: 20, startTime: 7, inPoint: 7, outPoint: 11, selected: true
+      });
+      expect(created[0].movedBefore).toBe(selected);
+      expect(created[0].effects.added).toEqual([]);
+      expect(selected.name).toBe("Untouched");
+      expect(selected.nameSetCount).toBe(0);
+      expect(selected.selected).toBe(false);
+      expect(undo).toEqual(["NYAWORKS Create Layer", "end"]);
+    }
+  );
+
+  it("uses the English adjustment name when explicitly requested", async () => {
+    const { comp, created } = createComp([]);
+    const host = await loadLayerHost({
+      project: { activeItem: comp }, beginUndoGroup() {}, endUndoGroup() {}
+    }, TestComp);
+    expect(JSON.parse(host.runLayerAction(encodeURIComponent(JSON.stringify({
+      action: "create-adjustment", modifier: "none", languageId: "en"
+    })))).ok).toBe(true);
+    expect(created[0].name).toBe("Nya Adjustment");
+    expect(created[0].effects.added).toEqual([]);
+  });
+
   it("creates centered text named after its actual source text without assigning a font", async () => {
     const { comp, created } = createComp([]);
     const undo = [];

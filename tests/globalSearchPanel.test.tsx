@@ -12,6 +12,9 @@ import { ActionServiceProvider } from "../src/actions/ActionServiceProvider";
 import type { ActionService } from "../src/actions/service";
 import { ToastProvider } from "../src/notifications/ToastProvider";
 import type { GlobalSearchHostBridge } from "../src/host/globalSearchBridge";
+import { LANGUAGE_IDS, type LanguageId } from "../src/i18n/languages";
+import { LANGUAGE_STORAGE_KEY } from "../src/i18n/languageStorage";
+import { UI_COPY } from "../src/i18n/translations";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
@@ -20,8 +23,10 @@ let container: HTMLDivElement | null = null;
 
 async function renderPanel(
   actionService?: ActionService,
-  searchBridge: GlobalSearchHostBridge = createDevelopmentGlobalSearchService()
+  searchBridge: GlobalSearchHostBridge = createDevelopmentGlobalSearchService(),
+  language: LanguageId = "zh-CN"
 ) {
+  window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -51,6 +56,33 @@ afterEach(() => {
 });
 
 describe("GlobalSearchPanel", () => {
+  it.each(["ja", "ko"] as const)("shows the same %s English-controls notice for a search creation", async language => {
+    const node = await renderPanel({ run: async () => ({ success: true, message: "ok", data: { notice: "shape-controls-english" } }) }, undefined, language);
+    const input = node.querySelector<HTMLInputElement>(".global-search input")!;
+    await act(async () => {
+      input.focus();
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(input, "新建形状层");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+    expect(node.querySelector(".toast-item__message")).not.toBeNull();
+    expect(node.querySelector(".toast-item__message")?.textContent).toBe(UI_COPY[language].home.layerFeedback.shapeControlsEnglish);
+  });
+  it.each(LANGUAGE_IDS)("preserves the full %s shape capability message in the shared toast", async language => {
+    const node = await renderPanel({ run: async () => ({
+      success: false, message: "failed",
+      error: { code: "host-error", detail: "Error: pseudo-template-locale-unavailable: ja; trace=C:/private/project.log" }
+    }) }, undefined, language);
+    const input = node.querySelector<HTMLInputElement>(".global-search input")!;
+    await act(async () => {
+      input.focus();
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(input, "新建形状层");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+    expect(node.querySelector(".toast-item__message")?.textContent).toBe(UI_COPY[language].home.layerFeedback.pseudoTemplateLocaleUnavailable);
+    expect(node.textContent).not.toContain("C:/private");
+  });
   it("supports writable input, grouped results, and icon/name-only rows", async () => {
     const node = await renderPanel();
     const input = node.querySelector<HTMLInputElement>(".global-search input");

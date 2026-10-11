@@ -123,11 +123,29 @@ return runLayerAction;`
   )(app, TestComp, {}, JSON, decodeURIComponent);
 }
 
-function encoded(action, modifier = "none") {
-  return encodeURIComponent(JSON.stringify({ action, modifier }));
+function encoded(action, modifier = "none", languageId) {
+  return encodeURIComponent(JSON.stringify({ action, modifier, languageId }));
 }
 
 describe("null controller host action", () => {
+  it.each([["zh-CN", "Nya 控制"], ["en", "Nya Control"]])(
+    "localizes %s per-layer nulls without changing parenting, position or timing", async (languageId, name) => {
+      const first = createLayer("shape", { name: "First", index: 2, position: [100, 200], inPoint: 2, outPoint: 6 });
+      const second = createLayer("text", { name: "Second", index: 1, position: [300, 400], inPoint: 4, outPoint: 8 });
+      const { app, created } = createApp([first, second]);
+      const run = await loadRunLayerAction(app);
+      expect(JSON.parse(run(encoded("create-null", "alt", languageId)))).toEqual({
+        ok: true, createdLayers: 2, updatedLayers: 2, createdItems: 0
+      });
+      expect(first.parent.name).toBe(name);
+      expect(second.parent.name).toBe(`${name} 2`);
+      expect(created.every(layer => layer.guideLayer && layer.selected)).toBe(true);
+      expect([first.parent.inPoint, first.parent.outPoint]).toEqual([2, 6]);
+      expect([second.parent.inPoint, second.parent.outPoint]).toEqual([4, 8]);
+      expect([first.name, second.name]).toEqual(["First", "Second"]);
+      expect([first.transform["ADBE Position"].value, second.transform["ADBE Position"].value]).toEqual([[100, 200], [300, 400]]);
+    }
+  );
   it("creates a centered guide null when nothing is selected", async () => {
     const { app, created } = createApp();
     const runLayerAction = await loadRunLayerAction(app);
@@ -210,6 +228,26 @@ describe("null controller host action", () => {
 });
 
 describe("camera rig host action", () => {
+  it.each([["zh-CN", "Nya 摄像机", "Nya 摄像机控制"], ["en", "Nya Camera", "Nya Camera Control"]])(
+    "localizes %s camera/rig names while retaining control parameters and instance references", async (languageId, cameraName, controllerName) => {
+      const { app, created } = createApp();
+      const run = await loadRunLayerAction(app);
+      expect(JSON.parse(run(encoded("create-camera-rig", "none", languageId)))).toMatchObject({ ok: true, createdLayers: 2 });
+      const camera = created.find(layer => layer.kind === "camera");
+      const controller = created.find(layer => layer.kind === "null");
+      expect(camera.name).toBe(cameraName);
+      expect(controller.name).toBe(controllerName);
+      expect(camera.parent).toBe(controller);
+      expect(controller.guideLayer).toBe(true);
+      expect(controller.threeDLayer).toBe(true);
+      expect(controller.selected).toBe(true);
+      expect(camera.selected).toBe(false);
+      expect(camera.transform["ADBE Position"].value).toEqual([0, 0, -1000]);
+      expect(camera.cameraOptions["ADBE Camera Zoom"].expression).toContain(`thisComp.layer("${controllerName}")`);
+      expect(controller.controls.map(control => control.name)).toContain("Nya 镜头焦距");
+      expect(controller.controls).toHaveLength(15);
+    }
+  );
   it("creates a 35mm camera parented to a selected 3D guide controller", async () => {
     const { app, created } = createApp();
     const runLayerAction = await loadRunLayerAction(app);

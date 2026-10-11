@@ -46,7 +46,7 @@ async function readLayoutFunction() {
 describe("rounded rectangle pseudo-effect asset", () => {
   it("requires all four version-free presets and their catalog in production builds", () => {
     expect(REQUIRED_DIST_FILES).toContain("dist/host/pseudo-effects/catalog.json");
-    expect(REQUIRED_DIST_FILES.filter(file => file.endsWith(".ffx"))).toEqual([
+    expect(REQUIRED_DIST_FILES.filter(file => file.endsWith("-zh-CN.ffx"))).toEqual([
       "dist/host/pseudo-effects/rounded-rectangle-zh-CN.ffx",
       "dist/host/pseudo-effects/circle-zh-CN.ffx",
       "dist/host/pseudo-effects/triangle-zh-CN.ffx",
@@ -58,7 +58,7 @@ describe("rounded rectangle pseudo-effect asset", () => {
     const catalog = JSON.parse(await readFile(`${root}/catalog.json`, "utf8"));
     const template = catalog.templates[id];
     expect(template.sha256).toBe("D51226CC1DD15988215CFBD27254C1F7377F2C1334E939B01CF0FA8B199BDEB9");
-    expect(Object.keys(catalog.templates)).toEqual([
+    expect(Object.keys(catalog.templates).filter(id => id.endsWith("/zh-CN"))).toEqual([
       "shape.roundedRectangle/v7/zh-CN", "shape.circle/v3/zh-CN",
       "shape.triangle/v1/zh-CN", "shape.star/v2/zh-CN"
     ]);

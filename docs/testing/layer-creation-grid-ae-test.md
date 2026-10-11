@@ -151,3 +151,56 @@
 - 回归保护：普通点击点文字、Alt 独立编辑器、读取/应用/创建、主题语言同步及原生窗口关闭链路继续由既有测试覆盖；
 - 真实 AE 状态：以上四项已在 Windows / 中文 AE 2025 手动复测，用户确认全部正常；
 - 全量测试边界：785/788 通过；2 项失败来自未跟踪伪效果实验测试，1 项失败来自缺少被 Git 忽略的 `NyaLauncher.exe`，均非本轮文字层改动。
+
+### 2026-10-11 本地化 Task 1：冻结兼容契约（RED）
+
+- 起点：`main` / `919d022`；本步只改测试与本记录，不修改生产代码或伪效果资产。
+- 修改前：`layerCreationHost.test.js`、`layerShapeHost.test.js` 共 93 项通过。
+- 冻结名称：旧 payload 省略 `languageId` 时，调整层仍为 `Nya 调整层`；四种形状依次为 `Nya 圆角矩形`、`Nya 圆`、`Nya 三角形`、`Nya 星形`。圆形效果实例仍为 `Nya 圆形`，不能和图层名混用。文字层继续以源文字内容命名，普通创建内容仍为 `text`。
+- 冻结资产：`layerShapeHost.test.js` 使用独立字面量检查四个已发布中文 FFX 的 SHA-256、Catalog 键、matchName、marker 和参数语义 ID / 索引顺序，以及实际 Host 生成的中文效果引用和索引集合；`layerLocalizationContract.test.ts` 检查 Bridge 的语言 payload 契约。
+- 默认与非法语言回归：省略、`zh-CN`、未知字符串、`null`、数字、对象和数组均保留调整层中文名称、尺寸、时间、插入位置、单选新层、无效果和一个 Undo Group；不改已有层名称。
+- RED 目标：5 项检查 Bridge 透传面板语言（Task 2）；1 项检查 English 调整层名 `Nya Adjustment`（Tasks 2–3）；16 项检查四种非简体中文语言 × 四种形状模板未就绪时，返回含 `pseudo-template-locale-unavailable` 的结构化失败，且从未调用 `layers.addShape()`（Task 4）。
+- 当前窄测试：131 项中 109 项通过、22 项按预期 RED；失败来自语言字段尚未透传、调整层仍使用中文名、形状仍路由到中文模板。没有用 skip / todo / expected-failure 隐藏这些待实现契约。
+- 其他检查：typecheck 与 `git diff --check` 通过。排除 4 个未跟踪伪效果实验测试后，其余完整测试共 821 项，798 项通过、23 项失败：22 项为本步 RED，另 1 项是 `nyaLauncherBuildContract.test.js` 缺少 `outputs/nya-launcher-p1/NyaLauncher.exe`。单独筛选兼容基线得到 109 项通过（22 项 RED 不参与该次筛选）；完整运行仍保留 RED。本步没有生产代码改动，未重新构建或运行 dist smoke。
+- 测试夹具修正：`Object.assign` 会提前求值 getter，旧夹具的 `numLayers` 因而不会随创建增加；改为动态 getter，使“只选中新层”断言真实覆盖全部层。这是测试模型修正，未修改 Host 选择逻辑。
+- AE 实机状态：本步未运行真实 AE；原有文字层与中文形状验收记录继续有效，调整层实机验收仍待完成。Task 1 的 RED 结果不代表任何新增语言已支持。
+- 后续顺序：Task 2 普通名称 Catalog / 可选语言 payload → Task 3 普通图层回归与 AE 2025 验收 → Task 4 语言模板预检。Task 2/3 不应通过删掉模板失败断言来伪造全绿。
+
+### 2026-10-11 本地化 Task 2：名称目录与可选语言 payload
+
+- 新增 `src/layers/layerDisplayNames.ts`、`layerLanguage.ts`：使用稳定对象 ID 查询五种面板语言名称；仅接受 `zh-CN` / `zh-TW` / `en` / `ja` / `ko`，缺失、无效或不支持的值回退 `zh-CN`。不读取 AE 的 UI 语言。
+- `ActionRunOptions.languageId` 与 `LayerHostOptions.languageId` 均为可选字段；现有两参数 Bridge 调用继续发送原 payload，显式语言经过 Executor / Bridge 规范化后编码传给 Host。Host 解码时独立规范化，保护旧调用方。
+- Host 使用 ES3 名称目录镜像，契约测试逐项比对全部对象 × 五种语言；保留这份运行时格式，避免为旧调用引入额外文件加载依赖。修改文案时需同步前端与 Host，测试会阻止两者静默漂移。
+- 中文特殊行为保留：文字内容/层名仍为 `text`；预合成名称仍使用原层名 + ` Precomp`；解预合成目录条目是操作名称，不用于重命名复制出的已有图层；形状实例和中文 FFX 不变。
+- 本步只接入目录与调用契约，尚未将面板当前语言自动注入所有入口，也未改变普通图层的实际创建名称；这些属于 Task 3。尤其 English 调整层仍返回 `Nya 调整层`，对应 RED 保留。
+- 验证：相关 8 个测试文件共 219 项，202 项通过、17 项仍按后续任务 RED（1 项 Task 3 调整层名、16 项 Task 4 未就绪模板前置失败）。Task 2 的 Catalog、语言规范化和透传断言均 GREEN。
+- 排除原有 4 个未跟踪实验测试后的完整测试：840 项中 822 项通过、18 项失败；除上述 17 项外，仍有 `nyaLauncherBuildContract.test.js` 缺少 `outputs/nya-launcher-p1/NyaLauncher.exe`。没有其他测试失败。
+- typecheck、生产构建、11 项 dist smoke 和 `git diff --check` 通过；没有真实 AE 新语言验收。未提交或推送，伪效果实验内容继续保留并排除。
+- 下一步：Task 3 从调整层开始接入实际命名，保持时间/尺寸/插入/选择/Undo/无效果行为；在切换当前面板语言前补齐对应入口测试，不把未准备的伪效果语言标为可用。
+
+### 2026-10-11 本地化 Task 3：普通图层命名已接入，AE 验收待完成
+
+- 新建调整层、纯色、空对象、摄像机/控制层、灯光和预合成后缀使用统一名称目录；ActionServiceProvider 为首页和全局搜索的普通图层操作补充当前面板语言。显式指定语言继续优先，语言切换本身不会触发 Action。
+- 调整层先完成 English 名称 RED→GREEN；五语言回归覆盖合成宽高和非 1 像素比例、选层并集时间、插入最上方选层、仅选新层、重名递增至 3、无附加效果和一个 Undo Group。
+- 其他普通名称在生产改动前得到 5 项 RED（English 纯色、日文灯光、English 空对象、English 摄像机及控制层、日文预合成后缀），改造后普通创建/控制器/预合成 Host 共 91 项通过。首页语言传递先得到 4 项 RED，再完成 UI 接入；首页/锚点/对齐/搜索 Mock 回归共 32 项通过。
+- 兼容性例外：文字内容/名称仍为 `text` 或编辑器源文字，不额外赋层名；解预合成保留原图层名。形状的普通层名与伪效果身份一起留到 Task 4 处理，本步不改四种中文模板、几何或表达式。摄像机图层/控制层名称可本地化，其 15 个控制参数继续保持中文，已有表达式引用实际控制层名。
+- 相关 8 个 Host/Bridge/Action 测试文件共 238 项：222 项通过，剩余 16 项为 Task 4 的未就绪语言模板预检 RED。排除 4 个未跟踪实验测试后，全套 860 项中 843 项通过、17 项失败：上述 16 项 RED + `nyaLauncherBuildContract.test.js` 缺少 `outputs/nya-launcher-p1/NyaLauncher.exe`。没有其他失败。
+- typecheck、生产构建、11 项 dist smoke 与 `git diff --check` 通过。代码未 commit/push，实验文件继续保留并排除。
+- 已同步构建唯一 `dev-extension/`，确认现有 CEP junction 指向此目录，开发扩展的 11 项产物检查通过且 Host 与源码哈希一致。刷新/重新打开面板后可开始手动验收；本步没有启动新的扩展实例或自动修改 AE 工程。
+- 真实 AE 状态：本轮未操作当前未保存工程，未执行真实 CEP 点击、Undo 或保存重开；以下项全部待确认，不能用 Host/Mock 测试代替。
+
+#### Task 3 AE 2025 手动验收步骤
+
+在独立测试工程中关闭并重新打开 NYAWORKS 面板，使前端和 Host JSX 重新加载。记录 AE 精确版本、Windows 版本、AE 界面语言、面板语言与扩展加载方式。
+
+- [ ] 无选层创建调整层：中文 `Nya 调整层`，English `Nya Adjustment`；尺寸/像素比例/完整时间范围匹配合成，类型为 Adjustment Layer，无效果。
+- [ ] 两层选择顺序与图层顺序不同且时间不同：插入最上方选层之前，使用选层最早入点到最晚出点，仅新层选中。
+- [ ] 连续创建同名层：名称正确递增；在繁体、日文、韩文面板语言下抽查名称和层类型。
+- [ ] 切换面板语言、刷新扩展：原有层名、效果和表达式保持原样；只影响之后的新建普通层。
+- [ ] English 下分别创建纯色、空对象、摄像机和灯光；空对象父子关系/画面位置保持正常，摄像机表达式无报错（控制参数本轮仍为中文）。
+- [ ] 日文预合成后缀为 `プリコンポーズ`；源层原名、时长、插入位置与安全解预合成行为正常。
+- [ ] 单次 Undo 撤销创建，保存并重新打开独立测试工程，名称/层类型/时间/表达式仍正常；中文四种形状再做一次最小回归。
+
+验收结果、环境、未通过项和截图：待填写。Task 3 实现/自动化已完成，真实 AE 验收未完成。
+
+2026-10-11 用户反馈：测试总体正常，形状仍为中文。普通图层记录为用户总体 smoke 通过，没有逐项确认以上专项检查。后续 English 形状已接入候选模板，见[本地化验收表](layer-localization-ae-test.md)，仍待真实 AE 验收。

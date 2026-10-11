@@ -17,6 +17,8 @@ import { useToast } from "../notifications/ToastProvider";
 import { getAnchorFailureMessage } from "../actions/anchorFeedback";
 import { getAlignmentFailureMessage } from "../actions/alignmentFeedback";
 import { isAlignmentActionId } from "../actions/definitions/alignmentActions";
+import { getLayerFailureMessage, getLayerSuccessMessage } from "../actions/layerFeedback";
+import { coreActionRegistry } from "../actions/registry";
 
 const SEARCH_IDLE_CLOSE_MS = 4000;
 
@@ -172,9 +174,16 @@ export function GlobalSearchPanel({ onExecute }: { onExecute?: (item: GlobalSear
         return;
       }
       if (!result.ok) {
+        if (item.action === "execute-action" && item.actionId &&
+            coreActionRegistry.get(item.actionId)?.execute.command === "runLayerAction") {
+          toast.error(getLayerFailureMessage({ code: result.reason, detail: result.detail }, home.layerFeedback));
+          return;
+        }
         toast.error(searchFailureMessage(result.reason, copy));
         return;
       }
+      const notice = getLayerSuccessMessage(result.data, home.layerFeedback);
+      if (notice) toast.info(notice);
       onExecute?.(item);
       closeSearch();
     } finally {

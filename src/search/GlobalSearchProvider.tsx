@@ -141,7 +141,7 @@ export function GlobalSearchProvider({
     if (item.action === "execute-action" && item.actionId) {
       const actionResult = await actionService.run(item.actionId);
       result = actionResult.success
-        ? { ok: true }
+        ? { ok: true, ...(actionResult.data === undefined ? {} : { data: actionResult.data }) }
         : { ok: false, reason: actionResult.error?.code ?? "host-error", detail: actionResult.error?.detail };
     } else if (item.action === "execute-tool" && item.opensBanner && item.toolId) {
       result = { ok: true };

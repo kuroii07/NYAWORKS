@@ -1,0 +1,111 @@
+{
+  "templateId": "shape.star/v2/en",
+  "matchName": "Pseudo/NYA_Star_v2_en_r2",
+  "displayName": "Nya Star",
+  "styleGroup": "Nya Style",
+  "marker": "__NYA_STAR_V2__",
+  "parameters": [
+    {
+      "id": "points",
+      "label": "Nya Points",
+      "type": "slider",
+      "defaultValue": 5,
+      "sliderMin": 3,
+      "sliderMax": 20,
+      "validMin": 3,
+      "validMax": 100,
+      "precision": 0
+    },
+    {
+      "id": "outerRadius",
+      "label": "Nya Outer Radius",
+      "type": "slider",
+      "defaultValue": 250,
+      "sliderMin": 0,
+      "sliderMax": 3000,
+      "validMin": 0,
+      "validMax": 5000
+    },
+    {
+      "id": "innerRadius",
+      "label": "Nya Inner Radius",
+      "type": "slider",
+      "defaultValue": 125,
+      "sliderMin": 0,
+      "sliderMax": 3000,
+      "validMin": 0,
+      "validMax": 5000
+    },
+    {
+      "id": "rotation",
+      "label": "Nya Rotation",
+      "type": "angle",
+      "defaultValue": 0
+    },
+    {
+      "id": "outerRoundness",
+      "label": "Nya Outer Roundness",
+      "type": "percent",
+      "defaultValue": 0,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "validMin": 0,
+      "validMax": 100
+    },
+    {
+      "id": "innerRoundness",
+      "label": "Nya Inner Roundness",
+      "type": "percent",
+      "defaultValue": 0,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "validMin": 0,
+      "validMax": 100
+    },
+    {
+      "id": "fillEnabled",
+      "label": "Nya Enable Fill",
+      "type": "checkbox",
+      "defaultValue": 1
+    },
+    {
+      "id": "fillColor",
+      "label": "Nya Fill Color",
+      "type": "color",
+      "defaultValue": [
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "strokeEnabled",
+      "label": "Nya Enable Stroke",
+      "type": "checkbox",
+      "defaultValue": 0
+    },
+    {
+      "id": "strokeColor",
+      "label": "Nya Stroke Color",
+      "type": "color",
+      "defaultValue": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "strokeWidth",
+      "label": "Nya Stroke Width",
+      "type": "slider",
+      "defaultValue": 5,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "validMin": 0,
+      "validMax": 1000
+    }
+  ],
+  "definitionRevision": 2
+}

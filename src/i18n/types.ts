@@ -285,6 +285,10 @@ export interface UiCopy {
       Record<LayerToolId, Partial<Record<LayerActionModifier, string>>>
     >;
     layerFeedback: {
+      shapeControlsEnglish: string;
+      pseudoTemplateLocaleUnavailable: string;
+      pseudoTemplateMissing: string;
+      pseudoEffectFallback: string;
       noActiveComp: string;
       noSelectedLayer: string;
       invalidSelection: string;

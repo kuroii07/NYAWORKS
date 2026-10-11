@@ -44,7 +44,7 @@ import { getActiveHomeLayout } from "../settings/homeSettingsStorage";
 import { useActionService } from "../actions/ActionServiceProvider";
 import { getAnchorFailureMessage } from "../actions/anchorFeedback";
 import { getAlignmentFailureMessage } from "../actions/alignmentFeedback";
-import { getLayerFailureMessage } from "../actions/layerFeedback";
+import { getLayerFailureMessage, getLayerSuccessMessage } from "../actions/layerFeedback";
 import { getAnchorActionId } from "../actions/definitions/anchorActions";
 import { getAlignmentActionId } from "../actions/definitions/alignmentActions";
 import { getLayerActionId } from "../actions/layerActionTypes";
@@ -568,6 +568,8 @@ export function HomePage({
       layerModifier: modifier
     });
     if (result.success) {
+      const notice = getLayerSuccessMessage(result.data, home.layerFeedback);
+      if (notice) toast.info(notice);
       return;
     }
 
