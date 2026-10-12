@@ -36,6 +36,12 @@ return reloadHostScript;`
 }
 
 describe("CEP host reload path", () => {
+  it("declares UTF-8 for native AE loading of the multilingual Host source", async () => {
+    const source = await readFile("public/host/index.jsx");
+    // Chinese AE 25.6 evalFile rejects this multilingual file without a BOM (error 44).
+    expect([...source.subarray(0, 3)]).toEqual([0xef, 0xbb, 0xbf]);
+  });
+
   it("reloads the original NYAWORKS host file even when the caller changes", async () => {
     const evaluated = [];
     const dollar = {

@@ -142,7 +142,8 @@ describe("English pseudo-effect candidates", () => {
     expect(Object.keys(catalog.templates).filter(id => id.endsWith("/en"))).toHaveLength(4);
     const legacy = await Promise.all(shapes.map(shape => readFile(`${root}/${shape.file}-zh-CN.ffx`)));
     execFileSync(process.execPath, ["scripts/build-shape-pseudo-effects.mjs", "--locale=en"], { stdio: "pipe" });
-    expect(await readFile(`${root}/catalog.json`, "utf8")).toBe(before);
+    // Git may check out CRLF on Windows; the generator writes LF.
+    expect((await readFile(`${root}/catalog.json`, "utf8")).replace(/\r\n/g, "\n")).toBe(before.replace(/\r\n/g, "\n"));
     for (const [index, shape] of shapes.entries()) expect(await readFile(`${root}/${shape.file}-zh-CN.ffx`)).toEqual(legacy[index]);
   });
 });
@@ -181,7 +182,7 @@ describe("Traditional Chinese shape candidates", () => {
     const files = shapes.flatMap(shape => [`${root}/en/${shape.file}.ffx`, `${root}/${shape.file}-zh-CN.ffx`]);
     const snapshots = await Promise.all(files.map(file => readFile(file)));
     execFileSync(process.execPath, ["scripts/build-shape-pseudo-effects.mjs", "--locale=zh-TW"], { stdio: "pipe" });
-    expect(await readFile(`${root}/catalog.json`, "utf8")).toBe(before);
+    expect((await readFile(`${root}/catalog.json`, "utf8")).replace(/\r\n/g, "\n")).toBe(before.replace(/\r\n/g, "\n"));
     for (const [index, file] of files.entries()) expect(await readFile(file)).toEqual(snapshots[index]);
   });
 
