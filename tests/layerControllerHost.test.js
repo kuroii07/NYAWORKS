@@ -29,6 +29,8 @@ function createLayer(kind, options = {}) {
   };
   const controls = [];
   const effects = {
+    get numProperties() { return controls.length; },
+    property(index) { return controls[index - 1] ?? null; },
     addProperty(matchName) {
       const control = {
         matchName,
@@ -54,6 +56,35 @@ function createLayer(kind, options = {}) {
     guideLayer: false,
     selected: options.selected ?? false,
     controls,
+    applyPreset(file) {
+      if (options.presetOptions?.throwOnApply) throw new Error("preset-apply-failed");
+      const locale = file.fsName.includes("/zh-TW/") ? "zh-TW" :
+        file.fsName.includes("/en/") ? "en" : file.fsName.includes("/ja/") ? "ja" : "zh-CN";
+      const names = {
+        "zh-CN": ["Nya 摄像机控制", "Pseudo/NYA_Camera_v1_zhCN"],
+        "zh-TW": ["Nya 攝影機控制", "Pseudo/NYA_Camera_v1_zhTW"],
+        en: ["Nya Camera Control", "Pseudo/NYA_Camera_v1_en"],
+        ja: ["Nya カメラコントロール", "Pseudo/NYA_Camera_v1_ja_r2"]
+      };
+      const [name, matchName] = names[locale];
+      const indices = [2, 5, 6, 7, 8, 9, 10, 13, 14, 17, 18, 21, 22, 25, 26];
+      const defaults = [0, 0, 0, 0, 0, 0, 0, 0, 0, 35, 0, 0, 1000, 0, 2];
+      const properties = Array.from({ length: 28 }, (_, offset) => ({
+        name: offset === 27 ? "__NYA_CAMERA_V1__" : "",
+        matchName: `${matchName}-${String(offset + 1).padStart(4, "0")}`,
+        propertyValueType: offset === 1 ? 6421 : indices.includes(offset + 1) ? 6417 : 6412,
+        value: defaults[indices.indexOf(offset + 1)],
+        setValue(next) { this.value = next; }
+      }));
+      if (options.presetOptions?.badSignature) properties[27].name = "wrong marker";
+      if (options.presetOptions?.badLayerType) properties[1].propertyValueType = 6417;
+      const effect = {
+        name, matchName, propertyIndex: controls.length + 1,
+        property(index) { return properties[index - 1] ?? null; },
+        remove() { controls.splice(controls.indexOf(this), 1); }
+      };
+      controls.push(effect);
+    },
     transform,
     cameraOptions,
     get parent() { return parent; },
@@ -86,7 +117,7 @@ function createLayer(kind, options = {}) {
   };
 }
 
-function createApp(selection = []) {
+function createApp(selection = [], presetOptions = {}) {
   const created = [];
   const comp = Object.assign(new TestComp(), {
     width: 1920,
@@ -101,13 +132,14 @@ function createApp(selection = []) {
   selection.forEach(layer => { layer.selected = true; });
   comp.layers = {
     addNull() {
-      const layer = createLayer("null", { name: "Null" });
+      const layer = createLayer("null", { name: "Null", presetOptions });
       layer.remove = () => created.splice(created.indexOf(layer), 1);
       created.unshift(layer);
       return layer;
     },
     addCamera(name, point) {
       const layer = createLayer("camera", { name, position: [point[0], point[1], -1000] });
+      layer.remove = () => created.splice(created.indexOf(layer), 1);
       layer.point = point;
       created.unshift(layer);
       return layer;
@@ -126,8 +158,18 @@ function createApp(selection = []) {
   };
 }
 
-async function loadRunLayerAction(app) {
+async function loadRunLayerAction(app, presetOptions = {}) {
   const source = await readFile("public/host/index.jsx", "utf8");
+  const catalog = await readFile("public/host/pseudo-effects/catalog.json", "utf8");
+  function TestFile(path) {
+    this.fsName = path;
+    this.exists = !presetOptions.missingPreset &&
+      (path.endsWith("/catalog.json") ||
+        /\/(camera-zh-CN|(?:en|zh-TW|ja)\/camera)\.ffx$/.test(path));
+    this.open = () => this.exists;
+    this.read = () => presetOptions.catalogOverride || catalog;
+    this.close = () => {};
+  }
   const start = source.indexOf("  function decodeLayerActionPayload(encodedPayload) {");
   const end = source.indexOf("  function alignmentActionInfo(action) {", start);
   return Function(
@@ -136,13 +178,17 @@ async function loadRunLayerAction(app) {
     "LightType",
     "JSON",
     "decodeURIComponent",
+    "File",
     `${source.slice(start, end)}
 return runLayerAction;`
-  )(app, TestComp, {}, JSON, decodeURIComponent);
+  )(app, TestComp, {}, JSON, decodeURIComponent, TestFile);
 }
 
 function encoded(action, modifier = "none", languageId) {
-  return encodeURIComponent(JSON.stringify({ action, modifier, languageId }));
+  return encodeURIComponent(JSON.stringify({
+    action, modifier, languageId,
+    ...(action === "create-camera-rig" ? { extensionRoot: "C:/CEP/NYAWORKS" } : {})
+  }));
 }
 
 function worldAnchor(layer) {
@@ -403,7 +449,7 @@ describe("null controller host action", () => {
 
 describe("camera rig host action", () => {
   it.each([["zh-CN", "Nya 摄像机", "Nya 摄像机控制"], ["en", "Nya Camera", "Nya Camera Control"]])(
-    "localizes %s camera/rig names while retaining control parameters and instance references", async (languageId, cameraName, controllerName) => {
+    "localizes %s camera/rig names with an isolated pseudo-effect", async (languageId, cameraName, controllerName) => {
       const { app, created } = createApp();
       const run = await loadRunLayerAction(app);
       expect(JSON.parse(run(encoded("create-camera-rig", "none", languageId)))).toMatchObject({ ok: true, createdLayers: 2 });
@@ -417,9 +463,8 @@ describe("camera rig host action", () => {
       expect(controller.selected).toBe(true);
       expect(camera.selected).toBe(false);
       expect(camera.transform["ADBE Position"].value).toEqual([0, 0, -1000]);
-      expect(camera.cameraOptions["ADBE Camera Zoom"].expression).toContain(`thisComp.layer("${controllerName}")`);
-      expect(controller.controls.map(control => control.name)).toContain("Nya 镜头焦距");
-      expect(controller.controls).toHaveLength(15);
+      expect(camera.cameraOptions["ADBE Camera Zoom"].expression).toContain("thisLayer.parent");
+      expect(controller.controls.map(control => control.name)).toEqual([controllerName]);
     }
   );
   it("creates a 35mm camera parented to a selected 3D guide controller", async () => {
@@ -444,25 +489,11 @@ describe("camera rig host action", () => {
     expect(camera.transform["ADBE Point of Interest"].value).toEqual([0, 0, 0]);
     expect(camera.selected).toBe(false);
     expect(controller.controls.map((control) => [control.matchName, control.name])).toEqual([
-      ["ADBE Layer Control", "Nya 目标图层"],
-      ["ADBE Slider Control", "Nya 相机位置 X"],
-      ["ADBE Slider Control", "Nya 相机位置 Y"],
-      ["ADBE Slider Control", "Nya 相机位置 Z"],
-      ["ADBE Angle Control", "Nya 相机旋转 X"],
-      ["ADBE Angle Control", "Nya 相机旋转 Y"],
-      ["ADBE Angle Control", "Nya 相机旋转 Z"],
-      ["ADBE Checkbox Control", "Nya 自动移动"],
-      ["ADBE Slider Control", "Nya 移动速度"],
-      ["ADBE Slider Control", "Nya 镜头焦距"],
-      ["ADBE Checkbox Control", "Nya 镜头景深"],
-      ["ADBE Checkbox Control", "Nya 焦点自动"],
-      ["ADBE Slider Control", "Nya 焦点距离"],
-      ["ADBE Slider Control", "Nya 抖动强度"],
-      ["ADBE Slider Control", "Nya 抖动频率"]
+      ["Pseudo/NYA_Camera_v1_zhCN", "Nya 摄像机控制"]
     ]);
-    expect(camera.cameraOptions["ADBE Camera Zoom"].expression).toContain("Nya 镜头焦距");
-    expect(camera.cameraOptions["ADBE Camera Depth of Field"].expression).toContain("Nya 镜头景深");
-    expect(camera.transform["ADBE Point of Interest"].expression).toContain("Nya 目标图层");
+    expect(camera.cameraOptions["ADBE Camera Zoom"].expression).toContain('effect("Nya 摄像机控制")(17)');
+    expect(camera.cameraOptions["ADBE Camera Depth of Field"].expression).toContain('effect("Nya 摄像机控制")(18)');
+    expect(camera.transform["ADBE Point of Interest"].expression).toContain('effect("Nya 摄像机控制")(2)');
     expect(controller.movedBefore).toBe(camera);
   });
 
@@ -489,7 +520,7 @@ describe("camera rig host action", () => {
 
     expect(JSON.parse(runLayerAction(encoded("create-camera-rig"))).ok).toBe(true);
     const controller = created.find((layer) => layer.kind === "null");
-    expect(controller.controls.filter((control) => control.name.indexOf("Nya 相机位置") === 0).map((control) => control.value.value)).toEqual([
+    expect([5, 6, 7].map(index => controller.controls[0].property(index).value)).toEqual([
       600,
       400,
       40
@@ -509,10 +540,134 @@ describe("camera rig host action", () => {
 
     expect(JSON.parse(runLayerAction(encoded("create-camera-rig"))).ok).toBe(true);
     const controller = created.find((layer) => layer.kind === "null");
-    expect(controller.controls.filter((control) => control.name.indexOf("Nya 相机位置") === 0).map((control) => control.value.value)).toEqual([
+    expect([5, 6, 7].map(index => controller.controls[0].property(index).value)).toEqual([
       720,
       460,
       15
     ]);
+  });
+});
+
+describe("camera pseudo-effect creation contract", () => {
+  it.each(["zh-CN", "zh-TW", "en", "ja"])("binds %s to one checked effect by semantic indexes", async languageId => {
+    const first = createLayer("shape", { position: [400, 300, 20] });
+    const second = createLayer("text", { position: [800, 500, 60] });
+    const { app, created } = createApp([first, second]);
+    const run = await loadRunLayerAction(app);
+    expect(JSON.parse(run(encoded("create-camera-rig", "none", languageId)))).toMatchObject({
+      ok: true, createdLayers: 2
+    });
+    const camera = created.find(layer => layer.kind === "camera");
+    const controller = created.find(layer => layer.kind === "null");
+    const effect = controller.controls[0];
+    expect(controller.controls).toHaveLength(1);
+    expect(effect.property(28).name).toBe("__NYA_CAMERA_V1__");
+    expect([5, 6, 7].map(index => effect.property(index).value)).toEqual([600, 400, 40]);
+    expect(effect.property(2).value).toBe(0);
+    expect(effect.property(17).value).toBe(35);
+    expect(effect.property(22).value).toBe(1000);
+    expect(effect.property(26).value).toBe(2);
+    expect(controller.transform["ADBE Position"].expression).toContain(`effect(${JSON.stringify(effect.name)})(14)`);
+    expect(controller.transform["ADBE Position"].expression).toContain("time*speed");
+    expect(camera.cameraOptions["ADBE Camera Zoom"].expression).toContain(`.effect(${JSON.stringify(effect.name)})(17)`);
+    expect(camera.cameraOptions["ADBE Camera Focus Distance"].expression).toContain(`.effect(${JSON.stringify(effect.name)})(2)`);
+    expect(camera.cameraOptions["ADBE Camera Depth of Field"].expression).toContain(`.effect(${JSON.stringify(effect.name)})(18)`);
+    expect(camera.transform["ADBE Point of Interest"].expression).toContain(`.effect(${JSON.stringify(effect.name)})(2)`);
+    expect(camera.cameraOptions["ADBE Camera Zoom"].expression).toContain("thisLayer.parent");
+    expect(camera.parent).toBe(controller);
+    expect(first.selected && second.selected).toBe(false);
+    expect([app.undoBegins, app.undoEnds]).toEqual([1, 1]);
+  });
+
+  it("refuses Korean before creating any layer until a readable Korean template exists", async () => {
+    const original = createLayer("shape", { selected: true });
+    const { app, created } = createApp([original]);
+    const run = await loadRunLayerAction(app);
+    expect(JSON.parse(run(encoded("create-camera-rig", "none", "ko")))).toMatchObject({
+      ok: false, detail: expect.stringContaining("pseudo-template-locale-unavailable: ko")
+    });
+    expect(created).toHaveLength(0);
+    expect(original.selected).toBe(true);
+  });
+
+  it("rejects a shifted catalog index before creating a camera", async () => {
+    const catalog = JSON.parse(await readFile("public/host/pseudo-effects/catalog.json", "utf8"));
+    catalog.templates["camera.rig/v1/zh-CN"].parameters["position.x"] = 6;
+    const original = createLayer("shape", { selected: true });
+    const { app, created } = createApp([original]);
+    const run = await loadRunLayerAction(app, { catalogOverride: JSON.stringify(catalog) });
+    expect(JSON.parse(run(encoded("create-camera-rig")))).toMatchObject({
+      ok: false, detail: expect.stringContaining("pseudo-template-invalid")
+    });
+    expect(created).toHaveLength(0);
+    expect(original.selected).toBe(true);
+  });
+
+  it("uses its own parent when another controller already has the same display name", async () => {
+    const existing = createLayer("null", { name: "Nya 摄像机控制", selected: true });
+    const { app, created } = createApp([existing]);
+    const run = await loadRunLayerAction(app);
+    expect(JSON.parse(run(encoded("create-camera-rig"))).ok).toBe(true);
+    const controller = created.find(layer => layer.kind === "null");
+    const camera = created.find(layer => layer.kind === "camera");
+    expect(controller.name).toBe("Nya 摄像机控制 2");
+    expect(camera.parent).toBe(controller);
+    expect(camera.cameraOptions["ADBE Camera Zoom"].expression).toContain("thisLayer.parent.effect");
+    expect(camera.cameraOptions["ADBE Camera Zoom"].expression).not.toContain("thisComp.layer(");
+    expect(existing.parent).toBeNull();
+  });
+
+  it.each([{ missingPreset: true }, { badSignature: true }, { badLayerType: true }, { throwOnApply: true }])(
+    "leaves the original selection and no rig after template failure %o", async presetOptions => {
+      const original = createLayer("shape", { selected: true });
+      const { app, created } = createApp([original], presetOptions);
+      const run = await loadRunLayerAction(app, presetOptions);
+      expect(JSON.parse(run(encoded("create-camera-rig"))).ok).toBe(false);
+      expect(created).toHaveLength(0);
+      expect(original.selected).toBe(true);
+      expect([app.undoBegins, app.undoEnds]).toEqual([1, 1]);
+    }
+  );
+
+  it("removes both layers if an expression fails after the preset is applied", async () => {
+    const original = createLayer("shape", { selected: true });
+    const { app, created, comp } = createApp([original]);
+    const addCamera = comp.layers.addCamera;
+    comp.layers.addCamera = (...args) => {
+      const camera = addCamera(...args);
+      camera.cameraOptions["ADBE Camera Zoom"].expressionError = "invalid expression";
+      return camera;
+    };
+    const run = await loadRunLayerAction(app);
+    expect(JSON.parse(run(encoded("create-camera-rig"))).ok).toBe(false);
+    expect(created).toHaveLength(0);
+    expect(original.selected).toBe(true);
+  });
+
+  it("does not leave a camera when Ctrl settings cannot open", async () => {
+    const original = createLayer("shape", { selected: true });
+    const { app, created } = createApp([original]);
+    app.findMenuCommandId = name => name === "Camera Settings..." ? 501 : 0;
+    app.executeCommand = () => { throw new Error("menu-failure"); };
+    const run = await loadRunLayerAction(app);
+    expect(JSON.parse(run(encoded("create-camera-rig", "ctrl"))).ok).toBe(false);
+    expect(created).toHaveLength(0);
+    expect(original.selected).toBe(true);
+  });
+
+  it("reports an incomplete rollback if a new Null cannot be removed", async () => {
+    const { app, comp, created } = createApp();
+    const addNull = comp.layers.addNull;
+    comp.layers.addNull = () => {
+      const layer = addNull();
+      layer.transform["ADBE Anchor Point"].setValue = () => { throw new Error("init-failed"); };
+      layer.remove = () => { throw new Error("remove-failed"); };
+      return layer;
+    };
+    const run = await loadRunLayerAction(app);
+    expect(JSON.parse(run(encoded("create-camera-rig")))).toMatchObject({
+      ok: false, detail: expect.stringContaining("camera-rollback-failed")
+    });
+    expect(created.map(layer => layer.kind)).toEqual(["null"]);
   });
 });

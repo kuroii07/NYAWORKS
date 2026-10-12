@@ -16,6 +16,10 @@ export const REQUIRED_DIST_FILES = [
   "dist/host/pseudo-effects/zh-TW/circle.ffx",
   "dist/host/pseudo-effects/zh-TW/triangle.ffx",
   "dist/host/pseudo-effects/zh-TW/star.ffx",
+  "dist/host/pseudo-effects/camera-zh-CN.ffx",
+  "dist/host/pseudo-effects/en/camera.ffx",
+  "dist/host/pseudo-effects/zh-TW/camera.ffx",
+  "dist/host/pseudo-effects/ja/camera.ffx",
   "dist/assets/brand/nyaworks-cat.png"
 ];
 

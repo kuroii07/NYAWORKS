@@ -102,8 +102,9 @@ export function createLayerHostBridge(
     async runLayerAction(action, modifier, options) {
       const pseudoShape = action === "create-shape" &&
         (modifier === "none" || modifier === "alt" || modifier === "ctrl" || modifier === "shift");
-      const extensionRoot = pseudoShape ? getCepExtensionRoot(environment) : null;
-      if (pseudoShape && !extensionRoot) {
+      const needsTemplate = pseudoShape || action === "create-camera-rig";
+      const extensionRoot = needsTemplate ? getCepExtensionRoot(environment) : null;
+      if (needsTemplate && !extensionRoot) {
         return { ok: false, reason: "host-error", detail: "pseudo-extension-root-unavailable" };
       }
       // Keep the legacy wire payload unchanged when no language was supplied.

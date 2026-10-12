@@ -72,6 +72,35 @@ describe("layer host bridge", () => {
     });
   });
 
+  it.each(["none", "ctrl"] as const)("passes the template root and locale for %s camera rigs", async modifier => {
+    let received = "";
+    const bridge = createLayerHostBridge({
+      __adobe_cep__: {
+        getSystemPath: () => "file:///D:/AE%E8%84%9A%E6%9C%AC/NYAWORKS",
+        evalScript: (script, callback) => {
+          received = script;
+          callback(JSON.stringify({ ok: true, createdLayers: 2 }));
+        }
+      }
+    });
+    await expect(bridge.runLayerAction("create-camera-rig", modifier, { languageId: "ja" }))
+      .resolves.toMatchObject({ ok: true, createdLayers: 2 });
+    expect(JSON.parse(decodeURIComponent(received.match(/\("(.+)"\)$/)?.[1] ?? ""))).toEqual({
+      action: "create-camera-rig", modifier, languageId: "ja", extensionRoot: "D:/AE脚本/NYAWORKS"
+    });
+  });
+
+  it("does not invoke AE when a camera template root is unavailable", async () => {
+    let called = false;
+    const bridge = createLayerHostBridge({
+      __adobe_cep__: { evalScript: () => { called = true; } }
+    });
+    await expect(bridge.runLayerAction("create-camera-rig", "none")).resolves.toEqual({
+      ok: false, reason: "host-error", detail: "pseudo-extension-root-unavailable"
+    });
+    expect(called).toBe(false);
+  });
+
   it("invokes the CEP path API with its runtime receiver", async () => {
     let received = "";
     const runtime = {

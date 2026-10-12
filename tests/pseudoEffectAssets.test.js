@@ -46,7 +46,7 @@ async function readLayoutFunction() {
 describe("rounded rectangle pseudo-effect asset", () => {
   it("requires all four version-free presets and their catalog in production builds", () => {
     expect(REQUIRED_DIST_FILES).toContain("dist/host/pseudo-effects/catalog.json");
-    expect(REQUIRED_DIST_FILES.filter(file => file.endsWith("-zh-CN.ffx"))).toEqual([
+    expect(REQUIRED_DIST_FILES.filter(file => file.endsWith("-zh-CN.ffx") && !file.endsWith("camera-zh-CN.ffx"))).toEqual([
       "dist/host/pseudo-effects/rounded-rectangle-zh-CN.ffx",
       "dist/host/pseudo-effects/circle-zh-CN.ffx",
       "dist/host/pseudo-effects/triangle-zh-CN.ffx",
@@ -58,7 +58,7 @@ describe("rounded rectangle pseudo-effect asset", () => {
     const catalog = JSON.parse(await readFile(`${root}/catalog.json`, "utf8"));
     const template = catalog.templates[id];
     expect(template.sha256).toBe("D51226CC1DD15988215CFBD27254C1F7377F2C1334E939B01CF0FA8B199BDEB9");
-    expect(Object.keys(catalog.templates).filter(id => id.endsWith("/zh-CN"))).toEqual([
+    expect(Object.keys(catalog.templates).filter(id => id.startsWith("shape.") && id.endsWith("/zh-CN"))).toEqual([
       "shape.roundedRectangle/v7/zh-CN", "shape.circle/v3/zh-CN",
       "shape.triangle/v1/zh-CN", "shape.star/v2/zh-CN"
     ]);
@@ -114,7 +114,7 @@ describe("rounded rectangle pseudo-effect asset", () => {
       sliderMin: 0, sliderMax: 100,
       validMin: 0, validMax: 1000
     });
-    expect((await readdir(root)).filter(file => file.endsWith(".ffx")).sort()).toEqual([
+    expect((await readdir(root)).filter(file => file.endsWith(".ffx") && !file.startsWith("camera-")).sort()).toEqual([
       "circle-zh-CN.ffx",
       "rounded-rectangle-zh-CN.ffx",
       "star-zh-CN.ffx",
@@ -412,7 +412,7 @@ describe("shape asset generator layout validation", () => {
 describe("shared shape stroke width", () => {
   it("encodes the same default, drag bounds and typed-input bounds in every shipped shape", async () => {
     const catalog = JSON.parse(await readFile(`${root}/catalog.json`, "utf8"));
-    for (const [templateId, template] of Object.entries(catalog.templates)) {
+    for (const [templateId, template] of Object.entries(catalog.templates).filter(([id]) => id.startsWith("shape."))) {
       const bytes = await readFile(`${root}/${template.file}`);
       const chunk = parseRifx(bytes)[0];
       const index = template.parameters.strokeWidth;

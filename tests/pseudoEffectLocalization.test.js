@@ -139,7 +139,7 @@ describe("English pseudo-effect candidates", () => {
   it("regenerates only English, preserving Chinese entries and all legacy bytes", async () => {
     const before = await readFile(`${root}/catalog.json`, "utf8");
     const catalog = JSON.parse(before);
-    expect(Object.keys(catalog.templates).filter(id => id.endsWith("/en"))).toHaveLength(4);
+    expect(Object.keys(catalog.templates).filter(id => id.startsWith("shape.") && id.endsWith("/en"))).toHaveLength(4);
     const legacy = await Promise.all(shapes.map(shape => readFile(`${root}/${shape.file}-zh-CN.ffx`)));
     execFileSync(process.execPath, ["scripts/build-shape-pseudo-effects.mjs", "--locale=en"], { stdio: "pipe" });
     // Git may check out CRLF on Windows; the generator writes LF.

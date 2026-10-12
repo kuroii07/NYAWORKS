@@ -1775,6 +1775,9 @@
         !pseudoEffectArrayContains(["zh-CN", "en", "zh-TW", "ja", "ko"], parts[2])) {
       throw new Error("pseudo-template-not-allowed");
     }
+    if (parts[0] === "camera.rig") {
+      return getCameraPseudoEffectTemplateContract(templateId, parts);
+    }
     // The Chinese whitelist owns the frozen shape/version/parameter contract.
     // New locales acquire independent identities without replacing that baseline.
     var contract = getChinesePseudoEffectTemplateContract(parts[0] + "/" + parts[1] + "/zh-CN");
@@ -1799,6 +1802,38 @@
       contract.matchName = contract.matchName.replace(/zhCN$/, "zhTW");
     }
     return contract;
+  }
+
+  function getCameraPseudoEffectTemplateContract(templateId, parts) {
+    var locale = parts[2];
+    var identities = {
+      "zh-CN": { file: "camera-zh-CN.ffx", suffix: "zhCN", name: "Nya 摄像机控制" },
+      "zh-TW": { file: "zh-TW/camera.ffx", suffix: "zhTW", name: "Nya 攝影機控制" },
+      en: { file: "en/camera.ffx", suffix: "en", name: "Nya Camera Control" },
+      ja: { file: "ja/camera.ffx", suffix: "ja_r2", name: "Nya カメラコントロール" },
+      ko: { file: "ko/camera.ffx", suffix: "ko", name: "Nya 카메라 컨트롤" }
+    };
+    var identity = identities[locale];
+    if (parts[1] !== "v1" || !identity) throw new Error("pseudo-template-not-allowed");
+    return {
+      templateId: templateId, effectId: "camera.rig", schemaVersion: 1, locale: locale,
+      file: identity.file, matchName: "Pseudo/NYA_Camera_v1_" + identity.suffix,
+      layerDisplayName: identity.name,
+      marker: { index: 28, name: "__NYA_CAMERA_V1__" },
+      parameterIds: [
+        "target.layer", "position.x", "position.y", "position.z",
+        "rotation.x", "rotation.y", "rotation.z", "motion.enabled", "motion.speed",
+        "lens.focalLength", "lens.depthOfField", "focus.auto", "focus.distance",
+        "shake.strength", "shake.frequency"
+      ],
+      parameterIndexes: {
+        "target.layer": 2, "position.x": 5, "position.y": 6, "position.z": 7,
+        "rotation.x": 8, "rotation.y": 9, "rotation.z": 10,
+        "motion.enabled": 13, "motion.speed": 14, "lens.focalLength": 17,
+        "lens.depthOfField": 18, "focus.auto": 21, "focus.distance": 22,
+        "shake.strength": 25, "shake.frequency": 26
+      }
+    };
   }
 
   function getChinesePseudoEffectTemplateContract(templateId) {
@@ -1901,7 +1936,7 @@
         contract.file.indexOf(":") !== -1) {
       throw new Error("pseudo-template-invalid");
     }
-    if (contract.locale !== "zh-CN" &&
+    if ((contract.effectId === "camera.rig" || contract.locale !== "zh-CN") &&
         (definition.effectId !== contract.effectId ||
          definition.schemaVersion !== contract.schemaVersion ||
          definition.locale !== contract.locale ||
@@ -2019,6 +2054,10 @@
       if (!parameter || parameter.matchName !==
           contract.matchName + "-" + ("000" + parameterIndex).slice(-4)) {
         throw new Error("pseudo-parameter-mismatch-" + parameterId);
+      }
+      if (contract.effectId === "camera.rig" &&
+          String(parameter.propertyValueType) !== (parameterId === "target.layer" ? "6421" : "6417")) {
+        throw new Error("pseudo-parameter-type-mismatch-" + parameterId);
       }
     }
     return effect;
@@ -2723,13 +2762,79 @@
     if (zoom) zoom.setValue(Number(comp.width) * 35 / 36);
   }
 
-  function createCameraRig(context, modifier) {
+  function setCameraRigExpression(property, expression, label) {
+    if (!property || !setShapeExpression(property, expression) || property.expressionError) {
+      throw new Error("camera-expression-invalid: " + label +
+        (property && property.expressionError ? " (" + property.expressionError + ")" : ""));
+    }
+  }
+
+  function addCameraPseudoControls(controller, position, context, template) {
+    var effect = applyPseudoEffectTemplate(controller, context, template);
+    var indexes = template.definition.parameters;
+    var effects = "effect(" + JSON.stringify(effect.name) + ")";
+    var axisIds = ["position.x", "position.y", "position.z"];
+    var index;
+    var parameter;
+    lastShapePseudoTrace = null;
+    for (index = 0; index < axisIds.length; index += 1) {
+      parameter = effect.property(indexes[axisIds[index]]);
+      if (!parameter || typeof parameter.setValue !== "function") {
+        throw new Error("camera-position-control-unavailable: " + axisIds[index]);
+      }
+      parameter.setValue(position[index]);
+      if (Number(parameter.value) !== position[index]) {
+        throw new Error("camera-position-control-clamped: " + axisIds[index]);
+      }
+    }
+    setCameraRigExpression(layerTransformProperty(controller, "ADBE Position"), [
+      "base=[" + effects + "(" + indexes["position.x"] + ")," + effects + "(" + indexes["position.y"] + ")," + effects + "(" + indexes["position.z"] + ")];",
+      "moving=" + effects + "(" + indexes["motion.enabled"] + ")>0;",
+      "speed=" + effects + "(" + indexes["motion.speed"] + ");",
+      "amount=Math.max(0," + effects + "(" + indexes["shake.strength"] + "));",
+      "frequency=Math.max(0," + effects + "(" + indexes["shake.frequency"] + "));",
+      "result=base+[0,0,moving?time*speed:0];",
+      "amount>0&&frequency>0?result+(wiggle(frequency,amount)-value):result;"
+    ].join("\n"), "position");
+    setCameraRigExpression(layerTransformProperty(controller, "ADBE Rotate X"), effects + "(" + indexes["rotation.x"] + ")", "rotation.x");
+    setCameraRigExpression(layerTransformProperty(controller, "ADBE Rotate Y"), effects + "(" + indexes["rotation.y"] + ")", "rotation.y");
+    setCameraRigExpression(layerTransformProperty(controller, "ADBE Rotate Z"), effects + "(" + indexes["rotation.z"] + ")", "rotation.z");
+    return effect;
+  }
+
+  function configureCameraFromPseudo(camera, effect, template) {
+    var options = camera.property("ADBE Camera Options Group");
+    var indexes = template.definition.parameters;
+    var source = "thisLayer.parent.effect(" + JSON.stringify(effect.name) + ")";
+    setCameraRigExpression(options && options.property("ADBE Camera Zoom"),
+      "thisComp.width*" + source + "(" + indexes["lens.focalLength"] + ")/36", "zoom");
+    setCameraRigExpression(options && options.property("ADBE Camera Depth of Field"),
+      source + "(" + indexes["lens.depthOfField"] + ")>0?1:0", "depthOfField");
+    setCameraRigExpression(options && options.property("ADBE Camera Focus Distance"), [
+      "ctrl=thisLayer.parent;",
+      "target=ctrl.effect(" + JSON.stringify(effect.name) + ")(" + indexes["target.layer"] + ");",
+      "autoFocus=" + source + "(" + indexes["focus.auto"] + ")>0;",
+      "autoFocus&&target?length(toWorld([0,0,0]),target.toWorld(target.anchorPoint)):" + source + "(" + indexes["focus.distance"] + ");"
+    ].join("\n"), "focusDistance");
+    setCameraRigExpression(layerTransformProperty(camera, "ADBE Point of Interest"), [
+      "ctrl=thisLayer.parent;",
+      "target=ctrl.effect(" + JSON.stringify(effect.name) + ")(" + indexes["target.layer"] + ");",
+      "target?fromWorld(target.toWorld(target.anchorPoint)):value;"
+    ].join("\n"), "pointOfInterest");
+  }
+
+  function createCameraRig(context, modifier, extensionRoot) {
     var comp = context.comp;
     var center = averageControllerPosition(context.selection, comp);
+    var template = preflightPseudoEffectTemplate(
+      extensionRoot, "camera.rig/v1/" + resolveLayerLanguage(context.languageId)
+    );
     var commandId = 0;
-    var camera;
-    var controller;
+    var camera = null;
+    var controller = null;
+    var effect;
     var result;
+    var rollbackFailed = false;
     if (modifier === "ctrl") {
       commandId = findLocalizedMenuCommand([
         "Camera Settings...", "Camera Settings…",
@@ -2739,31 +2844,42 @@
       ]);
       if (!commandId) return { ok: false, reason: "host-error", detail: "camera-settings-unavailable" };
     }
-    camera = comp.layers.addCamera(uniqueLayerName(comp, getLayerDisplayName("camera", context.languageId), null), [center[0], center[1]]);
-    setCamera35mm(camera, comp);
-    applyLayerTiming(camera, context);
-    controller = createGuideNull(context, center, true, getLayerDisplayName("cameraController", context.languageId));
-    addCameraControllerControls(controller, center);
-    camera.parent = controller;
-    // Parent 后重新写入局部坐标，确保控制器位于合成中心时摄像机仍在
-    // 控制器前方，而不是因为 AE 保留世界坐标造成位置偏移。
-    var localPosition = layerTransformProperty(camera, "ADBE Position");
-    var localPointOfInterest = layerTransformProperty(camera, "ADBE Point of Interest");
-    if (localPosition) localPosition.setValue([0, 0, -1000]);
-    if (localPointOfInterest) localPointOfInterest.setValue([0, 0, 0]);
-    configureCameraFromController(camera, controller, comp);
-    placeLayerAboveSelection(camera, context);
-    if (typeof controller.moveBefore === "function") controller.moveBefore(camera);
-    selectOnlyLayers([controller], comp);
-    result = { ok: true, createdLayers: 2, updatedLayers: 0, createdItems: 0 };
-    if (commandId) {
-      selectOnlyLayers([camera], comp);
-      if (!executeMenuCommand(commandId)) {
-        return { ok: false, reason: "host-error", detail: "camera-settings-unavailable" };
-      }
+    try {
+      camera = comp.layers.addCamera(uniqueLayerName(comp, getLayerDisplayName("camera", context.languageId), null), [center[0], center[1]]);
+      setCamera35mm(camera, comp);
+      applyLayerTiming(camera, context);
+      controller = createGuideNull(context, center, true, getLayerDisplayName("cameraController", context.languageId));
+      lastShapePseudoTrace = null;
+      effect = addCameraPseudoControls(controller, center, context, template);
+      camera.parent = controller;
+      // AE preserves the camera's world coordinates when parenting it.
+      var localPosition = layerTransformProperty(camera, "ADBE Position");
+      var localPointOfInterest = layerTransformProperty(camera, "ADBE Point of Interest");
+      if (!localPosition || !localPointOfInterest) throw new Error("camera-transform-unavailable");
+      localPosition.setValue([0, 0, -1000]);
+      localPointOfInterest.setValue([0, 0, 0]);
+      configureCameraFromPseudo(camera, effect, template);
+      placeLayerAboveSelection(camera, context);
+      if (typeof controller.moveBefore === "function") controller.moveBefore(camera);
       selectOnlyLayers([controller], comp);
+      result = { ok: true, createdLayers: 2, updatedLayers: 0, createdItems: 0 };
+      if (commandId) {
+        selectOnlyLayers([camera], comp);
+        if (!executeMenuCommand(commandId)) throw new Error("camera-settings-unavailable");
+        selectOnlyLayers([controller], comp);
+      }
+      return result;
+    } catch (error) {
+      if (String(error).indexOf("null-initialization-rollback-failed") >= 0) rollbackFailed = true;
+      if (controller) {
+        try { controller.remove(); } catch (controllerError) { rollbackFailed = true; }
+      }
+      if (camera) {
+        try { camera.remove(); } catch (cameraError) { rollbackFailed = true; }
+      }
+      try { selectOnlyLayers(context.selection, comp); } catch (selectionError) { rollbackFailed = true; }
+      return { ok: false, reason: "host-error", detail: rollbackFailed ? "camera-rollback-failed: " + error : String(error) };
     }
-    return result;
   }
 
   function projectItemNameExists(name) {
@@ -3379,7 +3495,7 @@
       } else if (action === "create-null") {
         result = createNullLayer(context, modifier);
       } else if (action === "create-camera-rig") {
-        result = createCameraRig(context, modifier);
+        result = createCameraRig(context, modifier, payload.extensionRoot);
       } else if (action === "create-light") {
         result = createLightLayer(context, modifier);
       } else if (action === "precompose-selected") {
