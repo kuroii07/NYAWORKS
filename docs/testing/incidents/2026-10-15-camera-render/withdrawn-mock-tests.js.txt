@@ -1,0 +1,263 @@
+import { readFile } from "node:fs/promises";
+import { runInNewContext } from "node:vm";
+import { describe, expect, it, vi } from "vitest";
+
+const script = await readFile("scripts/ae-tests/compare-camera-rig-render.jsx", "utf8");
+
+// This harness checks scope, output and cleanup, not AE expression/render behavior.
+async function inspect(options = {}) {
+  const files = new Map();
+  const folders = new Set();
+  const alerts = [];
+  const rendered = [];
+  const duplicates = [];
+  const pendingFiles = new Map();
+  let sleeps = 0;
+  let items = 9;
+  let source;
+  const forbidden = vi.fn(() => { throw new Error("unexpected-original-or-app-mutation"); });
+
+  function property(initial, original, settings = {}) {
+    let stored = Array.isArray(initial) ? initial.slice() : initial;
+    let expression = settings.expression || "";
+    let enabled = Boolean(expression);
+    return {
+      numKeys: settings.numKeys || 0, dimensionsSeparated: Boolean(settings.dimensionsSeparated),
+      expressionError: "",
+      get expression() { return expression; },
+      set expression(value) {
+        if (original) forbidden();
+        expression = value;
+        enabled = Boolean(value);
+      },
+      get expressionEnabled() { return enabled; },
+      set expressionEnabled(value) { if (original) forbidden(); enabled = value; },
+      valueAtTime: () => Array.isArray(stored) ? stored.slice() : stored,
+      setValue(value) { if (original) forbidden(); stored = Array.isArray(value) ? value.slice() : value; }
+    };
+  }
+
+  class Comp {
+    constructor(original, id) {
+      this.id = id;
+      this.name = original ? "User comp" : "Copy";
+      this.time = 11 / 30;
+      this.width = 1920;
+      this.height = 1080;
+      this.numLayers = 7;
+      this.renderer = "ADBE Advanced 3d";
+      const controls = Array.from({ length: 29 }, (_, i) => property(
+        i === 1 ? (options.target || 0) : i === 4 ? 16460 : i === 5 ? 540 : 0,
+        original, { numKeys: options.animated && i === 4 ? 1 : 0 }
+      ));
+      const effect = { matchName: "Pseudo/NYA_Camera_v1_zhCN", numProperties: 29, property: i => controls[i - 1] };
+      const position = property([960, 540, 0], original, {
+        expression: options.disabled ? "" : "[effect(1)(5),effect(1)(6),effect(1)(7)]"
+      });
+      const cameraPosition = property([728, 0, -1000], original, {
+        dimensionsSeparated: options.separatedCamera
+      });
+      const controller = {
+        index: 1, parent: null, selected: false, locked: true, guideLayer: true,
+        property: name => name === "ADBE Effect Parade"
+          ? { numProperties: 1, property: () => effect }
+          : { property: name => name === "ADBE Position" ? position : null }
+      };
+      const camera = {
+        index: 2, parent: controller, selected: true, locked: true,
+        property: () => ({ property: name => name === "ADBE Position" ? cameraPosition : null })
+      };
+      this.activeCamera = camera;
+      this.layer = i => [controller, camera][i - 1];
+      this.controls = controls;
+      this.position = position;
+      this.cameraPosition = cameraPosition;
+      let attempts = 0;
+      this.remove = vi.fn(() => {
+        if (original) forbidden();
+        attempts += 1;
+        if (options.cleanupFailure && attempts === 1) throw new Error("remove-failed-once");
+        items -= 1;
+      });
+      if (original) {
+        // Source writes throw, including property setters and layer flags.
+        Object.freeze(controller);
+        Object.freeze(camera);
+        Object.freeze(this);
+      }
+    }
+    duplicate() {
+      if (options.sameObject) return source;
+      const copy = new Comp(false, 100 + duplicates.length);
+      duplicates.push(copy);
+      items += 1;
+      return copy;
+    }
+    saveFrameToPng(time, file) {
+      const frame = {
+        original: this === source, name: file.fsName, time,
+        controlX: this.controls[4].valueAtTime(),
+        position: this.position.valueAtTime(), expression: this.position.expression,
+        cameraPosition: this.cameraPosition.valueAtTime(), guideLayer: this.layer(1).guideLayer
+      };
+      rendered.push(frame);
+      if (options.failRender && file.fsName.includes(options.failRender)) throw new Error("render-failed");
+      if (options.missingOutput) return;
+      if (options.delayedOutput) pendingFiles.set(file.fsName, "fake-png-bytes");
+      else files.set(file.fsName, "fake-png-bytes");
+    }
+  }
+  if (options.unsupported) Comp.prototype.saveFrameToPng = undefined;
+  source = new Comp(true, 1);
+  const app = {
+    version: "25.6x101", beginUndoGroup: vi.fn(), endUndoGroup: vi.fn(),
+    purge: forbidden, quit: forbidden, executeCommand: forbidden,
+    project: {
+      activeItem: source, expressionEngine: "javascript-1.0", get numItems() { return items; },
+      save: forbidden, close: forbidden
+    }
+  };
+  function Folder(path) {
+    this.fsName = path;
+    this.create = () => { folders.add(path); return true; };
+    Object.defineProperty(this, "exists", { get: () => folders.has(path) });
+  }
+  Folder.userData = { fsName: "userdata" };
+  function File(path) {
+    const initialExists = files.has(path);
+    const initialLength = (files.get(path) || "").length;
+    this.fsName = path;
+    this.open = () => !options.writeFailure;
+    this.write = text => { files.set(path, text); return true; };
+    this.close = vi.fn();
+    Object.defineProperties(this, {
+      exists: { get: () => options.staleMetadata ? initialExists : files.has(path) },
+      length: { get: () => options.staleMetadata ? initialLength : (files.get(path) || "").length }
+    });
+  }
+  runInNewContext('"use strict";\n' + script, {
+    app, CompItem: Comp, File, Folder, alert: text => alerts.push(text),
+    $: { sleep: () => {
+      sleeps += 1;
+      if (sleeps % 2 === 0) {
+        for (const [path, contents] of pendingFiles) files.set(path, contents);
+        pendingFiles.clear();
+      }
+    } }
+  }, { timeout: 1000 });
+  expect(forbidden).not.toHaveBeenCalled();
+  expect(source.name).toBe("User comp");
+  expect(source.time).toBe(11 / 30);
+  expect(source.layer(1).locked).toBe(true);
+  expect(source.layer(1).guideLayer).toBe(true);
+  expect(source.layer(2).locked).toBe(true);
+  expect(source.layer(2).selected).toBe(true);
+  expect(source.position.valueAtTime()).toEqual([960, 540, 0]);
+  expect(source.cameraPosition.valueAtTime()).toEqual([728, 0, -1000]);
+  expect(source.controls[4].valueAtTime()).toBe(16460);
+  return { app, source, duplicates, rendered, alerts, items, sleeps, report: [...files.entries()].find(([name]) => name.endsWith("report.txt"))?.[1] || "" };
+}
+
+describe("user-run camera render comparison", () => {
+  it("exports eight cases, mutates only copies and removes all owned copies", async () => {
+    const result = await inspect();
+    expect(result.rendered).toHaveLength(8);
+    expect(result.duplicates).toHaveLength(7);
+    expect(result.duplicates.every(comp => comp.remove.mock.calls.length === 1)).toBe(true);
+    expect(result.items).toBe(9);
+    expect(result.app.beginUndoGroup).toHaveBeenCalledOnce();
+    expect(result.app.endUndoGroup).toHaveBeenCalledOnce();
+    expect(result.report).toContain("finished=true frames=8");
+    expect(result.report).toContain("initialItems=9 finalItems=9");
+    expect(result.report).not.toMatch(/(?:^|\n)(?:error|cleanupError|undoCloseError|reportError)=/);
+    const [original, baseline, pseudo, direct, constant, simple, nonGuide, camera] = result.rendered;
+    expect(original.original).toBe(true);
+    expect(baseline.controlX).toBe(960);
+    expect(pseudo.controlX).toBe(1460);
+    expect(direct.position).toEqual([1460, 540, 0]);
+    expect(direct.expression).toBe("");
+    expect(constant.expression).toBe("[1460,540,0]");
+    expect(simple.expression).toContain("thisLayer.effect(1)(5).value");
+    expect(nonGuide.guideLayer).toBe(false);
+    expect(camera.cameraPosition).toEqual([500, 0, -1000]);
+  });
+
+  it("stops after render failure, cleans the exact copy and closes the undo group", async () => {
+    const result = await inspect({ failRender: "02-pseudo-x" });
+    expect(result.rendered).toHaveLength(3);
+    expect(result.duplicates).toHaveLength(2);
+    expect(result.duplicates.every(comp => comp.remove.mock.calls.length === 1)).toBe(true);
+    expect(result.items).toBe(9);
+    expect(result.app.endUndoGroup).toHaveBeenCalledOnce();
+    expect(result.report).toContain("render-failed");
+    expect(result.report).not.toContain("finished=true");
+  });
+
+  it("retries cleanup without advancing to another case or touching the original", async () => {
+    const result = await inspect({ cleanupFailure: true });
+    expect(result.duplicates).toHaveLength(1);
+    expect(result.duplicates[0].remove).toHaveBeenCalledTimes(2);
+    expect(result.items).toBe(9);
+    expect(result.app.endUndoGroup).toHaveBeenCalledOnce();
+    expect(result.report).not.toContain("finished=true");
+  });
+
+  it.each([
+    [{ target: 3 }, "use-rig-without-target"],
+    [{ animated: true }, "animated-or-missing-test-property"],
+    [{ unsupported: true }, "frame-export-unavailable"],
+    [{ disabled: true }, "controller-position-expression-disabled"],
+    [{ separatedCamera: true }, "unsupported-camera-transform"]
+  ])("refuses unsupported inputs before rendering or duplicating: %j", async (options, error) => {
+    const result = await inspect(options);
+    expect(result.rendered).toHaveLength(0);
+    expect(result.duplicates).toHaveLength(0);
+    expect(result.app.beginUndoGroup).not.toHaveBeenCalled();
+    expect(result.alerts.join(" ")).toContain(error);
+    expect(result.items).toBe(9);
+  });
+
+  it("never removes the original if duplicate unexpectedly returns it", async () => {
+    const result = await inspect({ sameObject: true });
+    expect(result.source.remove).not.toHaveBeenCalled();
+    expect(result.items).toBe(9);
+    expect(result.report).toContain("duplicate-is-not-isolated");
+    expect(result.app.endUndoGroup).toHaveBeenCalledOnce();
+  });
+
+  it("reports output-write failure before creating copies", async () => {
+    const result = await inspect({ writeFailure: true });
+    expect(result.duplicates).toHaveLength(0);
+    expect(result.rendered).toHaveLength(0);
+    expect(result.alerts.join(" ")).toContain("report-write-failed");
+  });
+
+  it("refreshes File metadata created before export instead of stopping on a stale snapshot", async () => {
+    const result = await inspect({ staleMetadata: true });
+    expect(result.rendered).toHaveLength(8);
+    expect(result.report).toContain("confirmedPngs=8 exportCallsCompleted=8");
+    expect(result.report).not.toContain("frame-not-written");
+    expect(result.items).toBe(9);
+  });
+
+  it("accepts files visible after a short bounded wait without rerendering", async () => {
+    const result = await inspect({ staleMetadata: true, delayedOutput: true });
+    expect(result.rendered).toHaveLength(8);
+    expect(result.sleeps).toBe(16);
+    expect(result.report).toContain("confirmedPngs=8 exportCallsCompleted=8");
+    expect(result.items).toBe(9);
+  });
+
+  it("keeps remaining comparisons when exports return but files are not yet visible, without claiming success", async () => {
+    const result = await inspect({ missingOutput: true });
+    expect(result.rendered).toHaveLength(8);
+    expect(result.duplicates).toHaveLength(7);
+    expect(result.sleeps).toBeLessThanOrEqual(80);
+    expect(result.report).toContain("confirmedPngs=0 exportCallsCompleted=8");
+    expect(result.report).toContain("pendingPng=00-original-frame");
+    expect(result.report).not.toContain("finished=true");
+    expect(result.alerts.join(" ")).toContain("图片待核对");
+    expect(result.items).toBe(9);
+    expect(result.app.endUndoGroup).toHaveBeenCalledOnce();
+  });
+});

@@ -1,3 +1,5 @@
+import { getCepExtensionRoot } from "../host/cepBridge";
+
 export const isCepDevBuild =
   typeof __NYAWORKS_CEP_DEV__ !== "undefined" && __NYAWORKS_CEP_DEV__;
 
@@ -8,8 +10,11 @@ export type ReloadableLocation = {
 type ReloadableCepEnvironment = {
   __adobe_cep__?: {
     evalScript: (script: string, callback: (result: string) => void) => void;
+    getSystemPath?: (pathType: string) => string;
   };
 };
+
+const EXPECTED_HOST_REVISION = "camera-rig-host-20261015-7";
 
 export function reloadCepHostScript(
   environment: ReloadableCepEnvironment =
@@ -18,13 +23,19 @@ export function reloadCepHostScript(
       : (window as unknown as ReloadableCepEnvironment)
 ): Promise<boolean> {
   const runtime = environment.__adobe_cep__;
-  if (!runtime?.evalScript) {
+  const root = getCepExtensionRoot(environment);
+  if (!runtime?.evalScript || !root) {
     return Promise.resolve(false);
   }
 
   return new Promise((resolve) => {
     try {
-      runtime.evalScript("NYAWORKS.reloadHostScript()", (result) => {
+      const path = encodeURIComponent(root);
+      const script = `(function(){try{` +
+        `$.evalFile(new File(decodeURIComponent("${path}") + "/host/index.jsx"));` +
+        `return JSON.stringify({ok:NYAWORKS.getHostRevision()==="${EXPECTED_HOST_REVISION}"});` +
+        `}catch(error){return '{"ok":false}';}}())`;
+      runtime.evalScript(script, (result) => {
         try {
           resolve((JSON.parse(result) as { ok?: unknown }).ok === true);
         } catch {
@@ -37,21 +48,15 @@ export function reloadCepHostScript(
   });
 }
 
-export function reloadCepPanel(
+export async function reloadCepPanel(
   locationLike: ReloadableLocation = window.location,
   environment: ReloadableCepEnvironment =
     typeof window === "undefined"
       ? {}
       : (window as unknown as ReloadableCepEnvironment)
-): void {
+): Promise<boolean> {
   const runtime = environment.__adobe_cep__;
-  if (runtime?.evalScript) {
-    try {
-      runtime.evalScript("NYAWORKS.reloadHostScript()", () => locationLike.reload());
-      return;
-    } catch {
-      // Fall back to reloading the panel if the host bridge is unavailable.
-    }
-  }
+  if (runtime?.evalScript && !await reloadCepHostScript(environment)) return false;
   locationLike.reload();
+  return true;
 }

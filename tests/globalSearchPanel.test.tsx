@@ -56,6 +56,19 @@ afterEach(() => {
 });
 
 describe("GlobalSearchPanel", () => {
+  it("shows the same Korean camera compatibility notice from search", async () => {
+    const run = vi.fn(async () => ({ success: true as const, message: "ok", data: { notice: "camera-controls-english" } }));
+    const node = await renderPanel({ run }, undefined, "ko");
+    const input = node.querySelector<HTMLInputElement>(".global-search input")!;
+    await act(async () => {
+      input.focus();
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(input, "新建摄像机");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+    expect(run).toHaveBeenCalled();
+    expect(node.querySelector(".toast-item__message")?.textContent).toBe(UI_COPY.ko.home.layerFeedback.cameraControlsEnglish);
+  });
   it.each(["ja", "ko"] as const)("shows the same %s English-controls notice for a search creation", async language => {
     const node = await renderPanel({ run: async () => ({ success: true, message: "ok", data: { notice: "shape-controls-english" } }) }, undefined, language);
     const input = node.querySelector<HTMLInputElement>(".global-search input")!;

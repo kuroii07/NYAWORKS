@@ -1,0 +1,72 @@
+{
+  "date": "2026-10-15",
+  "branch": "feat/camera-controller-pseudo",
+  "hostRevision": "camera-rig-host-20261015-7",
+  "hostSha256": "40040C7A24B1C456EF511AEB06F0E9094D034B69D805E723BD2812682E0080E0",
+  "catalogSha256": "437736DE71B20C015E4F81814ECA61B14D49EE4BD1F202D9CCB145B90A089881",
+  "sourceDistDevInstalledEqual": true,
+  "presetFiles": 16,
+  "cameraTemplates": [
+    {
+      "id": "camera.rig/v3/zh-CN",
+      "file": "camera-zh-CN.ffx",
+      "matchName": "Pseudo/NYA_Camera_v3_zhCN_r2",
+      "sha256": "8086379C3C0818F037DE1CB0C7A5E31382CC14974E00F048DFCF133F12623CCB",
+      "controlLocale": "zh-CN"
+    },
+    {
+      "id": "camera.rig/v3/zh-TW",
+      "file": "zh-TW/camera.ffx",
+      "matchName": "Pseudo/NYA_Camera_v3_zhTW_r2",
+      "sha256": "B7C9CCB13C3CDB16166394F1EF1E0FF53E9CC5A9F52698537285EE5BCD012E31",
+      "controlLocale": "zh-TW"
+    },
+    {
+      "id": "camera.rig/v3/en",
+      "file": "en/camera.ffx",
+      "matchName": "Pseudo/NYA_Camera_v3_en_r2",
+      "sha256": "65FAB1D5F22CEB1BF5CE7A21E437424F330CC5DAEC387C100B982D6612245069",
+      "controlLocale": "en"
+    },
+    {
+      "id": "camera.rig/v3/ja",
+      "file": "ja/camera.ffx",
+      "matchName": "Pseudo/NYA_Camera_v3_ja_r3",
+      "sha256": "65CE104856C2DECCEE79A54D8F91CD941BBB39D22B53DF9DF5D623E6D77DCC05",
+      "controlLocale": "ja"
+    },
+    {
+      "id": "camera.rig/v3/ko",
+      "file": "en/camera.ffx",
+      "matchName": "Pseudo/NYA_Camera_v3_en_r2",
+      "sha256": "65FAB1D5F22CEB1BF5CE7A21E437424F330CC5DAEC387C100B982D6612245069",
+      "controlLocale": "en"
+    }
+  ],
+  "verification": {
+    "freshScopedTests": {
+      "files": 14,
+      "passed": 460
+    },
+    "freshTypecheck": "passed",
+    "freshDistributionSmoke": {
+      "passed": true,
+      "requiredFiles": 23
+    },
+    "previousProductionAndDevelopmentBuilds": "passed before user acceptance; runtime code unchanged during commit preparation",
+    "fullSuite": "Not rerun; earlier full runs stalled and lacked outputs/nya-launcher-p1/NyaLauncher.exe. Scoped tests are not full-suite evidence."
+  },
+  "userAcceptance": {
+    "date": "2026-10-15",
+    "fourLocales": "User confirmed zh-CN, zh-TW, en and ja work normally.",
+    "automaticMovement": "User confirmed movement and controller native Position Z changes.",
+    "korean": "User confirmed creation and parameter adjustment work; Korean names with English controls.",
+    "publication": "User authorized commit and push."
+  },
+  "remainingAcceptance": [
+    "Explicit per-parameter matrix",
+    "Undo/redo and save/reopen",
+    "Other AE versions and macOS"
+  ],
+  "aeAutomation": "No AE instance launched, closed or operated during delivery. Render probe remains disabled."
+}

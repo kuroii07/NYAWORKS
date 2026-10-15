@@ -3,19 +3,25 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import iconv from "iconv-lite";
+import { inspectPseudoEffectStructure } from "./pseudo-effect-structure.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const outputDir = path.join(rootDir, "public/host/pseudo-effects");
+const sourceDir = path.join(rootDir, "public/host/pseudo-effects");
+const args = process.argv.slice(2);
+if (args.length && (args.length !== 2 || args[0] !== "--output-dir" || !args[1])) {
+  throw new Error("Usage: build-camera-pseudo-effects.mjs [--output-dir path]");
+}
+const outputDir = args.length ? path.resolve(args[1]) : sourceDir;
 const schema = JSON.parse(fs.readFileSync(path.join(rootDir,
-  "assets/pseudo-effects/camera/v1/schema.json"), "utf8"));
+  "assets/pseudo-effects/camera/v3/schema.json"), "utf8"));
 const base = fs.readFileSync(path.join(rootDir,
   "assets/pseudo-effects/rounded-rectangle/source/base-scribe.ffx"));
-const catalog = JSON.parse(fs.readFileSync(path.join(outputDir, "catalog.json"), "utf8"));
+const catalog = JSON.parse(fs.readFileSync(path.join(sourceDir, "catalog.json"), "utf8"));
 const localeInfo = {
-  "zh-CN": { suffix: "zhCN", encoding: "gbk", file: "camera-zh-CN.ffx" },
-  "zh-TW": { suffix: "zhTW", encoding: "gbk", file: "zh-TW/camera.ffx" },
-  en: { suffix: "en", encoding: "ascii", file: "en/camera.ffx" },
-  ja: { suffix: "ja_r2", encoding: "gb18030", file: "ja/camera.ffx" }
+  "zh-CN": { suffix: "zhCN_r2", encoding: "gbk", file: "camera-zh-CN.ffx" },
+  "zh-TW": { suffix: "zhTW_r2", encoding: "gbk", file: "zh-TW/camera.ffx" },
+  en: { suffix: "en_r2", encoding: "ascii", file: "en/camera.ffx" },
+  ja: { suffix: "ja_r3", encoding: "gb18030", file: "ja/camera.ffx" }
 };
 
 function parse(bytes, start = 0, end = bytes.length) {
@@ -83,12 +89,12 @@ const expectedIds = ["target.layer", "position.x", "position.y", "position.z",
   "shake.strength", "shake.frequency"];
 if (JSON.stringify(schema.groups.map(g => g.id)) !== JSON.stringify(expectedGroups) ||
     JSON.stringify(schema.parameters.map(p => p.id)) !== JSON.stringify(expectedIds) ||
-    schema.parameters.length !== 15 || schema.marker !== "__NYA_CAMERA_V1__") {
+    schema.parameters.length !== 15 || schema.schemaVersion !== 3 || schema.marker !== "__NYA_CAMERA_V3__") {
   throw new Error("Camera contract changed without a schema revision");
 }
 const artifacts = [];
 for (const [locale, localeSpec] of Object.entries(localeInfo)) {
-  const matchName = `Pseudo/NYA_Camera_v1_${localeSpec.suffix}`;
+  const matchName = `Pseudo/NYA_Camera_v3_${localeSpec.suffix}`;
   const displayName = schema.displayNames[locale];
   const root = parse(base)[0];
   const definitions = find(root, "parT");
@@ -114,8 +120,10 @@ for (const [locale, localeSpec] of Object.entries(localeInfo)) {
     }
     parameters.push({ kind: 14, source: 7, label: "" });
   }
-  parameters.push({ kind: 14, source: 7, label: schema.marker });
-  if (parameters.length !== 29) throw new Error("Camera parameter layout changed");
+  // The marker labels the existing final group's terminator. A seventh end
+  // would have no matching start and corrupt the parameter-group structure.
+  parameters[parameters.length - 1].label = schema.marker;
+  if (parameters.length !== 28) throw new Error("Camera parameter layout changed");
   definitions.children = [leaf("parn", uint(parameters.length))];
   streams.children = [leaf("tdsb", uint(1)), text("tdsn", displayName, localeSpec.encoding)];
   const mapping = {};
@@ -143,8 +151,8 @@ for (const [locale, localeSpec] of Object.entries(localeInfo)) {
       definition.data.writeUInt32BE(parameter.defaultValue, 56);
       definition.data.writeUInt8(parameter.defaultValue, 60);
     } else if (parameter.id === "target.layer") {
-      // The source's input-layer slot is hidden. These visible Layer Control
-      // fields and the stream below were checked in native AE 25.6.
+      // Layer Control definition fields from the native preset comparison.
+      // Definition type alone does not make its value stream visible.
       definition.data.writeUInt32LE(1, 84);
       definition.data.fill(0, 88, 92);
     }
@@ -159,8 +167,15 @@ for (const [locale, localeSpec] of Object.entries(localeInfo)) {
       }
       if (child.tag === "tdum") child.data.writeDoubleBE(parameter.sliderMin || 0, 0);
       if (child.tag === "tduM") child.data.writeDoubleBE(parameter.sliderMax || 0, 0);
+      if (parameter.id === "target.layer" && child.tag === "tdsb") child.data.writeUInt32BE(1);
       if (parameter.id === "target.layer" && child.tag === "tdpi") child.data.writeUInt32BE(0);
-      if (parameter.id === "target.layer" && child.tag === "tdb4") child.data.writeUInt16BE(0x5da8, 14);
+      if (parameter.id === "target.layer" && child.tag === "tdb4") {
+        child.data.writeUInt16BE(0x5da8, 14);
+        // The cloned hidden input stream differs from all five native Layer
+        // Control references at byte 72. Clear only that input-specific bit.
+        // Evidence: assets/pseudo-effects/camera/source/native-layer-control-stream.json
+        child.data[72] &= 0x7f;
+      }
     }
     if (parameter.id === "target.layer") stream.children.push(leaf("tdps", uint(0)));
     streams.children.push(text("tdmn", name, "ascii", 40), stream);
@@ -180,12 +195,16 @@ for (const [locale, localeSpec] of Object.entries(localeInfo)) {
   }
   rename(root);
   const bytes = pack(root);
+  const structure = inspectPseudoEffectStructure(bytes, { visibleLayerParameterIndexes: [mapping["target.layer"]] });
+  if (structure.parameterCount !== 28 || structure.groupStarts !== 6 || structure.groupEnds !== 6) {
+    throw new Error("Camera parameter groups are invalid");
+  }
   const sha256 = createHash("sha256").update(bytes).digest("hex").toUpperCase();
-  const templateId = `camera.rig/v1/${locale}`;
+  const templateId = `camera.rig/v3/${locale}`;
   catalog.templates[templateId] = {
-    effectId: "camera.rig", schemaVersion: 1, locale,
+    effectId: "camera.rig", schemaVersion: 3, locale,
     file: localeSpec.file, matchName, displayName,
-    marker: { index: 28, name: schema.marker },
+    marker: { index: 27, name: schema.marker },
     parameters: mapping, sha256,
     validation: { status: "candidate", realAE: "pending", platforms: ["Windows"], targetAE: "2022–2026+" }
   };
@@ -197,6 +216,15 @@ for (const { file, bytes } of artifacts) {
   fs.writeFileSync(target, bytes);
   console.log(`${file}: ${bytes.length} bytes`);
 }
-delete catalog.templates["camera.rig/v1/ko"];
+for (const id of Object.keys(catalog.templates)) {
+  if (/^camera\.rig\/v[12]\//.test(id)) delete catalog.templates[id];
+}
+// Use the existing shape compatibility policy: Unicode object names in AE,
+// accepted ASCII parameter definitions, and an explicit creation notice.
+catalog.templates["camera.rig/v3/ko"] = {
+  ...catalog.templates["camera.rig/v3/en"],
+  locale: "ko", displayName: schema.displayNames.ko,
+  controlLocale: "en", sourceTemplateId: "camera.rig/v3/en"
+};
 fs.rmSync(path.join(outputDir, "ko/camera.ffx"), { force: true });
 fs.writeFileSync(path.join(outputDir, "catalog.json"), `${JSON.stringify(catalog, null, 2)}\n`);

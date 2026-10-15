@@ -2,6 +2,14 @@ import { describe, expect, it } from "vitest";
 import { createLayerHostBridge } from "../src/host/layerBridge";
 
 describe("layer host bridge", () => {
+  it("retains the Korean camera English-controls notice", async () => {
+    const bridge = createLayerHostBridge({ __adobe_cep__: {
+      getSystemPath: () => "file:///C:/NYAWORKS",
+      evalScript: (_script, callback) => callback(JSON.stringify({ ok: true, createdLayers: 2, notice: "camera-controls-english" }))
+    } });
+    expect(await bridge.runLayerAction("create-camera-rig", "none", { languageId: "ko" }))
+      .toMatchObject({ ok: true, notice: "camera-controls-english" });
+  });
   it("retains the explicit English-controls compatibility notice", async () => {
     const bridge = createLayerHostBridge({ __adobe_cep__: {
       getSystemPath: () => "file:///C:/NYAWORKS",

@@ -27,7 +27,7 @@ export type LayerHostActionResult =
       createdLayers: number;
       updatedLayers: number;
       createdItems: number;
-      notice?: "shape-controls-english";
+      notice?: "shape-controls-english" | "camera-controls-english";
     }
   | {
       ok: false;
@@ -78,7 +78,8 @@ function parseResult(value: string | null): LayerHostActionResult {
         createdLayers: numericCount(parsed.createdLayers),
         updatedLayers: numericCount(parsed.updatedLayers),
         createdItems: numericCount(parsed.createdItems),
-        ...(parsed.notice === "shape-controls-english" ? { notice: parsed.notice } : {})
+        ...(parsed.notice === "shape-controls-english" || parsed.notice === "camera-controls-english"
+          ? { notice: parsed.notice } : {})
       };
     }
 

@@ -210,6 +210,7 @@ export interface UiCopy {
     themeHeading: string;
     devReloadAria: string;
     devReloadTitle: string;
+    devReloadFailed: string;
   };
   languageMenu: {
     heading: string;
@@ -291,6 +292,7 @@ export interface UiCopy {
       nullCreateFailed: string;
       nullRollbackFailed: string;
       shapeControlsEnglish: string;
+      cameraControlsEnglish: string;
       pseudoTemplateLocaleUnavailable: string;
       pseudoTemplateMissing: string;
       pseudoEffectFallback: string;

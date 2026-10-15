@@ -1,0 +1,48 @@
+{
+  "description": "Offline comparison of five Adobe-shipped Layer Control parameter streams. The tdsn labels differ; all other stream chunks are identical. This is not a published FFX format specification.",
+  "sources": [
+    {
+      "file": "邮票.ffx",
+      "sha256": "BD2C6A3149B04C1EB3F19095D3CD7F6844BDF4FF7969281368CD62EBA16E9F68"
+    },
+    {
+      "file": "边界框.ffx",
+      "sha256": "C9068E5733790F038E105546995CCDFBC43511E0AA216529DE42AC8845B6B03F"
+    },
+    {
+      "file": "皱纹切割贴纸.ffx",
+      "sha256": "AE2A09AE9AFE160B0EF667E395B06F982001289267DB09D89E6379A0876DABAC"
+    },
+    {
+      "file": "扇形边框.ffx",
+      "sha256": "90CD5A12038233D5EB3CBF857A0F30EE6C6936D7C5D6292BC7E4F4906C026546"
+    },
+    {
+      "file": "二维文本框（形状）.ffx",
+      "sha256": "E212A8FDF64D064973DD8F3BDC0572ACD97DB9AE2AF300A65890BDCF4353FD57"
+    }
+  ],
+  "parameterMatchName": "ADBE Layer Control-0001",
+  "stream": [
+    {
+      "tag": "tdsb",
+      "hex": "00000001"
+    },
+    {
+      "tag": "tdb4",
+      "hex": "db990001000100000001000000005da83f1a36e2eb1c432d3ff00000000000003ff00000000000003ff00000000000003ff00000000000000000000404000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "tag": "cdat",
+      "hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "tag": "tdpi",
+      "hex": "00000000"
+    },
+    {
+      "tag": "tdps",
+      "hex": "00000000"
+    }
+  ]
+}

@@ -1,0 +1,211 @@
+/* User-run diagnostic: renders one original frame and tests only owned duplicates.
+   Temporary comp creation/removal may mark the project modified and adds undo history.
+   Does not launch AE, save/close the project, purge caches or change preferences. */
+(function () {
+  var source = app.project && app.project.activeItem;
+  var folder = new Folder(Folder.userData.fsName + "/NYAWORKS/camera-render-" + new Date().getTime());
+  var report = [];
+  var owned = null;
+  var started = false;
+  var completed = 0;
+  var confirmed = 0;
+  var exports = [];
+  var casesFinished = false;
+  var initialItems = app.project ? app.project.numItems : 0;
+  var sourceTime;
+  var controllerIndex;
+  var cameraIndex;
+  var baseline;
+  var shifted;
+  var began = new Date().getTime();
+
+  function log(line) { report.push(String(line)); }
+  function transform(layer, name) { return layer.property("ADBE Transform Group").property(name); }
+  function effectOf(layer) { return layer.property("ADBE Effect Parade").property(1); }
+  function vector(value) { return "[" + value.join(",") + "]"; }
+  function exportedBytes(path, waitForFile) {
+    // The File passed to AE was created before export. Reopen metadata each time.
+    // A returned export call and a visible file are recorded separately.
+    for (var attempt = 0; attempt <= (waitForFile ? 10 : 0); attempt += 1) {
+      var fresh = new File(path);
+      if (fresh.exists && fresh.length > 0) return fresh.length;
+      if (waitForFile && attempt < 10) $.sleep(50);
+    }
+    return 0;
+  }
+  function cleanOwnedCopy() {
+    if (!owned) return true;
+    try {
+      owned.remove();
+      owned = null;
+      return true;
+    } catch (error) {
+      log("cleanupError=" + String(error));
+      return false;
+    }
+  }
+  function saveReport() {
+    var file = new File(folder.fsName + "/report.txt");
+    file.encoding = "UTF-8";
+    if (!file.open("w")) throw new Error("report-write-failed");
+    try {
+      if (file.write(report.join("\n")) === false) throw new Error("report-write-failed");
+    } finally { file.close(); }
+  }
+  function snapshot(comp, label) {
+    var controller = comp.layer(controllerIndex);
+    var camera = comp.layer(cameraIndex);
+    var pos = transform(controller, "ADBE Position");
+    var cameraPos = transform(camera, "ADBE Position");
+    log(label + " controlX=" + effectOf(controller).property(5).valueAtTime(sourceTime, false));
+    log(label + " storedPosition=" + vector(pos.valueAtTime(sourceTime, true)));
+    log(label + " position=" + vector(pos.valueAtTime(sourceTime, false)) +
+      " expressionEnabled=" + pos.expressionEnabled + " error=" + String(pos.expressionError || "none"));
+    log(label + " expression=" + String(pos.expression || "none").replace(/[\r\n]+/g, " "));
+    log(label + " cameraPosition=" + vector(cameraPos.valueAtTime(sourceTime, false)));
+    log(label + " guideLayer=" + controller.guideLayer + " cameraParent=" +
+      (camera.parent ? camera.parent.index : "none") + " activeCamera=" +
+      (comp.activeCamera ? comp.activeCamera.index : "none"));
+    var png = new File(folder.fsName + "/" + label + ".png");
+    comp.saveFrameToPng(sourceTime, png);
+    exports.push({ label: label, path: png.fsName });
+    completed += 1;
+    var bytes = exportedBytes(png.fsName, true);
+    log(label + " exportReturned=true pngBytes=" + bytes + (bytes > 0 ? "" : " fileStatus=pending"));
+    log(label + " afterRenderPosition=" + vector(pos.valueAtTime(sourceTime, false)) +
+      " expressionEnabled=" + pos.expressionEnabled + " error=" + String(pos.expressionError || "none"));
+    saveReport();
+  }
+  function assertStatic(property, label) {
+    if (!property || property.numKeys > 0) throw new Error("animated-or-missing-test-property:" + label);
+  }
+  function normalize(comp) {
+    var ctrl = comp.layer(controllerIndex);
+    var camera = comp.layer(cameraIndex);
+    var effect = effectOf(ctrl);
+    ctrl.locked = false;
+    camera.locked = false;
+    // This controlled baseline exists only in the duplicate.
+    for (var axis = 0; axis < 3; axis += 1) {
+      effect.property(5 + axis).expression = "";
+      effect.property(5 + axis).setValue(baseline[axis]);
+    }
+    var neutral = [8, 9, 10, 13, 25];
+    for (var n = 0; n < neutral.length; n += 1) {
+      effect.property(neutral[n]).expression = "";
+      effect.property(neutral[n]).setValue(0);
+    }
+    // Keep target and camera options untouched; a target is refused in preflight.
+    transform(camera, "ADBE Position").expression = "";
+    transform(camera, "ADBE Position").setValue([0, 0, -1000]);
+    comp.time = sourceTime;
+  }
+  function runCase(label, change) {
+    if (new Date().getTime() - began > 45000) throw new Error("time-budget-reached");
+    owned = source.duplicate();
+    if (!owned || owned === source || owned.id === source.id) {
+      owned = null;
+      throw new Error("duplicate-is-not-isolated");
+    }
+    try {
+      owned.name = "__NYA_CAMERA_DIAGNOSTIC__" + label;
+      normalize(owned);
+      change(owned.layer(controllerIndex), owned.layer(cameraIndex));
+      snapshot(owned, label);
+    } catch (error) {
+      log(label + " caseError=" + String(error));
+      throw error;
+    } finally {
+      // Remove only the exact comp returned by this invocation's duplicate().
+      if (!cleanOwnedCopy()) throw new Error("duplicate-cleanup-failed");
+    }
+  }
+
+  try {
+    if (!source || !(source instanceof CompItem)) throw new Error("no-active-comp");
+    var frameExportType = typeof source.saveFrameToPng;
+    if (frameExportType !== "function" && frameExportType !== "unknown") throw new Error("frame-export-unavailable");
+    if (source.numLayers > 50 || source.width * source.height > 8847360) throw new Error("use-small-test-comp");
+    var camera = source.activeCamera;
+    var ctrl = camera && camera.parent;
+    var parade = ctrl && ctrl.property("ADBE Effect Parade");
+    var fx = parade && parade.numProperties === 1 ? parade.property(1) : null;
+    if (!fx || !/^Pseudo\/NYA_Camera_v1_/.test(fx.matchName) || fx.numProperties !== 29) {
+      throw new Error("active-camera-controller-not-found");
+    }
+    sourceTime = source.time;
+    controllerIndex = ctrl.index;
+    cameraIndex = camera.index;
+    var position = transform(ctrl, "ADBE Position");
+    var cameraPosition = transform(camera, "ADBE Position");
+    assertStatic(position, "controller.position");
+    assertStatic(cameraPosition, "camera.position");
+    if (position.dimensionsSeparated || ctrl.parent) throw new Error("unsupported-controller-transform");
+    if (!position.expression || !position.expressionEnabled) throw new Error("controller-position-expression-disabled");
+    if (cameraPosition.dimensionsSeparated) throw new Error("unsupported-camera-transform");
+    var touched = [2, 5, 6, 7, 8, 9, 10, 13, 25];
+    for (var i = 0; i < touched.length; i += 1) assertStatic(fx.property(touched[i]), "control" + touched[i]);
+    if (fx.property(2).valueAtTime(sourceTime, false) !== 0) throw new Error("use-rig-without-target");
+    baseline = position.valueAtTime(sourceTime, true);
+    if (!baseline || baseline.length !== 3) throw new Error("invalid-controller-position");
+    shifted = [baseline[0] + 500, baseline[1], baseline[2]];
+    if (!folder.exists && !folder.create()) throw new Error("output-folder-unavailable");
+    log("probe=camera-render-20261015-2");
+    log("AE=" + app.version + " engine=" + app.project.expressionEngine + " renderer=" + source.renderer);
+    log("sourceTime=" + sourceTime + " baseline=" + vector(baseline) + " shifted=" + vector(shifted));
+    log("Only original-frame is rendered from the original; all other cases use disposable copies.");
+    saveReport();
+    snapshot(source, "00-original-frame");
+    app.beginUndoGroup("NYAWORKS Camera Render Diagnosis");
+    started = true;
+    runCase("01-baseline", function () {});
+    runCase("02-pseudo-x", function (layer) { effectOf(layer).property(5).setValue(shifted[0]); });
+    runCase("03-controller-static", function (layer) {
+      var pos = transform(layer, "ADBE Position");
+      pos.expression = "";
+      pos.setValue(shifted);
+    });
+    runCase("04-controller-constant-expression", function (layer) {
+      var pos = transform(layer, "ADBE Position");
+      pos.expression = vector(shifted);
+      pos.expressionEnabled = true;
+    });
+    runCase("05-pseudo-simple-expression", function (layer) {
+      effectOf(layer).property(5).setValue(shifted[0]);
+      var pos = transform(layer, "ADBE Position");
+      pos.expression = "[thisLayer.effect(1)(5).value,thisLayer.effect(1)(6).value,thisLayer.effect(1)(7).value]";
+      pos.expressionEnabled = true;
+    });
+    runCase("06-pseudo-without-guide", function (layer) {
+      layer.guideLayer = false;
+      effectOf(layer).property(5).setValue(shifted[0]);
+    });
+    runCase("07-camera-static", function (layer, camera) {
+      transform(camera, "ADBE Position").setValue([500, 0, -1000]);
+    });
+    casesFinished = true;
+  } catch (error) {
+    log("error=" + String(error));
+  } finally {
+    cleanOwnedCopy();
+    if (started) {
+      try { app.endUndoGroup(); } catch (error) { log("undoCloseError=" + String(error)); }
+    }
+    log("initialItems=" + initialItems + " finalItems=" + (app.project ? app.project.numItems : 0));
+    if (app.project && app.project.numItems !== initialItems) log("cleanupError=project-item-count-changed");
+    for (var outputIndex = 0; outputIndex < exports.length; outputIndex += 1) {
+      if (exportedBytes(exports[outputIndex].path, false) > 0) confirmed += 1;
+      else log("pendingPng=" + exports[outputIndex].label);
+    }
+    log("confirmedPngs=" + confirmed + " exportCallsCompleted=" + completed);
+    if (casesFinished && confirmed === 8) log("finished=true frames=" + confirmed);
+    if (folder.exists) {
+      try { saveReport(); } catch (error) { log("reportError=" + String(error)); }
+    }
+  }
+  var issue = /(?:^|\n)(?:error|cleanupError|undoCloseError|reportError)=/.test(report.join("\n"));
+  var status = issue ? "NYAWORKS 对照检查未全部完成。" :
+    (confirmed === 8 ? "NYAWORKS 对照检查完成。" : "NYAWORKS 对照调用已完成，图片待核对。");
+  alert(status + "\n已完成 " + completed + " 次导出调用，脚本内确认 " + confirmed + " 张图片。\n" + folder.fsName +
+    "\n请返回对话，我会读取报告和图片。" + (issue ? "\n" + report.join("\n").slice(-700) : ""));
+}());

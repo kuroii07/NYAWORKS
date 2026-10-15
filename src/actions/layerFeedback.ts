@@ -4,9 +4,10 @@ import type { ActionError } from "./types";
 type LayerFailureCopy = UiCopy["home"]["layerFeedback"];
 
 export function getLayerSuccessMessage(data: unknown, feedback: LayerFailureCopy): string | null {
-  return typeof data === "object" && data !== null &&
-    "notice" in data && data.notice === "shape-controls-english"
-    ? feedback.shapeControlsEnglish : null;
+  if (typeof data !== "object" || data === null || !("notice" in data)) return null;
+  if (data.notice === "shape-controls-english") return feedback.shapeControlsEnglish;
+  if (data.notice === "camera-controls-english") return feedback.cameraControlsEnglish;
+  return null;
 }
 
 export function getLayerFailureMessage(

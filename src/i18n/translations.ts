@@ -29,7 +29,8 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       themeTitle: "左键切换主题 · 右键选择主题",
       themeHeading: "主题",
       devReloadAria: "刷新开发扩展",
-      devReloadTitle: "刷新 NYAWORKS 开发面板"
+      devReloadTitle: "刷新 NYAWORKS 开发面板",
+      devReloadFailed: "刷新失败：无法确认 AE 已加载当前扩展脚本。"
     },
     languageMenu: { heading: "语言" },
     toastRegion: "通知",
@@ -137,6 +138,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         pseudoTemplateMissing: "形状模板缺失，请重新安装或刷新 NYAWORKS 扩展",
         pseudoEffectFallback: "已使用兼容的简体中文形状模板",
         shapeControlsEnglish: "形状已按所选语言创建；为保证兼容，效果参数使用英文。",
+        cameraControlsEnglish: "摄像机及控制器已按所选语言创建；为保证兼容，效果参数使用英文。",
         nullUnsafeSelection: "选中图层已锁定或已有父级，请先解锁或使用无父级图层。",
         nullUnsafeTransform: "选中图层的变换含关键帧或表达式，暂不支持自动绑定空对象。",
         nullPositionUnavailable: "无法确定选中图层的位置或边界，请检查图层后重试。",
@@ -577,7 +579,8 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       themeTitle: "左鍵切換主題 · 右鍵選擇主題",
       themeHeading: "主題",
       devReloadAria: "重新整理開發擴充功能",
-      devReloadTitle: "重新整理 NYAWORKS 開發面板"
+      devReloadTitle: "重新整理 NYAWORKS 開發面板",
+      devReloadFailed: "重新整理失敗：無法確認 AE 已載入目前擴充功能腳本。"
     },
     languageMenu: { heading: "語言" },
     toastRegion: "通知",
@@ -685,6 +688,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         pseudoTemplateMissing: "形狀範本缺失，請重新安裝或重新載入 NYAWORKS 擴充功能",
         pseudoEffectFallback: "已使用相容的簡體中文形狀範本",
         shapeControlsEnglish: "形狀已依所選語言建立；為確保相容，效果參數使用英文。",
+        cameraControlsEnglish: "攝影機與控制器已依所選語言建立；為確保相容，效果參數使用英文。",
         nullUnsafeSelection: "選取圖層已鎖定或已有父級，請先解鎖或使用無父級圖層。",
         nullUnsafeTransform: "選取圖層的變換含關鍵影格或運算式，暫不支援自動綁定空物件。",
         nullPositionUnavailable: "無法確定選取圖層的位置或邊界，請檢查圖層後重試。",
@@ -1119,7 +1123,8 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       themeTitle: "Left-click to cycle · Right-click to choose",
       themeHeading: "Theme",
       devReloadAria: "Reload development extension",
-      devReloadTitle: "Reload NYAWORKS development panel"
+      devReloadTitle: "Reload NYAWORKS development panel",
+      devReloadFailed: "Reload failed: AE did not confirm the current extension script."
     },
     languageMenu: { heading: "Language" },
     toastRegion: "Notifications",
@@ -1227,6 +1232,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         pseudoTemplateMissing: "A shape template is missing. Reinstall or reload the NYAWORKS extension.",
         pseudoEffectFallback: "A compatible Simplified Chinese shape template was used.",
         shapeControlsEnglish: "Shape created in the selected language. Effect controls use English for compatibility.",
+        cameraControlsEnglish: "Camera and controller created in the selected language. Effect controls use English for compatibility.",
         nullUnsafeSelection: "Selected layers are locked or already have parents. Unlock them or use unparented layers.",
         nullUnsafeTransform: "Selected transforms have keyframes or expressions. Automatic Null parenting is not supported for them yet.",
         nullPositionUnavailable: "Unable to determine selected layer positions or bounds. Check the layers and retry.",
@@ -1662,7 +1668,8 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       themeTitle: "左クリックで切替 · 右クリックで選択",
       themeHeading: "テーマ",
       devReloadAria: "開発拡張機能を再読み込み",
-      devReloadTitle: "NYAWORKS 開発パネルを再読み込み"
+      devReloadTitle: "NYAWORKS 開発パネルを再読み込み",
+      devReloadFailed: "再読み込みに失敗しました。AE で現在の拡張スクリプトを確認できません。"
     },
     languageMenu: { heading: "言語" },
     toastRegion: "通知",
@@ -1770,6 +1777,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         pseudoTemplateMissing: "シェイプテンプレートが見つかりません。NYAWORKS を再インストールするか、再読み込みしてください。",
         pseudoEffectFallback: "互換性のある簡体字中国語のシェイプテンプレートを使用しました。",
         shapeControlsEnglish: "選択した言語でシェイプを作成しました。互換性を保つため、エフェクトのパラメーターは英語で表示されます。",
+        cameraControlsEnglish: "選択した言語でカメラとコントローラーを作成しました。互換性を保つため、エフェクトのパラメーターは英語で表示されます。",
         nullUnsafeSelection: "選択レイヤーはロック済み、または親があります。ロックを解除するか、親のないレイヤーを使用してください。",
         nullUnsafeTransform: "選択レイヤーの変換にキーフレームまたはエクスプレッションがあるため、ヌルへの自動親子付けは未対応です。",
         nullPositionUnavailable: "選択レイヤーの位置または境界を取得できません。レイヤーを確認して再試行してください。",
@@ -2204,7 +2212,8 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
       themeTitle: "왼쪽 클릭으로 전환 · 오른쪽 클릭으로 선택",
       themeHeading: "테마",
       devReloadAria: "개발 확장 새로고침",
-      devReloadTitle: "NYAWORKS 개발 패널 새로고침"
+      devReloadTitle: "NYAWORKS 개발 패널 새로고침",
+      devReloadFailed: "새로고침 실패: AE에서 현재 확장 스크립트를 확인할 수 없습니다."
     },
     languageMenu: { heading: "언어" },
     toastRegion: "알림",
@@ -2312,6 +2321,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         pseudoTemplateMissing: "모양 템플릿이 없습니다. NYAWORKS 확장을 다시 설치하거나 새로고침하세요.",
         pseudoEffectFallback: "호환되는 중국어 간체 모양 템플릿을 사용했습니다.",
         shapeControlsEnglish: "선택한 언어로 모양을 만들었습니다. 호환성을 위해 효과 매개변수는 영어로 표시됩니다.",
+        cameraControlsEnglish: "선택한 언어로 카메라와 컨트롤러를 만들었습니다. 호환성을 위해 효과 매개변수는 영어로 표시됩니다.",
         nullUnsafeSelection: "선택한 레이어가 잠겨 있거나 이미 부모가 있습니다. 잠금을 해제하거나 부모가 없는 레이어를 사용하세요.",
         nullUnsafeTransform: "선택한 레이어의 변형에 키프레임 또는 표현식이 있어 자동 널 연결은 아직 지원되지 않습니다.",
         nullPositionUnavailable: "선택한 레이어의 위치 또는 경계를 확인할 수 없습니다. 레이어를 확인한 후 다시 시도하세요.",

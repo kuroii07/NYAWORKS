@@ -1,0 +1,37 @@
+{
+  "effectId": "camera.rig",
+  "schemaVersion": 2,
+  "marker": "__NYA_CAMERA_V2__",
+  "displayNames": {
+    "zh-CN": "Nya 摄像机控制",
+    "zh-TW": "Nya 攝影機控制",
+    "en": "Nya Camera Control",
+    "ja": "Nya カメラコントロール",
+    "ko": "Nya 카메라 컨트롤"
+  },
+  "groups": [
+    { "id": "target", "labels": { "zh-CN": "Nya 目标", "zh-TW": "Nya 目標", "en": "Nya Target", "ja": "Nya ターゲット", "ko": "Nya 대상" } },
+    { "id": "transform", "labels": { "zh-CN": "Nya 位置与旋转", "zh-TW": "Nya 位置與旋轉", "en": "Nya Position & Rotation", "ja": "Nya 位置と回転", "ko": "Nya 위치와 회전" } },
+    { "id": "motion", "labels": { "zh-CN": "Nya 自动移动", "zh-TW": "Nya 自動移動", "en": "Nya Auto Move", "ja": "Nya 自動移動", "ko": "Nya 자동 이동" } },
+    { "id": "lens", "labels": { "zh-CN": "Nya 镜头", "zh-TW": "Nya 鏡頭", "en": "Nya Lens", "ja": "Nya レンズ", "ko": "Nya 렌즈" } },
+    { "id": "focus", "labels": { "zh-CN": "Nya 对焦", "zh-TW": "Nya 對焦", "en": "Nya Focus", "ja": "Nya フォーカス", "ko": "Nya 초점" } },
+    { "id": "shake", "labels": { "zh-CN": "Nya 抖动", "zh-TW": "Nya 抖動", "en": "Nya Shake", "ja": "Nya 揺れ", "ko": "Nya 흔들림" } }
+  ],
+  "parameters": [
+    { "id": "target.layer", "group": "target", "type": "layer", "defaultValue": 0, "labels": { "zh-CN": "Nya 目标图层", "zh-TW": "Nya 目標圖層", "en": "Nya Target Layer", "ja": "Nya 対象レイヤー", "ko": "Nya 대상 레이어" } },
+    { "id": "position.x", "group": "transform", "type": "slider", "defaultValue": 0, "sliderMin": -10000, "sliderMax": 10000, "validMin": -100000, "validMax": 100000, "labels": { "zh-CN": "Nya 相机位置 X", "zh-TW": "Nya 攝影機位置 X", "en": "Nya Camera Position X", "ja": "Nya カメラ位置 X", "ko": "Nya 카메라 위치 X" } },
+    { "id": "position.y", "group": "transform", "type": "slider", "defaultValue": 0, "sliderMin": -10000, "sliderMax": 10000, "validMin": -100000, "validMax": 100000, "labels": { "zh-CN": "Nya 相机位置 Y", "zh-TW": "Nya 攝影機位置 Y", "en": "Nya Camera Position Y", "ja": "Nya カメラ位置 Y", "ko": "Nya 카메라 위치 Y" } },
+    { "id": "position.z", "group": "transform", "type": "slider", "defaultValue": 0, "sliderMin": -20000, "sliderMax": 20000, "validMin": -100000, "validMax": 100000, "labels": { "zh-CN": "Nya 相机位置 Z", "zh-TW": "Nya 攝影機位置 Z", "en": "Nya Camera Position Z", "ja": "Nya カメラ位置 Z", "ko": "Nya 카메라 위치 Z" } },
+    { "id": "rotation.x", "group": "transform", "type": "angle", "defaultValue": 0, "labels": { "zh-CN": "Nya 相机旋转 X", "zh-TW": "Nya 攝影機旋轉 X", "en": "Nya Camera Rotation X", "ja": "Nya カメラ回転 X", "ko": "Nya 카메라 회전 X" } },
+    { "id": "rotation.y", "group": "transform", "type": "angle", "defaultValue": 0, "labels": { "zh-CN": "Nya 相机旋转 Y", "zh-TW": "Nya 攝影機旋轉 Y", "en": "Nya Camera Rotation Y", "ja": "Nya カメラ回転 Y", "ko": "Nya 카메라 회전 Y" } },
+    { "id": "rotation.z", "group": "transform", "type": "angle", "defaultValue": 0, "labels": { "zh-CN": "Nya 相机旋转 Z", "zh-TW": "Nya 攝影機旋轉 Z", "en": "Nya Camera Rotation Z", "ja": "Nya カメラ回転 Z", "ko": "Nya 카메라 회전 Z" } },
+    { "id": "motion.enabled", "group": "motion", "type": "checkbox", "defaultValue": 0, "labels": { "zh-CN": "Nya 自动移动", "zh-TW": "Nya 自動移動", "en": "Nya Auto Move", "ja": "Nya 自動移動", "ko": "Nya 자동 이동" } },
+    { "id": "motion.speed", "group": "motion", "type": "slider", "defaultValue": 0, "sliderMin": -2000, "sliderMax": 2000, "validMin": -10000, "validMax": 10000, "labels": { "zh-CN": "Nya 移动速度", "zh-TW": "Nya 移動速度", "en": "Nya Move Speed", "ja": "Nya 移動速度", "ko": "Nya 이동 속도" } },
+    { "id": "lens.focalLength", "group": "lens", "type": "slider", "defaultValue": 35, "sliderMin": 1, "sliderMax": 200, "validMin": 1, "validMax": 1000, "labels": { "zh-CN": "Nya 镜头焦距", "zh-TW": "Nya 鏡頭焦距", "en": "Nya Focal Length", "ja": "Nya レンズ焦点距離", "ko": "Nya 렌즈 초점거리" } },
+    { "id": "lens.depthOfField", "group": "lens", "type": "checkbox", "defaultValue": 0, "labels": { "zh-CN": "Nya 镜头景深", "zh-TW": "Nya 鏡頭景深", "en": "Nya Depth of Field", "ja": "Nya 被写界深度", "ko": "Nya 피사계 심도" } },
+    { "id": "focus.auto", "group": "focus", "type": "checkbox", "defaultValue": 0, "labels": { "zh-CN": "Nya 焦点自动", "zh-TW": "Nya 焦點自動", "en": "Nya Auto Focus", "ja": "Nya 自動フォーカス", "ko": "Nya 자동 초점" } },
+    { "id": "focus.distance", "group": "focus", "type": "slider", "defaultValue": 1000, "sliderMin": 1, "sliderMax": 10000, "validMin": 1, "validMax": 100000, "labels": { "zh-CN": "Nya 焦点距离", "zh-TW": "Nya 焦點距離", "en": "Nya Focus Distance", "ja": "Nya フォーカス距離", "ko": "Nya 초점 거리" } },
+    { "id": "shake.strength", "group": "shake", "type": "slider", "defaultValue": 0, "sliderMin": 0, "sliderMax": 300, "validMin": 0, "validMax": 5000, "labels": { "zh-CN": "Nya 抖动强度", "zh-TW": "Nya 抖動強度", "en": "Nya Shake Strength", "ja": "Nya 揺れの強さ", "ko": "Nya 흔들림 강도" } },
+    { "id": "shake.frequency", "group": "shake", "type": "slider", "defaultValue": 2, "sliderMin": 0, "sliderMax": 20, "validMin": 0, "validMax": 100, "labels": { "zh-CN": "Nya 抖动频率", "zh-TW": "Nya 抖動頻率", "en": "Nya Shake Frequency", "ja": "Nya 揺れの頻度", "ko": "Nya 흔들림 빈도" } }
+  ]
+}

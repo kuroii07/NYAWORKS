@@ -10,24 +10,24 @@ describe("CEP development tools", () => {
     expect(isCepDevBuild).toBe(false);
   });
 
-  it("reloads the active CEP panel through the current location", () => {
+  it("reloads the active CEP panel through the current location", async () => {
     const reload = vi.fn();
-    reloadCepPanel({ reload });
+    await reloadCepPanel({ reload });
     expect(reload).toHaveBeenCalledOnce();
   });
 
-  it("reloads the host script before refreshing a CEP panel", () => {
+  it("loads the Host from the actual extension path before refreshing the panel", async () => {
     const reload = vi.fn();
     const evalScript = vi.fn((_script: string, callback: (result: string) => void) => {
       callback(JSON.stringify({ ok: true }));
     });
 
-    reloadCepPanel({ reload }, { __adobe_cep__: { evalScript } });
+    await reloadCepPanel({ reload }, { __adobe_cep__: {
+      evalScript, getSystemPath: () => "file:///C:/CEP/NYAWORKS"
+    } });
 
-    expect(evalScript).toHaveBeenCalledWith(
-      "NYAWORKS.reloadHostScript()",
-      expect.any(Function)
-    );
+    expect(evalScript.mock.calls[0][0]).toContain(encodeURIComponent("C:/CEP/NYAWORKS"));
+    expect(evalScript.mock.calls[0][0]).toContain("/host/index.jsx");
     expect(reload).toHaveBeenCalledOnce();
   });
 
@@ -37,11 +37,22 @@ describe("CEP development tools", () => {
     });
 
     await expect(
-      reloadCepHostScript({ __adobe_cep__: { evalScript } })
+      reloadCepHostScript({ __adobe_cep__: {
+        evalScript, getSystemPath: () => "file:///C:/CEP/NYAWORKS"
+      } })
     ).resolves.toBe(true);
-    expect(evalScript).toHaveBeenCalledWith(
-      "NYAWORKS.reloadHostScript()",
-      expect.any(Function)
-    );
+    expect(evalScript.mock.calls[0][0]).toContain("getHostRevision");
+  });
+
+  it("does not pretend to refresh when the installed Host cannot be verified", async () => {
+    const reload = vi.fn();
+    const evalScript = vi.fn((_script: string, callback: (result: string) => void) => {
+      callback(JSON.stringify({ ok: false }));
+    });
+    const result = await reloadCepPanel({ reload }, { __adobe_cep__: {
+      evalScript, getSystemPath: () => "file:///C:/CEP/NYAWORKS"
+    } });
+    expect(result).toBe(false);
+    expect(reload).not.toHaveBeenCalled();
   });
 });

@@ -4,6 +4,12 @@ import { UI_COPY } from "../src/i18n/translations";
 import { LANGUAGE_IDS } from "../src/i18n/languages";
 
 describe("localized shape capability feedback", () => {
+  it.each(LANGUAGE_IDS)("explains the camera English-controls notice in %s", language => {
+    const feedback = UI_COPY[language].home.layerFeedback;
+    expect(feedback.cameraControlsEnglish).toBeTruthy();
+    expect(getLayerSuccessMessage({ notice: "camera-controls-english" }, feedback)).toBe(feedback.cameraControlsEnglish);
+    expect(feedback.cameraControlsEnglish).not.toBe(feedback.shapeControlsEnglish);
+  });
   it.each(LANGUAGE_IDS)("explains %s Null preflight and recovery failures", language => {
     const feedback = UI_COPY[language].home.layerFeedback;
     const messages = [feedback.nullUnsafeSelection, feedback.nullUnsafeTransform, feedback.nullPositionUnavailable, feedback.nullCreateFailed, feedback.nullRollbackFailed];

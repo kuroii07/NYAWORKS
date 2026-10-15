@@ -2111,16 +2111,16 @@
       "controlLocale": "en",
       "sourceTemplateId": "shape.star/v2/en"
     },
-    "camera.rig/v1/zh-CN": {
+    "camera.rig/v3/zh-CN": {
       "effectId": "camera.rig",
-      "schemaVersion": 1,
+      "schemaVersion": 3,
       "locale": "zh-CN",
       "file": "camera-zh-CN.ffx",
-      "matchName": "Pseudo/NYA_Camera_v1_zhCN",
+      "matchName": "Pseudo/NYA_Camera_v3_zhCN_r2",
       "displayName": "Nya 摄像机控制",
       "marker": {
-        "index": 28,
-        "name": "__NYA_CAMERA_V1__"
+        "index": 27,
+        "name": "__NYA_CAMERA_V3__"
       },
       "parameters": {
         "target.layer": 2,
@@ -2139,7 +2139,7 @@
         "shake.strength": 25,
         "shake.frequency": 26
       },
-      "sha256": "CA758C98C0094C67E38C7F97B746E905FC68024343151960447BE0771B86DF82",
+      "sha256": "8086379C3C0818F037DE1CB0C7A5E31382CC14974E00F048DFCF133F12623CCB",
       "validation": {
         "status": "candidate",
         "realAE": "pending",
@@ -2149,16 +2149,16 @@
         "targetAE": "2022–2026+"
       }
     },
-    "camera.rig/v1/zh-TW": {
+    "camera.rig/v3/zh-TW": {
       "effectId": "camera.rig",
-      "schemaVersion": 1,
+      "schemaVersion": 3,
       "locale": "zh-TW",
       "file": "zh-TW/camera.ffx",
-      "matchName": "Pseudo/NYA_Camera_v1_zhTW",
+      "matchName": "Pseudo/NYA_Camera_v3_zhTW_r2",
       "displayName": "Nya 攝影機控制",
       "marker": {
-        "index": 28,
-        "name": "__NYA_CAMERA_V1__"
+        "index": 27,
+        "name": "__NYA_CAMERA_V3__"
       },
       "parameters": {
         "target.layer": 2,
@@ -2177,7 +2177,7 @@
         "shake.strength": 25,
         "shake.frequency": 26
       },
-      "sha256": "50323381016BB9108AD68CF5F8EE3342C70C8CECCEA03782FD8D1AFD4B384D0F",
+      "sha256": "B7C9CCB13C3CDB16166394F1EF1E0FF53E9CC5A9F52698537285EE5BCD012E31",
       "validation": {
         "status": "candidate",
         "realAE": "pending",
@@ -2187,16 +2187,16 @@
         "targetAE": "2022–2026+"
       }
     },
-    "camera.rig/v1/en": {
+    "camera.rig/v3/en": {
       "effectId": "camera.rig",
-      "schemaVersion": 1,
+      "schemaVersion": 3,
       "locale": "en",
       "file": "en/camera.ffx",
-      "matchName": "Pseudo/NYA_Camera_v1_en",
+      "matchName": "Pseudo/NYA_Camera_v3_en_r2",
       "displayName": "Nya Camera Control",
       "marker": {
-        "index": 28,
-        "name": "__NYA_CAMERA_V1__"
+        "index": 27,
+        "name": "__NYA_CAMERA_V3__"
       },
       "parameters": {
         "target.layer": 2,
@@ -2215,7 +2215,7 @@
         "shake.strength": 25,
         "shake.frequency": 26
       },
-      "sha256": "379C94B8D8A5209BFDC393093747226F5C3778D2B83B74ADAED20AB42F0002C2",
+      "sha256": "65FAB1D5F22CEB1BF5CE7A21E437424F330CC5DAEC387C100B982D6612245069",
       "validation": {
         "status": "candidate",
         "realAE": "pending",
@@ -2225,16 +2225,16 @@
         "targetAE": "2022–2026+"
       }
     },
-    "camera.rig/v1/ja": {
+    "camera.rig/v3/ja": {
       "effectId": "camera.rig",
-      "schemaVersion": 1,
+      "schemaVersion": 3,
       "locale": "ja",
       "file": "ja/camera.ffx",
-      "matchName": "Pseudo/NYA_Camera_v1_ja_r2",
+      "matchName": "Pseudo/NYA_Camera_v3_ja_r3",
       "displayName": "Nya カメラコントロール",
       "marker": {
-        "index": 28,
-        "name": "__NYA_CAMERA_V1__"
+        "index": 27,
+        "name": "__NYA_CAMERA_V3__"
       },
       "parameters": {
         "target.layer": 2,
@@ -2253,7 +2253,7 @@
         "shake.strength": 25,
         "shake.frequency": 26
       },
-      "sha256": "E4AD7CDF2B52F24E92C5410B3A3524A132CA62C452AB36825C012DD39009E3E2",
+      "sha256": "65CE104856C2DECCEE79A54D8F91CD941BBB39D22B53DF9DF5D623E6D77DCC05",
       "validation": {
         "status": "candidate",
         "realAE": "pending",
@@ -2262,6 +2262,46 @@
         ],
         "targetAE": "2022–2026+"
       }
+    },
+    "camera.rig/v3/ko": {
+      "effectId": "camera.rig",
+      "schemaVersion": 3,
+      "locale": "ko",
+      "file": "en/camera.ffx",
+      "matchName": "Pseudo/NYA_Camera_v3_en_r2",
+      "displayName": "Nya 카메라 컨트롤",
+      "marker": {
+        "index": 27,
+        "name": "__NYA_CAMERA_V3__"
+      },
+      "parameters": {
+        "target.layer": 2,
+        "position.x": 5,
+        "position.y": 6,
+        "position.z": 7,
+        "rotation.x": 8,
+        "rotation.y": 9,
+        "rotation.z": 10,
+        "motion.enabled": 13,
+        "motion.speed": 14,
+        "lens.focalLength": 17,
+        "lens.depthOfField": 18,
+        "focus.auto": 21,
+        "focus.distance": 22,
+        "shake.strength": 25,
+        "shake.frequency": 26
+      },
+      "sha256": "65FAB1D5F22CEB1BF5CE7A21E437424F330CC5DAEC387C100B982D6612245069",
+      "validation": {
+        "status": "candidate",
+        "realAE": "pending",
+        "platforms": [
+          "Windows"
+        ],
+        "targetAE": "2022–2026+"
+      },
+      "controlLocale": "en",
+      "sourceTemplateId": "camera.rig/v3/en"
     }
   }
 }

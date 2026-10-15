@@ -1,0 +1,154 @@
+{
+  "camera.rig/v1/zh-CN": {
+    "effectId": "camera.rig",
+    "schemaVersion": 1,
+    "locale": "zh-CN",
+    "file": "camera-zh-CN.ffx",
+    "matchName": "Pseudo/NYA_Camera_v1_zhCN",
+    "displayName": "Nya 摄像机控制",
+    "marker": {
+      "index": 28,
+      "name": "__NYA_CAMERA_V1__"
+    },
+    "parameters": {
+      "target.layer": 2,
+      "position.x": 5,
+      "position.y": 6,
+      "position.z": 7,
+      "rotation.x": 8,
+      "rotation.y": 9,
+      "rotation.z": 10,
+      "motion.enabled": 13,
+      "motion.speed": 14,
+      "lens.focalLength": 17,
+      "lens.depthOfField": 18,
+      "focus.auto": 21,
+      "focus.distance": 22,
+      "shake.strength": 25,
+      "shake.frequency": 26
+    },
+    "sha256": "CA758C98C0094C67E38C7F97B746E905FC68024343151960447BE0771B86DF82",
+    "validation": {
+      "status": "candidate",
+      "realAE": "pending",
+      "platforms": [
+        "Windows"
+      ],
+      "targetAE": "2022–2026+"
+    }
+  },
+  "camera.rig/v1/zh-TW": {
+    "effectId": "camera.rig",
+    "schemaVersion": 1,
+    "locale": "zh-TW",
+    "file": "zh-TW/camera.ffx",
+    "matchName": "Pseudo/NYA_Camera_v1_zhTW",
+    "displayName": "Nya 攝影機控制",
+    "marker": {
+      "index": 28,
+      "name": "__NYA_CAMERA_V1__"
+    },
+    "parameters": {
+      "target.layer": 2,
+      "position.x": 5,
+      "position.y": 6,
+      "position.z": 7,
+      "rotation.x": 8,
+      "rotation.y": 9,
+      "rotation.z": 10,
+      "motion.enabled": 13,
+      "motion.speed": 14,
+      "lens.focalLength": 17,
+      "lens.depthOfField": 18,
+      "focus.auto": 21,
+      "focus.distance": 22,
+      "shake.strength": 25,
+      "shake.frequency": 26
+    },
+    "sha256": "50323381016BB9108AD68CF5F8EE3342C70C8CECCEA03782FD8D1AFD4B384D0F",
+    "validation": {
+      "status": "candidate",
+      "realAE": "pending",
+      "platforms": [
+        "Windows"
+      ],
+      "targetAE": "2022–2026+"
+    }
+  },
+  "camera.rig/v1/en": {
+    "effectId": "camera.rig",
+    "schemaVersion": 1,
+    "locale": "en",
+    "file": "en/camera.ffx",
+    "matchName": "Pseudo/NYA_Camera_v1_en",
+    "displayName": "Nya Camera Control",
+    "marker": {
+      "index": 28,
+      "name": "__NYA_CAMERA_V1__"
+    },
+    "parameters": {
+      "target.layer": 2,
+      "position.x": 5,
+      "position.y": 6,
+      "position.z": 7,
+      "rotation.x": 8,
+      "rotation.y": 9,
+      "rotation.z": 10,
+      "motion.enabled": 13,
+      "motion.speed": 14,
+      "lens.focalLength": 17,
+      "lens.depthOfField": 18,
+      "focus.auto": 21,
+      "focus.distance": 22,
+      "shake.strength": 25,
+      "shake.frequency": 26
+    },
+    "sha256": "379C94B8D8A5209BFDC393093747226F5C3778D2B83B74ADAED20AB42F0002C2",
+    "validation": {
+      "status": "candidate",
+      "realAE": "pending",
+      "platforms": [
+        "Windows"
+      ],
+      "targetAE": "2022–2026+"
+    }
+  },
+  "camera.rig/v1/ja": {
+    "effectId": "camera.rig",
+    "schemaVersion": 1,
+    "locale": "ja",
+    "file": "ja/camera.ffx",
+    "matchName": "Pseudo/NYA_Camera_v1_ja_r2",
+    "displayName": "Nya カメラコントロール",
+    "marker": {
+      "index": 28,
+      "name": "__NYA_CAMERA_V1__"
+    },
+    "parameters": {
+      "target.layer": 2,
+      "position.x": 5,
+      "position.y": 6,
+      "position.z": 7,
+      "rotation.x": 8,
+      "rotation.y": 9,
+      "rotation.z": 10,
+      "motion.enabled": 13,
+      "motion.speed": 14,
+      "lens.focalLength": 17,
+      "lens.depthOfField": 18,
+      "focus.auto": 21,
+      "focus.distance": 22,
+      "shake.strength": 25,
+      "shake.frequency": 26
+    },
+    "sha256": "E4AD7CDF2B52F24E92C5410B3A3524A132CA62C452AB36825C012DD39009E3E2",
+    "validation": {
+      "status": "candidate",
+      "realAE": "pending",
+      "platforms": [
+        "Windows"
+      ],
+      "targetAE": "2022–2026+"
+    }
+  }
+}

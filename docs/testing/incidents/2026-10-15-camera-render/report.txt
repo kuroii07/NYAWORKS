@@ -1,0 +1,28 @@
+probe=camera-render-20261015-2
+AE=25.6x101 engine=extendscript renderer=ADBE Advanced 3d
+sourceTime=0.36666666666667 baseline=[960,540,0] shifted=[1460,540,0]
+Only original-frame is rendered from the original; all other cases use disposable copies.
+00-original-frame controlX=16460
+00-original-frame storedPosition=[960,540,0]
+00-original-frame position=[16460,540,0] expressionEnabled=true error=none
+00-original-frame expression=base=[effect(1)(5),effect(1)(6),effect(1)(7)]; moving=effect(1)(13)>0; speed=effect(1)(14); amount=Math.max(0,effect(1)(25)); frequency=Math.max(0,effect(1)(26)); result=base+[0,0,moving?time*speed:0]; amount>0&&frequency>0?result+(wiggle(frequency,amount)-value):result;
+00-original-frame cameraPosition=[728,0,-1000]
+00-original-frame guideLayer=true cameraParent=1 activeCamera=2
+00-original-frame exportReturned=true pngBytes=24653
+00-original-frame afterRenderPosition=[16460,540,0] expressionEnabled=true error=none
+01-baseline controlX=960
+01-baseline storedPosition=[960,540,0]
+01-baseline position=[960,540,0] expressionEnabled=true error=none
+01-baseline expression=base=[effect(1)(5),effect(1)(6),effect(1)(7)]; moving=effect(1)(13)>0; speed=effect(1)(14); amount=Math.max(0,effect(1)(25)); frequency=Math.max(0,effect(1)(26)); result=base+[0,0,moving?time*speed:0]; amount>0&&frequency>0?result+(wiggle(frequency,amount)-value):result;
+01-baseline cameraPosition=[0,0,-1000]
+01-baseline guideLayer=true cameraParent=1 activeCamera=2
+01-baseline exportReturned=true pngBytes=0 fileStatus=pending
+01-baseline afterRenderPosition=[960,540,0] expressionEnabled=true error=none
+02-pseudo-x controlX=1460
+02-pseudo-x storedPosition=[960,540,0]
+02-pseudo-x position=[1460,540,0] expressionEnabled=true error=none
+02-pseudo-x expression=base=[effect(1)(5),effect(1)(6),effect(1)(7)]; moving=effect(1)(13)>0; speed=effect(1)(14); amount=Math.max(0,effect(1)(25)); frequency=Math.max(0,effect(1)(26)); result=base+[0,0,moving?time*speed:0]; amount>0&&frequency>0?result+(wiggle(frequency,amount)-value):result;
+02-pseudo-x cameraPosition=[0,0,-1000]
+02-pseudo-x guideLayer=true cameraParent=1 activeCamera=2
+02-pseudo-x exportReturned=true pngBytes=0 fileStatus=pending
+02-pseudo-x afterRenderPosition=[1460,540,0] expressionEnabled=true error=none

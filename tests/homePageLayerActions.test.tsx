@@ -74,6 +74,14 @@ afterEach(() => {
 });
 
 describe("HomePage layer actions", () => {
+  it("shows the Korean camera English-controls notice after creation", async () => {
+    const runs: Array<{ actionId: string; options?: ActionRunOptions }> = [];
+    const buttons = await renderGrid(runs, "ko", "camera-controls-english");
+    await act(async () => buttons[5].click());
+    expect(runs[0]).toMatchObject({ actionId: "layer.createCameraRig", options: { languageId: "ko" } });
+    expect(container?.querySelector(".toast-item__message")?.textContent)
+      .toBe(UI_COPY.ko.home.layerFeedback.cameraControlsEnglish);
+  });
   it.each(LANGUAGE_IDS)("dispatches all four Null modes and retains the %s tooltip", async language => {
     const runs: Array<{ actionId: string; options?: ActionRunOptions }> = [];
     const buttons = await renderGrid(runs, language);
