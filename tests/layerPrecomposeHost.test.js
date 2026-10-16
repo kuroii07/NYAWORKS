@@ -224,7 +224,7 @@ describe("precompose host action", () => {
     expect(setup.comp.selectedLayers[0].transform["ADBE Position"].value).toEqual([350, 350]);
   });
 
-  it("opens the created precomp settings for the three-key settings action", async () => {
+  it("rejects the removed settings payload without opening menus or creating a precomp", async () => {
     const setup = makeComp([{ name: "Hero", index: 1, inPoint: 1, outPoint: 5 }]);
     const appSetup = createApp(setup.comp);
     const commands = [];
@@ -232,9 +232,9 @@ describe("precompose host action", () => {
     appSetup.app.executeCommand = (id) => commands.push(id);
     const run = await loadRunLayerAction(appSetup.app);
 
-    expect(JSON.parse(run(encoded("precompose-selected", "settings"))).ok).toBe(true);
-    expect(setup.comp.selectedLayers[0].source.opened).toBe(true);
-    expect(commands).toEqual([777]);
+    expect(JSON.parse(run(encoded("precompose-selected", "settings")))).toMatchObject({ ok: false, detail: "invalid-modifier" });
+    expect(setup.calls).toEqual([]);
+    expect(commands).toEqual([]);
   });
 });
 

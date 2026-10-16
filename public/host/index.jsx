@@ -62,7 +62,7 @@
   }
 
   function getHostRevision() {
-    return "camera-rig-host-20261015-7";
+    return "layer-acceptance-host-20261016-1";
   }
 
   function openDataDirectory() {
@@ -1266,6 +1266,10 @@
       camera: { "zh-CN": "Nya 摄像机", "zh-TW": "Nya 攝影機", en: "Nya Camera", ja: "Nya カメラ", ko: "Nya 카메라" },
       cameraController: { "zh-CN": "Nya 摄像机控制", "zh-TW": "Nya 攝影機控制", en: "Nya Camera Control", ja: "Nya カメラコントロール", ko: "Nya 카메라 컨트롤" },
       light: { "zh-CN": "Nya 灯光", "zh-TW": "Nya 燈光", en: "Nya Light", ja: "Nya ライト", ko: "Nya 조명" },
+      lightPoint: { "zh-CN": "Nya 点光", "zh-TW": "Nya 點光", en: "Nya Point Light", ja: "Nya ポイントライト", ko: "Nya 포인트 조명" },
+      lightSpot: { "zh-CN": "Nya 聚光", "zh-TW": "Nya 聚光", en: "Nya Spot Light", ja: "Nya スポットライト", ko: "Nya 스포트 조명" },
+      lightParallel: { "zh-CN": "Nya 平行光", "zh-TW": "Nya 平行光", en: "Nya Parallel Light", ja: "Nya 平行ライト", ko: "Nya 평행 조명" },
+      lightAmbient: { "zh-CN": "Nya 环境光", "zh-TW": "Nya 環境光", en: "Nya Ambient Light", ja: "Nya アンビエントライト", ko: "Nya 주변광" },
       precompose: { "zh-CN": "Precomp", "zh-TW": "預合成", en: "Precomp", ja: "プリコンポーズ", ko: "사전 구성" },
       unprecompose: { "zh-CN": "解预合成", "zh-TW": "解預合成", en: "Unprecompose", ja: "プリコンポーズを解除", ko: "사전 구성 해제" }
     };
@@ -1381,7 +1385,7 @@
     return candidate;
   }
 
-  function readCreationCompBounds(layer, time) {
+  function readCreationCompBounds(layer, time, local2dOnly) {
     var rect;
     var source;
     var transform;
@@ -1408,7 +1412,7 @@
     var maxX = -Infinity;
     var maxY = -Infinity;
     try {
-      if (layer.sourceRectAtTime) rect = layer.sourceRectAtTime(time, false);
+      if (layer.sourceRectAtTime) rect = layer.sourceRectAtTime(time, local2dOnly === true);
     } catch (ignoreCreationSourceRect) {}
     if (!rect) {
       source = layer.source;
@@ -1426,7 +1430,7 @@
       [Number(rect.left), Number(rect.top) + Number(rect.height)]
     ];
     try {
-      if (typeof layer.sourcePointToComp === "function") {
+      if (!local2dOnly && typeof layer.sourcePointToComp === "function") {
         for (index = 0; index < points.length; index += 1) {
           compPoints.push(layer.sourcePointToComp(points[index]));
         }
@@ -1480,7 +1484,7 @@
     return { left: minX, top: minY, right: maxX, bottom: maxY };
   }
 
-  function selectionCompBounds(context) {
+  function selectionCompBounds(context, local2dOnly) {
     var result = { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity };
     var time = Number(context.comp.time);
     var index;
@@ -1488,7 +1492,7 @@
     if (!context.selection.length) return null;
     if (!isFinite(time)) time = Number(context.start) || 0;
     for (index = 0; index < context.selection.length; index += 1) {
-      current = readCreationCompBounds(context.selection[index], time);
+      current = readCreationCompBounds(context.selection[index], time, local2dOnly);
       if (!current) return null;
       result.left = Math.min(result.left, current.left);
       result.top = Math.min(result.top, current.top);
@@ -3089,14 +3093,22 @@
     var duration = Math.max(0.001, Number(end) - Number(start));
     var index;
     var child;
+    var childStart;
+    var childIn;
+    var childOut;
     for (index = 1; index <= Number(source.numLayers || 0); index += 1) {
       child = source.layer(index);
       if (!child) continue;
-      child.startTime = Number(child.startTime) - Number(start);
-      child.inPoint = Math.max(0, Math.min(duration, Number(child.inPoint) - Number(start)));
+      // Setting startTime also shifts AE's in/out points. Snapshot all three
+      // before writing so the offset is applied exactly once.
+      childStart = Number(child.startTime);
+      childIn = Number(child.inPoint);
+      childOut = Number(child.outPoint);
+      child.startTime = childStart - Number(start);
+      child.inPoint = Math.max(0, Math.min(duration, childIn - Number(start)));
       child.outPoint = Math.max(
         child.inPoint,
-        Math.min(duration, Number(child.outPoint) - Number(start))
+        Math.min(duration, childOut - Number(start))
       );
     }
     source.displayStartTime = 0;
@@ -3141,23 +3153,54 @@
     var source;
     var layer;
     var bounds = null;
-    var commandId = 0;
+    var jobs = [];
+    var created = [];
+    var job;
     if (!selection.length) return { ok: false, reason: "no-selected-layer" };
     if (modifier === "alt") {
-      bounds = selectionCompBounds(context);
+      for (index = 0; index < selection.length; index += 1) {
+        if (selection[index].threeDLayer) {
+          return { ok: false, reason: "invalid-selection", detail: "precomp-crop-3d-unsupported" };
+        }
+        if (selection[index].parent) {
+          return { ok: false, reason: "invalid-selection", detail: "precomp-bounds-unavailable" };
+        }
+      }
+      // Crop in the 2D layer's composition coordinates, never projected 3D
+      // screen coordinates or sourcePointToComp's text-specific conversion.
+      bounds = selectionCompBounds(context, true);
       if (!bounds || !canCropSelection(selection)) {
         return { ok: false, reason: "invalid-selection", detail: "precomp-bounds-unavailable" };
       }
     }
-    if (modifier === "settings") {
-      commandId = findLocalizedMenuCommand([
-        "Composition Settings...", "Composition Settings…",
-        "合成设置...", "合成设置…",
-        "合成設定...", "合成設定…",
-        "コンポジション設定...", "コンポジション設定…",
-        "컴포지션 설정...", "컴포지션 설정…"
-      ]);
-      if (!commandId) return { ok: false, reason: "host-error", detail: "composition-settings-unavailable" };
+    if (modifier === "ctrl") {
+      for (index = 0; index < selection.length; index += 1) {
+        if (selection[index].locked || selection[index].parent || layerHasTrackMatteDependency(selection[index])) {
+          return { ok: false, reason: "invalid-selection", detail: "precomp-individual-dependency" };
+        }
+        jobs.push({ layer: selection[index], index: Number(selection[index].index),
+          start: Number(selection[index].inPoint), end: Number(selection[index].outPoint),
+          name: String(selection[index].name || "Layer") });
+      }
+      // Work from bottom to top; each native precompose replaces one layer.
+      jobs.sort(function (first, second) { return second.index - first.index; });
+      try {
+        for (index = 0; index < jobs.length; index += 1) {
+          job = jobs[index];
+          name = uniqueProjectItemName(job.name + " " + getLayerDisplayName("precompose", context.languageId));
+          source = context.comp.layers.precompose([Number(job.layer.index)], name, true);
+          layer = findLayerForSource(context.comp, source);
+          if (!layer) throw new Error("precomp-layer-not-found");
+          created.push(layer);
+          trimPrecompTiming(source, layer, job.start, job.end);
+        }
+        selectOnlyLayers(created, context.comp);
+        return { ok: true, createdLayers: created.length, updatedLayers: 0, createdItems: created.length };
+      } catch (individualError) {
+        // Native precompose moves existing layers. Do not delete its output on
+        // failure; the single Undo group restores the original whole batch.
+        return { ok: false, reason: "host-error", detail: "precomp-partial-failure", diagnostic: String(individualError) };
+      }
     }
     for (index = 1; index < selection.length; index += 1) {
       if (Number(selection[index].index) < Number(topLayer.index)) topLayer = selection[index];
@@ -3167,20 +3210,11 @@
     source = context.comp.layers.precompose(indices, name, true);
     layer = findLayerForSource(context.comp, source);
     if (!layer) return { ok: false, reason: "host-error", detail: "precomp-layer-not-found" };
-    trimPrecompTiming(source, layer, context.start, context.end);
+    if (modifier !== "shift") trimPrecompTiming(source, layer, context.start, context.end);
     if (bounds && !cropPrecompToBounds(source, layer, bounds)) {
-      return { ok: false, reason: "invalid-selection", detail: "precomp-bounds-unsupported" };
+      return { ok: false, reason: "host-error", detail: "precomp-partial-failure" };
     }
     selectOnlyLayers([layer], context.comp);
-    if (commandId) {
-      if (typeof source.openInViewer !== "function") {
-        return { ok: false, reason: "host-error", detail: "composition-viewer-unavailable" };
-      }
-      source.openInViewer();
-      if (!executeMenuCommand(commandId)) {
-        return { ok: false, reason: "host-error", detail: "composition-settings-unavailable" };
-      }
-    }
     return { ok: true, createdLayers: 1, updatedLayers: 0, createdItems: 1 };
   }
 
@@ -3447,6 +3481,13 @@
     var offsetX;
     var offsetY;
     var anchor;
+    var timings = [];
+    var originals = [];
+    var stage = "preflight";
+    var rollbackFailed = false;
+    var candidate;
+    var originalIndex;
+    var isOriginal;
     if (context.selection.length !== 1) {
       return {
         ok: false,
@@ -3461,9 +3502,15 @@
     sourceValidation = validateUnprecomposeSource(source);
     if (!sourceValidation.ok) return sourceValidation;
     delta = Number(outer.startTime) - Number(source.displayStartTime || 0);
+    for (index = 1; index <= context.comp.numLayers; index += 1) originals.push(context.comp.layer(index));
+    for (index = 1; index <= source.numLayers; index += 1) {
+      candidate = source.layer(index);
+      timings.push({ start: Number(candidate.startTime), input: Number(candidate.inPoint), output: Number(candidate.outPoint) });
+    }
 
     try {
       for (index = source.numLayers; index >= 1; index -= 1) {
+        stage = "copy-" + index;
         beforeCopy = context.comp.layer(1);
         try {
           source.layer(index).copyToComp(context.comp);
@@ -3473,13 +3520,15 @@
           throw copyError;
         }
         copy = context.comp.layer(1);
-        if (!copy) throw new Error("copy-not-found");
+        if (!copy || copy === beforeCopy) throw new Error("copy-not-found");
         copies.push(copy);
         pairs.push({ sourceLayer: source.layer(index), copy: copy });
-        copy.startTime = Number(copy.startTime) + delta;
-        copy.inPoint = Number(copy.inPoint) + delta;
-        copy.outPoint = Number(copy.outPoint) + delta;
-        if ((offsetX !== 0 || offsetY !== 0) && !shiftPropertyForCrop(
+        stage = "timing-" + index;
+        copy.startTime = timings[index - 1].start + delta;
+        copy.inPoint = timings[index - 1].input + delta;
+        copy.outPoint = timings[index - 1].output + delta;
+        stage = "position-" + index;
+        if (!source.layer(index).parent && (offsetX !== 0 || offsetY !== 0) && !shiftPropertyForCrop(
           layerTransformProperty(copy, "ADBE Position"),
           -offsetX,
           -offsetY
@@ -3488,6 +3537,7 @@
         }
       }
       for (pairIndex = 0; pairIndex < pairs.length; pairIndex += 1) {
+        stage = "parent-" + pairIndex;
         parentSource = pairs[pairIndex].sourceLayer && pairs[pairIndex].sourceLayer.parent;
         if (!parentSource) continue;
         parentCopy = null;
@@ -3498,25 +3548,44 @@
           }
         }
         if (!parentCopy) throw new Error("parent-restore-failed");
-        pairs[pairIndex].copy.parent = parentCopy;
+        // Source children already store local transforms. Native .parent
+        // compensates them again; setParentWithJump keeps those local values.
+        pairs[pairIndex].copy.setParentWithJump(parentCopy);
       }
       anchor = outer;
+      stage = "order";
       for (index = 0; index < copies.length; index += 1) {
         copies[index].moveBefore(anchor);
         anchor = copies[index];
       }
+      stage = "selection";
       selectOnlyLayers(copies, context.comp);
+      stage = "remove-outer";
       outer.remove();
       return { ok: true, createdLayers: copies.length, updatedLayers: 0, createdItems: 0 };
     } catch (error) {
-      for (index = 0; index < copies.length; index += 1) {
-        try { copies[index].remove(); } catch (ignoreCopyRemoval) {}
+      // Re-read the live collection. copyToComp may insert a layer and throw
+      // before returning; stale handles must not leave untracked partials.
+      for (index = context.comp.numLayers; index >= 1; index -= 1) {
+        try {
+          candidate = context.comp.layer(index);
+          isOriginal = false;
+          for (originalIndex = 0; originalIndex < originals.length; originalIndex += 1) {
+            if (candidate === originals[originalIndex] ||
+                (typeof candidate.id === "number" && candidate.id === originals[originalIndex].id)) {
+              isOriginal = true;
+              break;
+            }
+          }
+          if (!isOriginal) candidate.remove();
+        } catch (copyRemovalError) { rollbackFailed = true; }
       }
-      try { outer.selected = true; } catch (ignoreOuterSelectionRestore) {}
+      try { selectOnlyLayers(context.selection, context.comp); } catch (restoreError) { rollbackFailed = true; }
       return {
         ok: false,
         reason: "host-error",
-        detail: error && error.toString ? error.toString() : "copy-failed"
+        detail: rollbackFailed ? "unprecompose-rollback-failed" : "unprecompose-failed:" + stage,
+        diagnostic: error && error.toString ? error.toString() : "copy-failed"
       };
     }
   }
@@ -3524,21 +3593,61 @@
   function createLightLayer(context, modifier) {
     var comp = context.comp;
     var center = [comp.width / 2, comp.height / 2, 0];
-    var layer = comp.layers.addLight(uniqueLayerName(comp, getLayerDisplayName("light", context.languageId), null), [center[0], center[1]]);
+    var names = { none: "lightPoint", alt: "lightSpot", ctrl: "lightParallel", shift: "lightAmbient" };
+    var layer;
+    var position;
+    var pointOfInterest;
     var lightTypes = {
       none: LightType.POINT,
       alt: LightType.SPOT,
       ctrl: LightType.PARALLEL,
       shift: LightType.AMBIENT
     };
-    layer.lightType = lightTypes[modifier];
-    var position = layerTransformProperty(layer, "ADBE Position");
-    var pointOfInterest = layerTransformProperty(layer, "ADBE Point of Interest");
-    if (position) {
-      position.setValue(center);
+    try {
+      layer = comp.layers.addLight(uniqueLayerName(comp, getLayerDisplayName(names[modifier] || "lightPoint", context.languageId), null), [center[0], center[1]]);
+      layer.lightType = lightTypes[modifier] || LightType.POINT;
+      if (modifier !== "shift") {
+        position = layerTransformProperty(layer, "ADBE Position");
+        if (position) position.setValue(center);
+      }
+      if (modifier === "alt" || modifier === "ctrl") {
+        pointOfInterest = layerTransformProperty(layer, "ADBE Anchor Point");
+        if (pointOfInterest) pointOfInterest.setValue(center);
+      }
+      return finishCreatedLayer(layer, context);
+    } catch (lightError) {
+      try { if (layer) layer.remove(); } catch (lightRemovalError) {
+        return { ok: false, reason: "host-error", detail: "light-rollback-failed", diagnostic: String(lightError) };
+      }
+      try { selectOnlyLayers(context.selection, comp); } catch (ignoreLightSelection) {}
+      return { ok: false, reason: "host-error", detail: "light-create-failed", diagnostic: String(lightError) };
     }
-    if (pointOfInterest) pointOfInterest.setValue(center);
-    return finishCreatedLayer(layer, context);
+  }
+
+  function recordLayerOperationFailure(action, result, context) {
+    if (!result || result.ok || (action !== "create-light" &&
+        action !== "precompose-selected" && action !== "unprecompose-selected")) return;
+    // Only this explicit user operation is recorded; no probe, no project
+    // traversal, no names or paths from the open project.
+    var file;
+    try {
+      if (typeof File !== "function" || typeof Folder !== "function") return;
+      var folder = new Folder(Folder.userData.fsName + "/NYAWORKS");
+      if (!folder.exists && !folder.create()) return;
+      var report = {
+        action: action, detail: result.detail || result.reason,
+        nativeError: String(result.diagnostic || "").substring(0, 1000),
+        aeVersion: String(app.version || ""),
+        hostRevision: "layer-acceptance-host-20261016-1",
+        layersAfter: Number(context.comp.numLayers),
+        selectionCount: context.selection.length
+      };
+      file = new File(folder.fsName + "/layer-operation-failure.json");
+      file.encoding = "UTF-8";
+      if (file.open("w")) { file.write(JSON.stringify(report)); file.close(); }
+    } catch (ignoreDiagnosticFailure) {
+      try { if (file) file.close(); } catch (ignoreDiagnosticClose) {}
+    }
   }
 
   function runLayerAction(encodedPayload) {
@@ -3558,8 +3667,7 @@
       payload.modifier !== "none" &&
       payload.modifier !== "alt" &&
       payload.modifier !== "ctrl" &&
-      payload.modifier !== "shift" &&
-      payload.modifier !== "settings"
+      payload.modifier !== "shift"
     ) {
       return JSON.stringify({ ok: false, reason: "host-error", detail: "invalid-modifier" });
     }
@@ -3605,16 +3713,21 @@
       }
       app.endUndoGroup();
       undoStarted = false;
+      recordLayerOperationFailure(action, result, context);
       return JSON.stringify(result);
     } catch (error) {
       try {
         if (undoStarted) app.endUndoGroup();
       } catch (ignoreUndoClose) {}
-      return JSON.stringify({
+      result = {
         ok: false,
         reason: "host-error",
-        detail: error && error.toString ? error.toString() : "unknown"
-      });
+        detail: action === "precompose-selected" ? "precomp-partial-failure" :
+          (error && error.toString ? error.toString() : "unknown"),
+        diagnostic: error && error.toString ? error.toString() : "unknown"
+      };
+      recordLayerOperationFailure(action, result, context);
+      return JSON.stringify(result);
     }
   }
 

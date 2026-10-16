@@ -112,7 +112,7 @@ const CREATE_TOOLS: readonly {
   { id: "nullObject", icon: NullObjectIcon, action: "create-null", modifiers: ["none", "alt", "ctrl", "shift"] },
   { id: "camera", icon: CameraLayerIcon, action: "create-camera-rig", modifiers: ["none", "ctrl"] },
   { id: "light", icon: Lightbulb, action: "create-light", modifiers: ["none", "alt", "ctrl", "shift"] },
-  { id: "precompose", icon: PrecomposeIcon, action: "precompose-selected", modifiers: ["none", "alt", "settings"] },
+  { id: "precompose", icon: PrecomposeIcon, action: "precompose-selected", modifiers: ["none", "alt", "ctrl", "shift"] },
   { id: "unprecompose", icon: UnprecomposeIcon, action: "unprecompose-selected", modifiers: ["none"] }
 ] as const;
 
@@ -376,9 +376,7 @@ function CreateToolGrid({
                       }
                       const pressedCount = Number(event.altKey) + Number(event.ctrlKey) + Number(event.shiftKey);
                       const candidate: LayerActionModifier =
-                        event.altKey && event.ctrlKey && event.shiftKey && createTool.action === "precompose-selected"
-                          ? "settings"
-                          : pressedCount > 1
+                        pressedCount > 1
                             ? "none"
                             : event.shiftKey
                               ? "shift"

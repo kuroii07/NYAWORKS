@@ -249,7 +249,7 @@ describe("basic layer creation host actions", () => {
 
   it.each([
     ["create-solid", "zh-CN", "Nya 纯色"], ["create-solid", "en", "Nya Solid"],
-    ["create-light", "zh-CN", "Nya 灯光"], ["create-light", "ja", "Nya ライト"],
+    ["create-light", "zh-CN", "Nya 点光"], ["create-light", "ja", "Nya ポイントライト"],
     ["create-text", "zh-CN", "text"], ["create-text", "en", "text"]
   ])("localizes %s in %s without changing timing, insertion or effect lists", async (action, languageId, name) => {
     const selected = createLayer("existing", { name: "Keep me", index: 2, inPoint: 7, outPoint: 11 });
@@ -680,7 +680,11 @@ describe("basic layer creation host actions", () => {
     expect(JSON.parse(host.runLayerAction(payload("create-light", modifier))).ok).toBe(true);
     expect(created[0].lightType).toBe(expectedType);
     expect(created[0].point).toEqual([960, 540]);
-    expect(created[0].transform["ADBE Point of Interest"].value).toEqual([960, 540, 0]);
-    expect(created[0].transform["ADBE Position"].value).toEqual([960, 540, 0]);
+    if (modifier === "alt" || modifier === "ctrl") {
+      expect(created[0].transform["ADBE Anchor Point"].value).toEqual([960, 540, 0]);
+    }
+    if (modifier !== "shift") {
+      expect(created[0].transform["ADBE Position"].value).toEqual([960, 540, 0]);
+    }
   });
 });

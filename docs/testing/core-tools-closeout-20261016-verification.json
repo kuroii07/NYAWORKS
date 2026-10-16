@@ -1,0 +1,235 @@
+{
+  "date": "2026-10-16",
+  "baselineCommit": "728ea68f6d1d393a1e26dc8b7c0b765b76cafd31",
+  "branch": "feat/camera-controller-pseudo",
+  "scope": "Documentation synchronization and existing new-layer-grid regression checks. No runtime implementation change.",
+  "tests": {
+    "runner": "npm.cmd run test -- --no-file-parallelism <testFiles>",
+    "files": 20,
+    "passed": 501,
+    "failed": 0,
+    "fileResults": [
+      {
+        "file": "tests/actionSearchAdapter.test.ts",
+        "passed": 2,
+        "failed": 0,
+        "status": "passed"
+      },
+      {
+        "file": "tests/cameraPseudoAssets.test.js",
+        "passed": 36,
+        "failed": 0,
+        "status": "passed"
+      },
+      {
+        "file": "tests/cameraRigRenderProbe.test.js",
+        "passed": 1,
+        "failed": 0,
+        "status": "passed"
+      },
+      {
+        "file": "tests/cameraRigStateProbe.test.js",
+        "passed": 4,
+        "failed": 0,
+        "status": "passed"
+      },
+      {
+        "file": "tests/cepHostEngineContract.test.js",
+        "passed": 1,
+        "failed": 0,
+        "status": "passed"
+      },
+      {
+        "file": "tests/globalSearchProvider.test.tsx",
+        "passed": 12,
+        "failed": 0,
+        "status": "passed"
+      },
+      {
+        "file": "tests/homePageLayerActions.test.tsx",
+        "passed": 18,
+        "failed": 0,
+        "status": "passed"
+      },
+      {
+        "file": "tests/hostJsonCompatibility.test.js",
+        "passed": 1,
+        "failed": 0,
+        "status": "passed"
+      },
+      {
+        "file": "tests/hostScriptCompatibility.test.js",
+        "passed": 5,
+        "failed": 0,
+        "status": "passed"
+      },
+      {
+        "file": "tests/layerActionExecutor.test.ts",
+        "passed": 6,
+        "failed": 0,
+        "status": "passed"
+      },
+      {
+        "file": "tests/layerActions.test.ts",
+        "passed": 3,
+        "failed": 0,
+        "status": "passed"
+      },
+      {
+        "file": "tests/layerBridge.test.ts",
+        "passed": 25,
+        "failed": 0,
+        "status": "passed"
+      },
+      {
+        "file": "tests/layerControllerHost.test.js",
+        "passed": 68,
+        "failed": 0,
+        "status": "passed"
+      },
+      {
+        "file": "tests/layerCreationHost.test.js",
+        "passed": 41,
+        "failed": 0,
+        "status": "passed"
+      },
+      {
+        "file": "tests/layerFeedback.test.ts",
+        "passed": 30,
+        "failed": 0,
+        "status": "passed"
+      },
+      {
+        "file": "tests/layerLocalizationContract.test.ts",
+        "passed": 23,
+        "failed": 0,
+        "status": "passed"
+      },
+      {
+        "file": "tests/layerPrecomposeHost.test.js",
+        "passed": 36,
+        "failed": 0,
+        "status": "passed"
+      },
+      {
+        "file": "tests/layerShapeHost.test.js",
+        "passed": 137,
+        "failed": 0,
+        "status": "passed"
+      },
+      {
+        "file": "tests/pseudoEffectAssets.test.js",
+        "passed": 39,
+        "failed": 0,
+        "status": "passed"
+      },
+      {
+        "file": "tests/pseudoEffectLocalization.test.js",
+        "passed": 13,
+        "failed": 0,
+        "status": "passed"
+      }
+    ]
+  },
+  "typecheck": {
+    "command": "npm.cmd run typecheck",
+    "exitCode": 0,
+    "result": "passed in this closeout session"
+  },
+  "distributionSmoke": {
+    "command": "npm.cmd run smoke:dist",
+    "executedEquivalent": "node scripts/smoke-dist.mjs",
+    "exitCode": 0,
+    "output": "Smoke check passed (23 required files/assets)."
+  },
+  "productionBuild": "Not rerun: runtime code is unchanged; smoke checks the existing distribution, not a fresh build.",
+  "fullSuite": "Not rerun. Historical missing NyaLauncher executable and stalled runs are not resolved by these scoped checks.",
+  "baseline": {
+    "runtimeTrackedDiffEmpty": true,
+    "hostRevision": "camera-rig-host-20261015-7",
+    "presetFiles": 16,
+    "catalogTemplates": 25,
+    "sourceDistDevInstalledEqual": true,
+    "existingJunctionVerified": true,
+    "restoredCatalogLineEndingsAfterGeneratorTest": false,
+    "artifacts": [
+      {
+        "file": "host/index.jsx",
+        "sha256": "40040C7A24B1C456EF511AEB06F0E9094D034B69D805E723BD2812682E0080E0"
+      },
+      {
+        "file": "host/pseudo-effects/catalog.json",
+        "sha256": "437736DE71B20C015E4F81814ECA61B14D49EE4BD1F202D9CCB145B90A089881"
+      },
+      {
+        "file": "host/pseudo-effects/camera-zh-CN.ffx",
+        "sha256": "8086379C3C0818F037DE1CB0C7A5E31382CC14974E00F048DFCF133F12623CCB"
+      },
+      {
+        "file": "host/pseudo-effects/circle-zh-CN.ffx",
+        "sha256": "0B3F38341544AC1B13CF0D5E2F87CE734555EC388CE334C7F22BA8DE7E99E02E"
+      },
+      {
+        "file": "host/pseudo-effects/en/camera.ffx",
+        "sha256": "65FAB1D5F22CEB1BF5CE7A21E437424F330CC5DAEC387C100B982D6612245069"
+      },
+      {
+        "file": "host/pseudo-effects/en/circle.ffx",
+        "sha256": "0D252AD50CF22A92816F1D0A9ECA3C8BD88F587E1BA88DA4041B4D22D0888487"
+      },
+      {
+        "file": "host/pseudo-effects/en/rounded-rectangle.ffx",
+        "sha256": "2F75EF2D9C9EFFA7486D3AB8752A943A2623A9E80942AB21A432ED753B62BAEA"
+      },
+      {
+        "file": "host/pseudo-effects/en/star.ffx",
+        "sha256": "26E6CDA0ADE6C92DC646F208BF4C7D497DF2296C4EAFB20687C92B8B930C5188"
+      },
+      {
+        "file": "host/pseudo-effects/en/triangle.ffx",
+        "sha256": "F8C4007DA64097CC59AE37F7A957BF35B6550392FB3846D0B33CE4C686FB094E"
+      },
+      {
+        "file": "host/pseudo-effects/ja/camera.ffx",
+        "sha256": "65CE104856C2DECCEE79A54D8F91CD941BBB39D22B53DF9DF5D623E6D77DCC05"
+      },
+      {
+        "file": "host/pseudo-effects/rounded-rectangle-zh-CN.ffx",
+        "sha256": "D51226CC1DD15988215CFBD27254C1F7377F2C1334E939B01CF0FA8B199BDEB9"
+      },
+      {
+        "file": "host/pseudo-effects/star-zh-CN.ffx",
+        "sha256": "3EFC6C9BB80A6319DA5FC5EE4CEBC53FE838B68228332C0265E61AA187E18C7E"
+      },
+      {
+        "file": "host/pseudo-effects/triangle-zh-CN.ffx",
+        "sha256": "4F616CDF3BCA836F2887FE3866975658D7D0F9F06A2D57F1A5B85B90CEBC0476"
+      },
+      {
+        "file": "host/pseudo-effects/zh-TW/camera.ffx",
+        "sha256": "B7C9CCB13C3CDB16166394F1EF1E0FF53E9CC5A9F52698537285EE5BCD012E31"
+      },
+      {
+        "file": "host/pseudo-effects/zh-TW/circle.ffx",
+        "sha256": "2293B924A557D81502CB199BAC7231CEE5F46C3E6CC357D7A3038AC4F7168509"
+      },
+      {
+        "file": "host/pseudo-effects/zh-TW/rounded-rectangle.ffx",
+        "sha256": "5228500A670619067C094CAEB8F26753415B4B5F961E79A51506540E78B50DB5"
+      },
+      {
+        "file": "host/pseudo-effects/zh-TW/star.ffx",
+        "sha256": "B8B8CD4A545D0F25FC9BD0180DF7654E672F69C4BBF0BD02C7F16C6DE568FE2D"
+      },
+      {
+        "file": "host/pseudo-effects/zh-TW/triangle.ffx",
+        "sha256": "FC0F2C54D70F17573DD5AEC1F342FCDB5A87D976273C610D9C8A47F6A0A38BDC"
+      }
+    ]
+  },
+  "realAE": {
+    "performedThisSession": false,
+    "acceptance": "Existing user acceptance retained; new manual closeout cases remain pending.",
+    "automation": "No AE process launched, closed or operated; no host/render probe executed."
+  }
+}

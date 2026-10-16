@@ -11,6 +11,10 @@ export const LAYER_DISPLAY_NAMES = {
   camera: { "zh-CN": "Nya 摄像机", "zh-TW": "Nya 攝影機", en: "Nya Camera", ja: "Nya カメラ", ko: "Nya 카메라" },
   cameraController: { "zh-CN": "Nya 摄像机控制", "zh-TW": "Nya 攝影機控制", en: "Nya Camera Control", ja: "Nya カメラコントロール", ko: "Nya 카메라 컨트롤" },
   light: { "zh-CN": "Nya 灯光", "zh-TW": "Nya 燈光", en: "Nya Light", ja: "Nya ライト", ko: "Nya 조명" },
+  lightPoint: { "zh-CN": "Nya 点光", "zh-TW": "Nya 點光", en: "Nya Point Light", ja: "Nya ポイントライト", ko: "Nya 포인트 조명" },
+  lightSpot: { "zh-CN": "Nya 聚光", "zh-TW": "Nya 聚光", en: "Nya Spot Light", ja: "Nya スポットライト", ko: "Nya 스포트 조명" },
+  lightParallel: { "zh-CN": "Nya 平行光", "zh-TW": "Nya 平行光", en: "Nya Parallel Light", ja: "Nya 平行ライト", ko: "Nya 평행 조명" },
+  lightAmbient: { "zh-CN": "Nya 环境光", "zh-TW": "Nya 環境光", en: "Nya Ambient Light", ja: "Nya アンビエントライト", ko: "Nya 주변광" },
   // Precompose uses this as a suffix after the selected layer's existing name.
   precompose: { "zh-CN": "Precomp", "zh-TW": "預合成", en: "Precomp", ja: "プリコンポーズ", ko: "사전 구성" },
   // Unprecompose copies existing layers; this label must never rename them.

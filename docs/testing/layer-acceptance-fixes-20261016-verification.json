@@ -1,0 +1,421 @@
+{
+  "date": "2026-10-16",
+  "recordedAt": "2026-10-16T10:57:43.742Z",
+  "baselineCommit": "728ea68f6d1d393a1e26dc8b7c0b765b76cafd31",
+  "branch": "feat/camera-controller-pseudo",
+  "hostRevision": "layer-acceptance-host-20261016-1",
+  "scope": "R02 light initialization/names; R04 modifiers and supported 2D crop; R05 copy/time/parent/rollback handling",
+  "testRuns": [
+    {
+      "report": "work/layer-fixes-20261016/vitest.json",
+      "note": "Before final crop extents refinement",
+      "command": "npm.cmd run test -- --no-file-parallelism <fileResults.file>",
+      "files": 24,
+      "passed": 543,
+      "failed": 0,
+      "startTime": "2026-10-16T10:39:26.429Z",
+      "fileResults": [
+        {
+          "file": "tests/actionSearchAdapter.test.ts",
+          "status": "passed",
+          "passed": 2
+        },
+        {
+          "file": "tests/cameraPseudoAssets.test.js",
+          "status": "passed",
+          "passed": 36
+        },
+        {
+          "file": "tests/cameraRigRenderProbe.test.js",
+          "status": "passed",
+          "passed": 1
+        },
+        {
+          "file": "tests/cepDevTools.test.ts",
+          "status": "passed",
+          "passed": 5
+        },
+        {
+          "file": "tests/cepHostEngineContract.test.js",
+          "status": "passed",
+          "passed": 1
+        },
+        {
+          "file": "tests/globalSearchProvider.test.tsx",
+          "status": "passed",
+          "passed": 12
+        },
+        {
+          "file": "tests/homePageAlignmentActions.test.tsx",
+          "status": "passed",
+          "passed": 2
+        },
+        {
+          "file": "tests/homePageAnchorActions.test.tsx",
+          "status": "passed",
+          "passed": 1
+        },
+        {
+          "file": "tests/homePageLayerActions.test.tsx",
+          "status": "passed",
+          "passed": 23
+        },
+        {
+          "file": "tests/hostJsonCompatibility.test.js",
+          "status": "passed",
+          "passed": 1
+        },
+        {
+          "file": "tests/hostScriptCompatibility.test.js",
+          "status": "passed",
+          "passed": 5
+        },
+        {
+          "file": "tests/layerActionExecutor.test.ts",
+          "status": "passed",
+          "passed": 6
+        },
+        {
+          "file": "tests/layerActions.test.ts",
+          "status": "passed",
+          "passed": 3
+        },
+        {
+          "file": "tests/layerBridge.test.ts",
+          "status": "passed",
+          "passed": 25
+        },
+        {
+          "file": "tests/layerControllerHost.test.js",
+          "status": "passed",
+          "passed": 68
+        },
+        {
+          "file": "tests/layerCreationHost.test.js",
+          "status": "passed",
+          "passed": 41
+        },
+        {
+          "file": "tests/layerFeedback.test.ts",
+          "status": "passed",
+          "passed": 35
+        },
+        {
+          "file": "tests/layerLocalizationContract.test.ts",
+          "status": "passed",
+          "passed": 23
+        },
+        {
+          "file": "tests/layerNativeSemantics.test.js",
+          "status": "passed",
+          "passed": 23
+        },
+        {
+          "file": "tests/layerPrecomposeHost.test.js",
+          "status": "passed",
+          "passed": 36
+        },
+        {
+          "file": "tests/layerShapeHost.test.js",
+          "status": "passed",
+          "passed": 137
+        },
+        {
+          "file": "tests/pseudoEffectAssets.test.js",
+          "status": "passed",
+          "passed": 39
+        },
+        {
+          "file": "tests/pseudoEffectLocalization.test.js",
+          "status": "passed",
+          "passed": 13
+        },
+        {
+          "file": "tests/translations.test.ts",
+          "status": "passed",
+          "passed": 5
+        }
+      ]
+    },
+    {
+      "report": "work/layer-fixes-20261016/final-host-vitest.json",
+      "note": "After final Host change; overlaps with the earlier regression",
+      "command": "npm.cmd run test -- --no-file-parallelism <fileResults.file>",
+      "files": 5,
+      "passed": 306,
+      "failed": 0,
+      "startTime": "2026-10-16T10:49:05.866Z",
+      "fileResults": [
+        {
+          "file": "tests/layerControllerHost.test.js",
+          "status": "passed",
+          "passed": 68
+        },
+        {
+          "file": "tests/layerCreationHost.test.js",
+          "status": "passed",
+          "passed": 41
+        },
+        {
+          "file": "tests/layerNativeSemantics.test.js",
+          "status": "passed",
+          "passed": 24
+        },
+        {
+          "file": "tests/layerPrecomposeHost.test.js",
+          "status": "passed",
+          "passed": 36
+        },
+        {
+          "file": "tests/layerShapeHost.test.js",
+          "status": "passed",
+          "passed": 137
+        }
+      ]
+    }
+  ],
+  "builds": {
+    "production": {
+      "command": "npm.cmd run build",
+      "exitCode": 0,
+      "log": "work/layer-fixes-20261016/build-production.log"
+    },
+    "development": {
+      "command": "NYAWORKS_CEP_DEV=1 NYAWORKS_CEP_DEV_OUT_DIR=<worktree>/dev-extension npm.cmd run build",
+      "exitCode": 0,
+      "log": "work/layer-fixes-20261016/build-dev.log"
+    },
+    "typecheck": "tsc -b completed in both builds",
+    "warnings": [
+      "Vite reports a minified chunk above 500 kB"
+    ],
+    "productionSmoke": {
+      "command": "npm.cmd run smoke:dist",
+      "exitCode": 0,
+      "requiredFilesAndAssets": 23
+    },
+    "dist": {
+      "requiredFilesAndBanner": 23,
+      "passed": true,
+      "entryPoints": 3
+    },
+    "dev-extension": {
+      "requiredFilesAndBanner": 23,
+      "passed": true,
+      "entryPoints": 3
+    }
+  },
+  "delivery": {
+    "installedPath": "C:\\Users\\v-guojingzheng\\AppData\\Roaming\\Adobe\\CEP\\extensions\\com.kuroii.nyaworks.panel",
+    "junctionTarget": "D:\\AIGC\\codex\\Projects\\AE脚本扩展开发\\NYAWORKS\\.worktrees\\camera-controller-pseudo\\dev-extension",
+    "fileCount": 18,
+    "allFourRootsMatch": true,
+    "preservedCatalogAndFfx": 17,
+    "preservedHostFunctionCount": 29,
+    "preservedHostFunctions": [
+      "setShapeExpression",
+      "addShapeFill",
+      "getLastShapePseudoTrace",
+      "captureShapePseudoEffect",
+      "writeShapePseudoTrace",
+      "getPseudoEffectTemplateContract",
+      "getCameraPseudoEffectTemplateContract",
+      "getChinesePseudoEffectTemplateContract",
+      "pseudoEffectArrayContains",
+      "validatePseudoEffectDefinition",
+      "preflightPseudoEffectTemplate",
+      "validatePseudoEffectInstance",
+      "findExistingPseudoEffect",
+      "cleanupAddedPseudoEffects",
+      "applyPseudoEffectTemplate",
+      "describePseudoParameter",
+      "createRoundedRectangleShape",
+      "createEllipseShape",
+      "bindPolygonShapeStyle",
+      "createPolygonShape",
+      "createShapeLayer",
+      "addCameraControllerControls",
+      "configureCameraFromController",
+      "setCamera35mm",
+      "setCameraRigExpression",
+      "recordCameraRigDiagnostic",
+      "addCameraPseudoControls",
+      "configureCameraFromPseudo",
+      "createCameraRig"
+    ],
+    "frontendRevisionAndFeedbackPresent": true,
+    "files": [
+      {
+        "file": "host/index.jsx",
+        "source": "5F5463E10CE98ABD36E6AE0E7076E97816C300F93B8DFB48B2402170F4C6FB8A",
+        "production": "5F5463E10CE98ABD36E6AE0E7076E97816C300F93B8DFB48B2402170F4C6FB8A",
+        "development": "5F5463E10CE98ABD36E6AE0E7076E97816C300F93B8DFB48B2402170F4C6FB8A",
+        "installed": "5F5463E10CE98ABD36E6AE0E7076E97816C300F93B8DFB48B2402170F4C6FB8A",
+        "unchangedFromBaseline": false
+      },
+      {
+        "file": "host/pseudo-effects/catalog.json",
+        "source": "437736DE71B20C015E4F81814ECA61B14D49EE4BD1F202D9CCB145B90A089881",
+        "production": "437736DE71B20C015E4F81814ECA61B14D49EE4BD1F202D9CCB145B90A089881",
+        "development": "437736DE71B20C015E4F81814ECA61B14D49EE4BD1F202D9CCB145B90A089881",
+        "installed": "437736DE71B20C015E4F81814ECA61B14D49EE4BD1F202D9CCB145B90A089881",
+        "unchangedFromBaseline": true
+      },
+      {
+        "file": "host/pseudo-effects/camera-zh-CN.ffx",
+        "source": "8086379C3C0818F037DE1CB0C7A5E31382CC14974E00F048DFCF133F12623CCB",
+        "production": "8086379C3C0818F037DE1CB0C7A5E31382CC14974E00F048DFCF133F12623CCB",
+        "development": "8086379C3C0818F037DE1CB0C7A5E31382CC14974E00F048DFCF133F12623CCB",
+        "installed": "8086379C3C0818F037DE1CB0C7A5E31382CC14974E00F048DFCF133F12623CCB",
+        "unchangedFromBaseline": true
+      },
+      {
+        "file": "host/pseudo-effects/circle-zh-CN.ffx",
+        "source": "0B3F38341544AC1B13CF0D5E2F87CE734555EC388CE334C7F22BA8DE7E99E02E",
+        "production": "0B3F38341544AC1B13CF0D5E2F87CE734555EC388CE334C7F22BA8DE7E99E02E",
+        "development": "0B3F38341544AC1B13CF0D5E2F87CE734555EC388CE334C7F22BA8DE7E99E02E",
+        "installed": "0B3F38341544AC1B13CF0D5E2F87CE734555EC388CE334C7F22BA8DE7E99E02E",
+        "unchangedFromBaseline": true
+      },
+      {
+        "file": "host/pseudo-effects/en/camera.ffx",
+        "source": "65FAB1D5F22CEB1BF5CE7A21E437424F330CC5DAEC387C100B982D6612245069",
+        "production": "65FAB1D5F22CEB1BF5CE7A21E437424F330CC5DAEC387C100B982D6612245069",
+        "development": "65FAB1D5F22CEB1BF5CE7A21E437424F330CC5DAEC387C100B982D6612245069",
+        "installed": "65FAB1D5F22CEB1BF5CE7A21E437424F330CC5DAEC387C100B982D6612245069",
+        "unchangedFromBaseline": true
+      },
+      {
+        "file": "host/pseudo-effects/en/circle.ffx",
+        "source": "0D252AD50CF22A92816F1D0A9ECA3C8BD88F587E1BA88DA4041B4D22D0888487",
+        "production": "0D252AD50CF22A92816F1D0A9ECA3C8BD88F587E1BA88DA4041B4D22D0888487",
+        "development": "0D252AD50CF22A92816F1D0A9ECA3C8BD88F587E1BA88DA4041B4D22D0888487",
+        "installed": "0D252AD50CF22A92816F1D0A9ECA3C8BD88F587E1BA88DA4041B4D22D0888487",
+        "unchangedFromBaseline": true
+      },
+      {
+        "file": "host/pseudo-effects/en/rounded-rectangle.ffx",
+        "source": "2F75EF2D9C9EFFA7486D3AB8752A943A2623A9E80942AB21A432ED753B62BAEA",
+        "production": "2F75EF2D9C9EFFA7486D3AB8752A943A2623A9E80942AB21A432ED753B62BAEA",
+        "development": "2F75EF2D9C9EFFA7486D3AB8752A943A2623A9E80942AB21A432ED753B62BAEA",
+        "installed": "2F75EF2D9C9EFFA7486D3AB8752A943A2623A9E80942AB21A432ED753B62BAEA",
+        "unchangedFromBaseline": true
+      },
+      {
+        "file": "host/pseudo-effects/en/star.ffx",
+        "source": "26E6CDA0ADE6C92DC646F208BF4C7D497DF2296C4EAFB20687C92B8B930C5188",
+        "production": "26E6CDA0ADE6C92DC646F208BF4C7D497DF2296C4EAFB20687C92B8B930C5188",
+        "development": "26E6CDA0ADE6C92DC646F208BF4C7D497DF2296C4EAFB20687C92B8B930C5188",
+        "installed": "26E6CDA0ADE6C92DC646F208BF4C7D497DF2296C4EAFB20687C92B8B930C5188",
+        "unchangedFromBaseline": true
+      },
+      {
+        "file": "host/pseudo-effects/en/triangle.ffx",
+        "source": "F8C4007DA64097CC59AE37F7A957BF35B6550392FB3846D0B33CE4C686FB094E",
+        "production": "F8C4007DA64097CC59AE37F7A957BF35B6550392FB3846D0B33CE4C686FB094E",
+        "development": "F8C4007DA64097CC59AE37F7A957BF35B6550392FB3846D0B33CE4C686FB094E",
+        "installed": "F8C4007DA64097CC59AE37F7A957BF35B6550392FB3846D0B33CE4C686FB094E",
+        "unchangedFromBaseline": true
+      },
+      {
+        "file": "host/pseudo-effects/ja/camera.ffx",
+        "source": "65CE104856C2DECCEE79A54D8F91CD941BBB39D22B53DF9DF5D623E6D77DCC05",
+        "production": "65CE104856C2DECCEE79A54D8F91CD941BBB39D22B53DF9DF5D623E6D77DCC05",
+        "development": "65CE104856C2DECCEE79A54D8F91CD941BBB39D22B53DF9DF5D623E6D77DCC05",
+        "installed": "65CE104856C2DECCEE79A54D8F91CD941BBB39D22B53DF9DF5D623E6D77DCC05",
+        "unchangedFromBaseline": true
+      },
+      {
+        "file": "host/pseudo-effects/rounded-rectangle-zh-CN.ffx",
+        "source": "D51226CC1DD15988215CFBD27254C1F7377F2C1334E939B01CF0FA8B199BDEB9",
+        "production": "D51226CC1DD15988215CFBD27254C1F7377F2C1334E939B01CF0FA8B199BDEB9",
+        "development": "D51226CC1DD15988215CFBD27254C1F7377F2C1334E939B01CF0FA8B199BDEB9",
+        "installed": "D51226CC1DD15988215CFBD27254C1F7377F2C1334E939B01CF0FA8B199BDEB9",
+        "unchangedFromBaseline": true
+      },
+      {
+        "file": "host/pseudo-effects/star-zh-CN.ffx",
+        "source": "3EFC6C9BB80A6319DA5FC5EE4CEBC53FE838B68228332C0265E61AA187E18C7E",
+        "production": "3EFC6C9BB80A6319DA5FC5EE4CEBC53FE838B68228332C0265E61AA187E18C7E",
+        "development": "3EFC6C9BB80A6319DA5FC5EE4CEBC53FE838B68228332C0265E61AA187E18C7E",
+        "installed": "3EFC6C9BB80A6319DA5FC5EE4CEBC53FE838B68228332C0265E61AA187E18C7E",
+        "unchangedFromBaseline": true
+      },
+      {
+        "file": "host/pseudo-effects/triangle-zh-CN.ffx",
+        "source": "4F616CDF3BCA836F2887FE3866975658D7D0F9F06A2D57F1A5B85B90CEBC0476",
+        "production": "4F616CDF3BCA836F2887FE3866975658D7D0F9F06A2D57F1A5B85B90CEBC0476",
+        "development": "4F616CDF3BCA836F2887FE3866975658D7D0F9F06A2D57F1A5B85B90CEBC0476",
+        "installed": "4F616CDF3BCA836F2887FE3866975658D7D0F9F06A2D57F1A5B85B90CEBC0476",
+        "unchangedFromBaseline": true
+      },
+      {
+        "file": "host/pseudo-effects/zh-TW/camera.ffx",
+        "source": "B7C9CCB13C3CDB16166394F1EF1E0FF53E9CC5A9F52698537285EE5BCD012E31",
+        "production": "B7C9CCB13C3CDB16166394F1EF1E0FF53E9CC5A9F52698537285EE5BCD012E31",
+        "development": "B7C9CCB13C3CDB16166394F1EF1E0FF53E9CC5A9F52698537285EE5BCD012E31",
+        "installed": "B7C9CCB13C3CDB16166394F1EF1E0FF53E9CC5A9F52698537285EE5BCD012E31",
+        "unchangedFromBaseline": true
+      },
+      {
+        "file": "host/pseudo-effects/zh-TW/circle.ffx",
+        "source": "2293B924A557D81502CB199BAC7231CEE5F46C3E6CC357D7A3038AC4F7168509",
+        "production": "2293B924A557D81502CB199BAC7231CEE5F46C3E6CC357D7A3038AC4F7168509",
+        "development": "2293B924A557D81502CB199BAC7231CEE5F46C3E6CC357D7A3038AC4F7168509",
+        "installed": "2293B924A557D81502CB199BAC7231CEE5F46C3E6CC357D7A3038AC4F7168509",
+        "unchangedFromBaseline": true
+      },
+      {
+        "file": "host/pseudo-effects/zh-TW/rounded-rectangle.ffx",
+        "source": "5228500A670619067C094CAEB8F26753415B4B5F961E79A51506540E78B50DB5",
+        "production": "5228500A670619067C094CAEB8F26753415B4B5F961E79A51506540E78B50DB5",
+        "development": "5228500A670619067C094CAEB8F26753415B4B5F961E79A51506540E78B50DB5",
+        "installed": "5228500A670619067C094CAEB8F26753415B4B5F961E79A51506540E78B50DB5",
+        "unchangedFromBaseline": true
+      },
+      {
+        "file": "host/pseudo-effects/zh-TW/star.ffx",
+        "source": "B8B8CD4A545D0F25FC9BD0180DF7654E672F69C4BBF0BD02C7F16C6DE568FE2D",
+        "production": "B8B8CD4A545D0F25FC9BD0180DF7654E672F69C4BBF0BD02C7F16C6DE568FE2D",
+        "development": "B8B8CD4A545D0F25FC9BD0180DF7654E672F69C4BBF0BD02C7F16C6DE568FE2D",
+        "installed": "B8B8CD4A545D0F25FC9BD0180DF7654E672F69C4BBF0BD02C7F16C6DE568FE2D",
+        "unchangedFromBaseline": true
+      },
+      {
+        "file": "host/pseudo-effects/zh-TW/triangle.ffx",
+        "source": "FC0F2C54D70F17573DD5AEC1F342FCDB5A87D976273C610D9C8A47F6A0A38BDC",
+        "production": "FC0F2C54D70F17573DD5AEC1F342FCDB5A87D976273C610D9C8A47F6A0A38BDC",
+        "development": "FC0F2C54D70F17573DD5AEC1F342FCDB5A87D976273C610D9C8A47F6A0A38BDC",
+        "installed": "FC0F2C54D70F17573DD5AEC1F342FCDB5A87D976273C610D9C8A47F6A0A38BDC",
+        "unchangedFromBaseline": true
+      }
+    ]
+  },
+  "realAE": {
+    "performedThisSession": false,
+    "automation": "No AE process launched, closed or operated; no host or render probe executed.",
+    "accepted": [
+      "R01 adjustment layer: user confirmed",
+      "R03 default precompose: original baseline user confirmed"
+    ],
+    "pending": [
+      "R02 light types/names/no error",
+      "R03 non-zero in-point regression",
+      "R04 supported 2D crop/Ctrl/Shift",
+      "R05 unprecompose all layers/time/order/position/Undo"
+    ],
+    "unsupported": [
+      "3D crop: rejected before mutation, still not implemented"
+    ]
+  },
+  "gitAtVerification": {
+    "committed": false,
+    "pushed": false
+  },
+  "documentation": {
+    "markdownFilesChecked": 10,
+    "relativeFileLinksChecked": 88,
+    "brokenLinks": 0,
+    "gitDiffCheck": "passed"
+  }
+}

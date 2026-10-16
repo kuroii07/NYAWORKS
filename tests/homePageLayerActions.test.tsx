@@ -163,7 +163,7 @@ describe("HomePage layer actions", () => {
     );
   });
 
-  it("uses Alt+Ctrl+Shift only for precompose settings and never opens a variant menu", async () => {
+  it("uses default behavior for combined modifiers without the removed settings mode", async () => {
     const runs: Array<{ actionId: string; options?: ActionRunOptions }> = [];
     const buttons = await renderGrid(runs);
     await act(async () => {
@@ -189,9 +189,23 @@ describe("HomePage layer actions", () => {
     expect(runs).toEqual([
       { actionId: "layer.createShape", options: { layerModifier: "none", languageId: "zh-CN" } },
       { actionId: "layer.createCameraRig", options: { layerModifier: "none", languageId: "zh-CN" } },
-      { actionId: "layer.precomposeSelected", options: { layerModifier: "settings", languageId: "zh-CN" } }
+      { actionId: "layer.precomposeSelected", options: { layerModifier: "none", languageId: "zh-CN" } }
     ]);
     expect(document.querySelector(".compact-action-menu")).toBe(null);
+  });
+
+  it.each(LANGUAGE_IDS)("routes each precompose modifier and updates its %s tooltip", async language => {
+    const runs: Array<{ actionId: string; options?: ActionRunOptions }> = [];
+    const buttons = await renderGrid(runs, language);
+    await act(async () => {
+      for (const modifier of ["alt", "ctrl", "shift"]) {
+        buttons[7].dispatchEvent(new MouseEvent("click", { bubbles: true,
+          altKey: modifier === "alt", ctrlKey: modifier === "ctrl", shiftKey: modifier === "shift" }));
+      }
+    });
+    expect(runs.map(run => run.options?.layerModifier)).toEqual(["alt", "ctrl", "shift"]);
+    expect(buttons[7].title).not.toContain("Alt+Ctrl+Shift");
+    expect(buttons[7].title.split("\n")).toHaveLength(4);
   });
 
   it("exposes localized behavior tooltips without planned or disabled metadata", async () => {
@@ -204,7 +218,9 @@ describe("HomePage layer actions", () => {
     expect(buttons[0].title).not.toContain("Ctrl");
     expect(buttons[1].title).not.toContain("Alt");
     expect(buttons[1].title).not.toContain("Ctrl");
-    expect(buttons[7].title).toContain("Alt+Ctrl+Shift");
+    expect(buttons[7].title).not.toContain("Alt+Ctrl+Shift");
+    expect(buttons[7].title).toContain("Ctrl");
+    expect(buttons[7].title).toContain("Shift");
     for (const button of buttons) {
       expect(button.getAttribute("aria-label")).toBeTruthy();
       expect(button.hasAttribute("aria-disabled")).toBe(false);

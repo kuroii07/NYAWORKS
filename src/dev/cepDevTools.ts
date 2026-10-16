@@ -14,7 +14,7 @@ type ReloadableCepEnvironment = {
   };
 };
 
-const EXPECTED_HOST_REVISION = "camera-rig-host-20261015-7";
+const EXPECTED_HOST_REVISION = "layer-acceptance-host-20261016-1";
 
 export function reloadCepHostScript(
   environment: ReloadableCepEnvironment =

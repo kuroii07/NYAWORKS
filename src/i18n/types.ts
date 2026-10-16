@@ -302,6 +302,14 @@ export interface UiCopy {
       unsupportedLayerType: string;
       unsupportedPrecomp: string;
       unsafeUnprecompose: string;
+      precompCropUnsupported: string;
+      precompCropUnavailable: string;
+      precompIndividualDependency: string;
+      precompPartialFailure: string;
+      unprecomposeFailed: string;
+      unprecomposeRollbackFailed: string;
+      lightCreateFailed: string;
+      lightRollbackFailed: string;
       unavailable: string;
       hostError: string;
     };

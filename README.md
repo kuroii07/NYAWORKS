@@ -18,14 +18,18 @@
 
 NYAWORKS 是一个 After Effects CEP 面板：首页和全局搜索共享工具执行链，资源库可调用本地 AE 脚本、预设与表达式。项目处于持续开发阶段，已接入的功能与完成真实 AE 验收的范围并不完全相同。
 
+2026-10-16 状态同步：已交付的功能基线为 `728ea68`。四种形状以及摄像机五种面板语言的创建和当前调参已获用户确认；本轮 R01 调整层、R03 默认预合成通过，R02 灯光、R04 裁切、R05 解预合成实测失败后已形成[修订候选与复测步骤](docs/testing/layer-acceptance-fixes-20261016.md)，尚待 AE 复测。3D 裁切仍未支持。[收尾清单](docs/testing/core-tools-closeout-20261016.md)记录其余待验范围。
+
 ## 现在可以做什么
 
 | 功能 | 当前范围 | 验证状态 |
 | --- | --- | --- |
 | 锚点九宫格 | 单选、多选分别调整各图层锚点并补偿画面位置。 | 基础场景有真实 AE 测试反馈；带关键帧/表达式的目标属性不做高级改写。[检查表](docs/testing/anchor-action-ae-test.md) |
 | 对齐九宫格 | 单选默认对齐合成，多选默认对齐联合选区；多选 Alt/Option 或 Shift 强制合成。支持 2D/3D 路径与三个文字段落动作。 | 用户已测试常用 2D/3D、父子级及段落场景；完整逐项记录仍待补。[检查表](docs/testing/alignment-action-ae-test.md) |
-| 新建图层九宫格 | 文字、纯色、形状、调整层、空对象、摄像机控制器、灯光、预合成、解预合成九个 Action。 | 代码及自动化已覆盖，文字等部分场景经过 AE 测试；九项完整宿主验收尚未结束。[检查表](docs/testing/layer-creation-grid-ae-test.md) |
+| 新建图层九宫格 | 文字、纯色、形状、调整层、空对象、摄像机控制器、灯光、预合成、解预合成九个 Action。 | 文字编辑器、四形状、R01 调整层和 R03 默认预合成已有用户验收；空对象和摄像机当前正常。灯光、裁切和解预合成修订待复测，其余通用边界见[收尾清单](docs/testing/core-tools-closeout-20261016.md)。 |
 | 圆角矩形伪效果 | 普通点击新建圆角矩形使用 `rounded-rectangle-zh-CN.ffx`；支持总圆角、四角分离、填充与描边样式控制。 | Windows AE 2025 已验证创建、调参、关键帧、效果重命名、Undo、复制及保存重开；其他 AE/系统版本仍待验证。[记录](docs/testing/rounded-rectangle-pseudo-effect-ae-test.md) |
+| 圆形、三角形与星形 | Alt 圆形、Ctrl 三角形/多边形、Shift 星形，各自使用独立伪效果；四形状描边范围一致。 | 四形状创建、当前参数和五语言显示已获用户确认；日文/韩文形状使用本地化对象名与英文参数。[语言记录](docs/testing/layer-localization-ae-test.md) |
+| 摄像机控制器 v3 | 35mm 摄像机与 3D 控制空对象；六组 15 项参数，包括零中心位置偏移、目标、自动移动、镜头、对焦和抖动。 | 简中、繁中、英文、日文当前使用正常，韩语创建及调参通过；韩语对象名配英文参数并明确提示。完整参数矩阵、关键帧、复制、Undo/Redo 和保存重开仍待专项确认。[记录](docs/testing/camera-controller-v3-korean.md) |
 | 本地资源库 | 浏览当前 AE 内置来源及自定义目录；双击执行脚本、预设、表达式，支持筛选、收藏和最近使用。 | 相关目录扫描与执行路径有真实 AE 测试反馈，完整矩阵见[检查表](docs/testing/resource-command-ae-test.md)。 |
 
 详细的首页、搜索、设置、资源命令和实验能力见[当前功能清单](docs/current-feature-inventory.md)。选择九宫格的宿主功能、云端资源目录、AI 平台正式联网以及正式 Nya Pie UI 均未完成，不应视为可用功能。
@@ -53,7 +57,7 @@ AI 设置页可管理连接和生成偏好，但正式 CEP 安全存储与真实
 ## 开发路线
 
 - 已接入锚点、对齐、新建图层三套共享 Action 九宫格和本地资源库；继续逐项补齐真实 AE 宿主验收。
-- 圆角矩形伪效果已完成 Windows AE 2025 本轮验收；下一步顺序为：抽取共享加载能力 → 逐个接入圆形、三角形、星形 → 接入摄像机控制器 → 补齐新建九宫格验收 → 开发选择与显示九宫格及高价值增强工具。上述后续项仍待开发或验收；Nya Pie P0/P1 仍为技术验证，正式 Pie UI 与编辑器尚未开始。
+- 共享伪效果加载、四种形状和摄像机控制器已接入；已确认的参数、资源和创建行为作为稳定基线保留。当前顺序为：同步状态文档 → 补齐新建九宫格剩余验收 → 先确认选择九宫格行为规格，再开发选择与显示及高价值增强工具。Nya Pie P0/P1 仍为技术验证，正式 Pie UI 与编辑器尚未开始。
 - 后续功能与待验收条目分别记录在[核心工具优先路线](planning/05-core-tools-priority-roadmap.md)和[开发路线](planning/02-roadmap.md)，不以浏览器测试代替 AE 结果。
 
 ## 开发者快速开始
@@ -83,6 +87,7 @@ npm run verify
 ## 文档导航
 
 - [当前功能与验证边界](docs/current-feature-inventory.md)：比首页更细的模块清单及状态。
+- [本轮收尾清单](docs/testing/core-tools-closeout-20261016.md)：已通过范围、可复现的本地检查和剩余 AE 手动验收。
 - [核心工具优先路线](planning/05-core-tools-priority-roadmap.md)与[开发路线](planning/02-roadmap.md)：下一步工作及待验收项目。
 - [伪效果系统设计](docs/superpowers/specs/2026-10-08-pseudo-effect-system-design.md)：模板身份、生成、加载和兼容规则。
 - [CEP 开发模式](docs/testing/cep-development-mode.md)：开发链接、刷新和构建。

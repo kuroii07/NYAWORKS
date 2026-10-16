@@ -97,7 +97,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         nullObject: "点击：选区中心（含 3D 时取平均位置）\nAlt：逐层控制\nCtrl：平均位置\nShift：3D 控制",
         camera: "点击：摄像机+控制器\nCtrl：摄像机设置",
         light: "点击：点光\nAlt：聚光\nCtrl：平行光\nShift：环境光",
-        precompose: "点击：匹配时长\nAlt：裁切边界\nAlt+Ctrl+Shift：合成设置",
+        precompose: "点击：匹配时长\nAlt：裁切 2D 边界\nCtrl：每层单独预合成\nShift：移动全部属性，保留完整时长",
         unprecompose: "点击：解预合成"
       },
       textLayerDialog: {
@@ -131,7 +131,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
          solidLayer: { none: "全合成纯色" },
         camera: { none: "摄像机与控制器", ctrl: "摄像机设置" },
         light: { none: "点光源", alt: "聚光灯", ctrl: "平行光", shift: "环境光" },
-        precompose: { none: "匹配选层时长", alt: "裁切图层边界", settings: "合成设置" }
+        precompose: { none: "匹配选层时长", alt: "裁切 2D 图层边界", ctrl: "每层单独预合成", shift: "移动全部属性，保留完整时长" }
       },
       layerFeedback: {
         pseudoTemplateLocaleUnavailable: "当前语言的形状模板尚未就绪，请切换到简体中文或 English 后再创建",
@@ -150,6 +150,14 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         unsupportedLayerType: "当前图层类型暂不支持",
         unsupportedPrecomp: "请选择一个预合成图层",
         unsafeUnprecompose: "该预合成包含无法安全保留的属性，已停止操作",
+        precompCropUnsupported: "裁切暂不支持 3D 图层，未作修改；可先用普通预合成",
+        precompCropUnavailable: "当前图层的父级或位置属性无法安全裁切，未作修改",
+        precompIndividualDependency: "逐层预合成不支持已有父级、锁定或轨道遮罩依赖，未作修改",
+        precompPartialFailure: "预合成未完整完成，请立即撤销一次以恢复整批图层",
+        unprecomposeFailed: "解预合成未完成，已清理本次新增图层并保留原预合成",
+        unprecomposeRollbackFailed: "解预合成恢复未完成，仍可能有新增图层；请立即撤销一次",
+        lightCreateFailed: "灯光创建未完成，已移除本次新增灯光",
+        lightRollbackFailed: "灯光创建后恢复失败，请立即撤销一次并检查新增图层",
         unavailable: "尚未连接到 After Effects",
         hostError: "图层操作失败，请检查当前合成和图层状态"
       },
@@ -647,7 +655,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         nullObject: "點擊：選區中心（含 3D 時取平均位置）\nAlt：逐層控制\nCtrl：平均位置\nShift：3D 控制",
         camera: "點擊：攝影機+控制器\nCtrl：攝影機設定",
         light: "點擊：點光\nAlt：聚光\nCtrl：平行光\nShift：環境光",
-        precompose: "點擊：符合時長\nAlt：裁切邊界\nAlt+Ctrl+Shift：合成設定",
+        precompose: "點擊：符合時長\nAlt：裁切 2D 邊界\nCtrl：每層單獨預合成\nShift：移動全部屬性，保留完整時長",
         unprecompose: "點擊：解預合成"
       },
       textLayerDialog: {
@@ -681,7 +689,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
          solidLayer: { none: "完整合成純色" },
         camera: { none: "攝影機與控制器", ctrl: "攝影機設定" },
         light: { none: "點光源", alt: "聚光燈", ctrl: "平行光", shift: "環境光" },
-        precompose: { none: "符合選層時長", alt: "裁切圖層邊界", settings: "合成設定" }
+        precompose: { none: "符合選層時長", alt: "裁切 2D 圖層邊界", ctrl: "每層單獨預合成", shift: "移動全部屬性，保留完整時長" }
       },
       layerFeedback: {
         pseudoTemplateLocaleUnavailable: "目前語言的形狀範本尚未就緒，請切換至簡體中文或 English 後再建立",
@@ -700,6 +708,14 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         unsupportedLayerType: "目前圖層類型暫不支援",
         unsupportedPrecomp: "請選取一個預合成圖層",
         unsafeUnprecompose: "此預合成包含無法安全保留的屬性，操作已停止",
+        precompCropUnsupported: "裁切暫不支援 3D 圖層，未作修改；可先用一般預合成",
+        precompCropUnavailable: "目前圖層的父級或位置屬性無法安全裁切，未作修改",
+        precompIndividualDependency: "逐層預合成不支援既有父級、鎖定或軌道遮罩相依，未作修改",
+        precompPartialFailure: "預合成未完整完成，請立即復原一次以恢復整批圖層",
+        unprecomposeFailed: "解預合成未完成，已清理本次新增圖層並保留原預合成",
+        unprecomposeRollbackFailed: "解預合成恢復未完成，仍可能有新增圖層；請立即復原一次",
+        lightCreateFailed: "燈光建立未完成，已移除本次新增燈光",
+        lightRollbackFailed: "燈光建立後恢復失敗，請立即復原一次並檢查新增圖層",
         unavailable: "尚未連線到 After Effects",
         hostError: "圖層操作失敗，請檢查目前合成與圖層狀態"
       },
@@ -1191,7 +1207,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         nullObject: "Click: Selection center (anchor average with 3D)\nAlt: Per-layer control\nCtrl: Average position\nShift: 3D control",
         camera: "Click: Camera + control\nCtrl: Camera settings",
         light: "Click: Point light\nAlt: Spot\nCtrl: Parallel\nShift: Ambient",
-        precompose: "Click: Match duration\nAlt: Crop bounds\nAlt+Ctrl+Shift: Comp settings",
+        precompose: "Click: Match duration\nAlt: Crop 2D bounds\nCtrl: Pre-compose each layer\nShift: Move all attributes, keep full duration",
         unprecompose: "Click: Unprecompose"
       },
       textLayerDialog: {
@@ -1225,7 +1241,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
          solidLayer: { none: "Comp-size solid" },
         camera: { none: "Camera with controller", ctrl: "Camera settings" },
         light: { none: "Point light", alt: "Spot light", ctrl: "Parallel light", shift: "Ambient light" },
-        precompose: { none: "Fit selected duration", alt: "Crop layer bounds", settings: "Comp settings" }
+        precompose: { none: "Fit selected duration", alt: "Crop 2D layer bounds", ctrl: "Pre-compose each layer", shift: "Move all attributes, keep full duration" }
       },
       layerFeedback: {
         pseudoTemplateLocaleUnavailable: "Shape templates are not ready for this language. Switch to Simplified Chinese or English to create a shape.",
@@ -1244,6 +1260,14 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         unsupportedLayerType: "This layer type is not supported yet",
         unsupportedPrecomp: "Select one precomp layer",
         unsafeUnprecompose: "This precomp cannot be extracted safely, so no changes were made",
+        precompCropUnsupported: "Cropping does not yet support 3D layers. No changes made; use normal pre-compose",
+        precompCropUnavailable: "Parenting or position properties prevent safe cropping. No changes made",
+        precompIndividualDependency: "Individual pre-compose cannot preserve parenting, locked layers or track mattes. No changes made",
+        precompPartialFailure: "Pre-compose did not finish. Undo once now to restore the whole batch",
+        unprecomposeFailed: "Extraction did not finish. New layers were removed and the original precomp was kept",
+        unprecomposeRollbackFailed: "Extraction cleanup failed and new layers may remain. Undo once now",
+        lightCreateFailed: "Light creation failed. The new light was removed",
+        lightRollbackFailed: "Light cleanup failed. Undo once now and check for remaining layers",
         unavailable: "After Effects is not connected",
         hostError: "Layer action failed; check the active composition and layer state"
       },
@@ -1736,7 +1760,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         nullObject: "クリック：選択範囲の中心（3D を含む場合は平均位置）\nAlt：レイヤー別\nCtrl：平均位置\nShift：3D 制御",
         camera: "クリック：カメラ+制御\nCtrl：カメラ設定",
         light: "クリック：ポイント\nAlt：スポット\nCtrl：平行\nShift：環境光",
-        precompose: "クリック：尺を合わせる\nAlt：境界で切り抜く\nAlt+Ctrl+Shift：コンポ設定",
+        precompose: "クリック：尺を合わせる\nAlt：2D 境界で切り抜く\nCtrl：レイヤーごとにプリコンポーズ\nShift：全属性を移動し、全体の尺を保持",
         unprecompose: "クリック：プリコンポーズ解除"
       },
       textLayerDialog: {
@@ -1770,7 +1794,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
          solidLayer: { none: "コンポサイズ平面" },
         camera: { none: "カメラとコントローラー", ctrl: "カメラ設定" },
         light: { none: "ポイントライト", alt: "スポットライト", ctrl: "平行ライト", shift: "アンビエントライト" },
-        precompose: { none: "選択範囲の尺", alt: "レイヤー境界で切り抜く", settings: "コンポ設定" }
+        precompose: { none: "選択範囲の尺", alt: "2D 境界で切り抜く", ctrl: "レイヤーごとにプリコンポーズ", shift: "全属性を移動し、全体の尺を保持" }
       },
       layerFeedback: {
         pseudoTemplateLocaleUnavailable: "この言語のシェイプテンプレートは準備中です。簡体字中国語または English に切り替えて作成してください。",
@@ -1789,6 +1813,14 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         unsupportedLayerType: "このレイヤータイプはまだ対応していません",
         unsupportedPrecomp: "プリコンポーズレイヤーを1つ選択してください",
         unsafeUnprecompose: "安全に展開できない属性があるため、変更せず停止しました",
+        precompCropUnsupported: "3D レイヤーの切り抜きは未対応です。変更していません。通常のプリコンポーズを使用してください",
+        precompCropUnavailable: "親子関係または位置プロパティを安全に切り抜けないため、変更していません",
+        precompIndividualDependency: "個別プリコンポーズでは親子関係、ロック、トラックマットを保持できません。変更していません",
+        precompPartialFailure: "プリコンポーズが完了していません。直ちに一度取り消して全体を復元してください",
+        unprecomposeFailed: "展開が完了しませんでした。追加レイヤーを削除し、元のプリコンポーズを保持しました",
+        unprecomposeRollbackFailed: "展開の復元に失敗し、追加レイヤーが残る可能性があります。直ちに一度取り消してください",
+        lightCreateFailed: "ライトを作成できませんでした。追加したライトは削除しました",
+        lightRollbackFailed: "ライトの復元に失敗しました。直ちに一度取り消し、追加レイヤーを確認してください",
         unavailable: "After Effects に接続されていません",
         hostError: "レイヤー操作に失敗しました。コンポジションとレイヤー状態を確認してください"
       },
@@ -2280,7 +2312,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         nullObject: "클릭: 선택 영역 중심 (3D 포함 시 평균 위치)\nAlt: 레이어별\nCtrl: 평균 위치\nShift: 3D 제어",
         camera: "클릭: 카메라+컨트롤\nCtrl: 카메라 설정",
         light: "클릭: 포인트\nAlt: 스포트\nCtrl: 평행\nShift: 앰비언트",
-        precompose: "클릭: 길이 맞춤\nAlt: 경계 자르기\nAlt+Ctrl+Shift: 컴포지션 설정",
+        precompose: "클릭: 길이 맞춤\nAlt: 2D 경계 자르기\nCtrl: 레이어별 프리컴포즈\nShift: 모든 속성 이동, 전체 길이 유지",
         unprecompose: "클릭: 프리컴프 해제"
       },
       textLayerDialog: {
@@ -2314,7 +2346,7 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
          solidLayer: { none: "컴포지션 크기 단색" },
         camera: { none: "카메라와 컨트롤러", ctrl: "카메라 설정" },
         light: { none: "포인트 라이트", alt: "스포트 라이트", ctrl: "평행 라이트", shift: "앰비언트 라이트" },
-        precompose: { none: "선택 구간 길이", alt: "레이어 경계 자르기", settings: "컴포지션 설정" }
+        precompose: { none: "선택 구간 길이", alt: "2D 경계 자르기", ctrl: "레이어별 프리컴포즈", shift: "모든 속성 이동, 전체 길이 유지" }
       },
       layerFeedback: {
         pseudoTemplateLocaleUnavailable: "이 언어의 모양 템플릿은 아직 준비되지 않았습니다. 중국어 간체 또는 English로 전환한 후 만드세요.",
@@ -2333,6 +2365,14 @@ export const UI_COPY: Record<LanguageId, UiCopy> = {
         unsupportedLayerType: "이 레이어 유형은 아직 지원하지 않습니다",
         unsupportedPrecomp: "프리컴프 레이어 하나를 선택하세요",
         unsafeUnprecompose: "안전하게 유지할 수 없는 속성이 있어 변경 없이 중지했습니다",
+        precompCropUnsupported: "3D 레이어 자르기는 아직 지원하지 않습니다. 변경되지 않았습니다. 일반 프리컴포즈를 사용하세요",
+        precompCropUnavailable: "부모 관계 또는 위치 속성으로 인해 안전하게 자를 수 없어 변경하지 않았습니다",
+        precompIndividualDependency: "개별 프리컴포즈는 부모 관계, 잠긴 레이어, 트랙 매트를 유지할 수 없어 변경하지 않았습니다",
+        precompPartialFailure: "프리컴포즈가 완료되지 않았습니다. 즉시 한 번 실행 취소하여 전체 레이어를 복원하세요",
+        unprecomposeFailed: "추출이 완료되지 않았습니다. 새 레이어를 제거하고 원본 프리컴프를 유지했습니다",
+        unprecomposeRollbackFailed: "추출 복원에 실패해 새 레이어가 남아 있을 수 있습니다. 즉시 한 번 실행 취소하세요",
+        lightCreateFailed: "조명 생성에 실패했습니다. 새 조명은 제거했습니다",
+        lightRollbackFailed: "조명 복원에 실패했습니다. 즉시 한 번 실행 취소하고 새 레이어를 확인하세요",
         unavailable: "After Effects에 연결되지 않았습니다",
         hostError: "레이어 작업에 실패했습니다. 컴포지션과 레이어 상태를 확인하세요"
       },

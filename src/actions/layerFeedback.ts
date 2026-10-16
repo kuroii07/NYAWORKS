@@ -15,6 +15,17 @@ export function getLayerFailureMessage(
   feedback: LayerFailureCopy
 ): string {
   const detail = error?.detail ?? "";
+  const operationMessages: Record<string, string> = {
+    "precomp-crop-3d-unsupported": feedback.precompCropUnsupported,
+    "precomp-bounds-unavailable": feedback.precompCropUnavailable,
+    "precomp-individual-dependency": feedback.precompIndividualDependency,
+    "precomp-partial-failure": feedback.precompPartialFailure,
+    "unprecompose-rollback-failed": feedback.unprecomposeRollbackFailed,
+    "light-create-failed": feedback.lightCreateFailed,
+    "light-rollback-failed": feedback.lightRollbackFailed
+  };
+  if (Object.prototype.hasOwnProperty.call(operationMessages, detail)) return operationMessages[detail];
+  if (detail.startsWith("unprecompose-failed:")) return feedback.unprecomposeFailed;
   const nullMessages: Record<string, string> = {
     "null-unsafe-selection": feedback.nullUnsafeSelection,
     "null-unsafe-transform": feedback.nullUnsafeTransform,

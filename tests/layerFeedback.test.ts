@@ -4,6 +4,24 @@ import { UI_COPY } from "../src/i18n/translations";
 import { LANGUAGE_IDS } from "../src/i18n/languages";
 
 describe("localized shape capability feedback", () => {
+  it.each(LANGUAGE_IDS)("distinguishes %s precompose safety and cleanup failures", language => {
+    const feedback = UI_COPY[language].home.layerFeedback;
+    const cases = [
+      ["precomp-crop-3d-unsupported", feedback.precompCropUnsupported],
+      ["precomp-bounds-unavailable", feedback.precompCropUnavailable],
+      ["precomp-individual-dependency", feedback.precompIndividualDependency],
+      ["precomp-partial-failure", feedback.precompPartialFailure],
+      ["unprecompose-rollback-failed", feedback.unprecomposeRollbackFailed],
+      ["unprecompose-failed:timing-2", feedback.unprecomposeFailed],
+      ["light-create-failed", feedback.lightCreateFailed],
+      ["light-rollback-failed", feedback.lightRollbackFailed]
+    ];
+    for (const [detail, message] of cases) {
+      expect(message).toBeTruthy();
+      expect(getLayerFailureMessage({ code: "host-error", detail }, feedback)).toBe(message);
+    }
+    expect(feedback.unprecomposeRollbackFailed).not.toBe(feedback.unprecomposeFailed);
+  });
   it.each(LANGUAGE_IDS)("explains the camera English-controls notice in %s", language => {
     const feedback = UI_COPY[language].home.layerFeedback;
     expect(feedback.cameraControlsEnglish).toBeTruthy();
